@@ -199,6 +199,12 @@ map.getPane("memoryPane").style.zIndex = 640;
 map.createPane("playerPane");
 map.getPane("playerPane").style.zIndex = 650;
 
+// 캔버스를 map-wrap에 편입
+var mapWrap = document.getElementById("map-wrap");
+mapWrap.appendChild(document.getElementById("fog-canvas"));
+mapWrap.appendChild(document.getElementById("age-canvas"));
+mapWrap.appendChild(document.getElementById("stay-canvas"));
+
 const photoClusterGroup = L.markerClusterGroup({
     clusterPane: "photoPane",
     maxClusterRadius: 60,
@@ -1467,7 +1473,8 @@ function addTourMarkers() {
         if (!isFinite(lat) || !isFinite(lng)) return;
         var marker = L.circleMarker([lat, lng], {
             radius: 5, color: "#78dc8c", fillColor: "#78dc8c",
-            fillOpacity: 0.7, weight: 1.5, opacity: 0.9
+            fillOpacity: 0.7, weight: 1.5, opacity: 0.9,
+            pane: "memoryPane"
         }).addTo(map);
         marker.on("click", function() { showTourPopup(item); });
         tourMarkers.push(marker);
