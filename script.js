@@ -1316,7 +1316,7 @@ function init() {
     setTimeout(function() {
         if (!isRecording) toggleRecording();
     }, 5000);
-    applyLang(); // ← 추가
+    setTimeout(function() { applyLang(); }, 100); // ← 이렇게 변경
 }
 map.whenReady(function() { init(); });
 
@@ -1475,16 +1475,16 @@ function renderTourCards() {
 
 function toggleTourPanel() {
     tourPanelOpen = !tourPanelOpen;
-    var listEl = document.getElementById("tour-list");
-    var emptyEl = document.getElementById("tour-empty");
+    var listEl    = document.getElementById("tour-list");
+    var emptyEl   = document.getElementById("tour-empty");
     var expandBtn = document.getElementById("tour-expand-btn");
-    var headerEl = document.getElementById("tour-header");
+    var headerEl  = document.getElementById("tour-header");
 
     if (tourPanelOpen) {
         headerEl.style.borderBottomLeftRadius = "0";
         headerEl.style.borderBottomRightRadius = "0";
-        if (tourItems.length === 0) {
-            emptyEl.style.display = "";
+        if (!tourItems || tourItems.length === 0) { // ← 방어 코드
+            if (emptyEl) emptyEl.style.display = "";
         } else {
             renderTourCards();
         }
@@ -1494,10 +1494,9 @@ function toggleTourPanel() {
         if (expandBtn) expandBtn.style.display = "none";
         headerEl.style.borderBottomLeftRadius = "10px";
         headerEl.style.borderBottomRightRadius = "10px";
-        clearTourMarkers();
+        if (typeof tourMarkers !== "undefined") clearTourMarkers(); // ← 방어 코드
     }
 }
-
 function showTourPopup(item, color) {
     var lat = parseFloat(item.mapy);
     var lng = parseFloat(item.mapx);
