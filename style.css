@@ -394,11 +394,8 @@ html, body {
 }
 #tour-list {
     display: flex; flex-direction: column; gap: 5px;
-    max-height: 240px; overflow: hidden;
-    transition: max-height 0.3s ease;
-}
-#tour-list.expanded {
     max-height: 70vh; overflow-y: auto;
+    transition: max-height 0.3s ease;
 }
 .tour-card {
     background: rgba(20,20,35,0.55); backdrop-filter: blur(10px);
