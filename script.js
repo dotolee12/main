@@ -1312,7 +1312,8 @@ function init() {
     scheduleRender();
     initGpxDial();
     initHudTapTargets();
-    initCompass(); // ← 추가
+    initCompass();
+    applyLang(); // ← 추가
 
     setTimeout(function() {
         if (!isRecording) toggleRecording();
@@ -1502,10 +1503,11 @@ function showTourPopup(item, color) {
     var lat = parseFloat(item.mapy);
     var lng = parseFloat(item.mapx);
     var typeName = TOUR_TYPE_NAMES[item.contenttypeid] || "관광";
-    var addr = item.addr1 || "";
+    var title = getTourTitle(item);
+    var addr = getTourAddr(item);
     var dotColor = color || "#78dc8c";
     var popupHtml = '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + dotColor + ';margin-right:6px;vertical-align:middle;"></span>'
-        + "<b>" + escapeHtml(item.title || "") + "</b><br>"
+        + "<b>" + escapeHtml(title) + "</b><br>"
         + '<small style="color:' + dotColor + ';">' + typeName + "</small><br>"
         + '<small>' + escapeHtml(addr) + "</small>";
     L.popup({ className: "tour-popup" })
@@ -1562,6 +1564,150 @@ function scheduleTourFetch() {
         fetchTourSpots();
     }, 1200);
 }
+
+// ── 다국어 시스템 + VARCO 번역 ──
+var currentLang = "ko";
+var VARCO_API_KEY = "9yUWJoapaQfdiYdq9Hd1knN4IMbOFO0w";
+var VARCO_TRANSLATE_URL = "https://api.varco.ai/mt/chat-content/v1/translate";
+var translateCache = {};
+
+var LANG = {
+    ko: {
+        appTitle: "나의 기록들", fogEffect: "안개 효과", on: "켜짐", off: "꺼짐",
+        tabMemory: "기억", tabPhoto: "사진", tabGpx: "발걸음",
+        tabMission: "미션", tabQuest: "퀘스트", tabExplore: "탐험",
+        waiting: "대기 중", recording: "기록 중",
+        nearbyTour: "📍 주변 관광지", searching: "검색 중...", noTour: "이 지역에 관광지가 없어요",
+        hudTitle: "현재 칭호", hudDist: "이동 거리", hudMem: "기억 개수", hudPhoto: "사진 개수",
+        tourTypes: { "12":"관광지","14":"문화시설","15":"축제/행사","25":"여행코스","28":"레포츠","32":"숙박","38":"쇼핑" },
+        levelTitles: ["길 없는 자","흔적을 남긴 자","탐험자","길을 만든 자","바람을 걷는 자","기억을 수집하는 자","두 바퀴의 여행자","지도를 그리는 자","길의 연대기","개척자","속도의 탐험가","궤도를 달리는 자","대륙을 가로지르는 자","세계의 증인","세계의 기록자"]
+    },
+    en: {
+        appTitle: "My Records", fogEffect: "Fog Effect", on: "On", off: "Off",
+        tabMemory: "Memory", tabPhoto: "Photo", tabGpx: "Steps",
+        tabMission: "Mission", tabQuest: "Quest", tabExplore: "Explore",
+        waiting: "Standby", recording: "Recording",
+        nearbyTour: "📍 Nearby Spots", searching: "Searching...", noTour: "No spots in this area",
+        hudTitle: "Current Title", hudDist: "Distance", hudMem: "Memories", hudPhoto: "Photos",
+        tourTypes: { "12":"Tourist Spot","14":"Culture","15":"Festival","25":"Tour Course","28":"Sports","32":"Lodging","38":"Shopping" },
+        levelTitles: ["Pathless One","Trace Maker","Explorer","Path Builder","Wind Walker","Memory Collector","Two-Wheel Traveler","Map Drawer","Road Chronicle","Pioneer","Speed Explorer","Orbit Runner","Continent Crosser","World Witness","World Recorder"]
+    },
+    ja: {
+        appTitle: "私の記録", fogEffect: "霧エフェクト", on: "オン", off: "オフ",
+        tabMemory: "記憶", tabPhoto: "写真", tabGpx: "足跡",
+        tabMission: "ミッション", tabQuest: "クエスト", tabExplore: "探検",
+        waiting: "待機中", recording: "記録中",
+        nearbyTour: "📍 周辺観光地", searching: "検索中...", noTour: "観光地がありません",
+        hudTitle: "現在の称号", hudDist: "移動距離", hudMem: "記憶数", hudPhoto: "写真数",
+        tourTypes: { "12":"観光地","14":"文化施設","15":"イベント","25":"旅行コース","28":"スポーツ","32":"宿泊","38":"ショッピング" },
+        levelTitles: ["道なき者","痕跡を残した者","探検家","道を作った者","風を歩く者","記憶の収集家","二輪の旅人","地図を描く者","道の年代記","開拓者","速度の探検家","軌道を走る者","大陸を横断する者","世界の証人","世界の記録者"]
+    },
+    zh: {
+        appTitle: "我的记录", fogEffect: "雾效果", on: "开启", off: "关闭",
+        tabMemory: "记忆", tabPhoto: "照片", tabGpx: "足迹",
+        tabMission: "任务", tabQuest: "探索", tabExplore: "冒险",
+        waiting: "待机", recording: "记录中",
+        nearbyTour: "📍 附近景点", searching: "搜索中...", noTour: "该地区没有景点",
+        hudTitle: "当前称号", hudDist: "移动距离", hudMem: "记忆数", hudPhoto: "照片数",
+        tourTypes: { "12":"旅游景点","14":"文化设施","15":"节庆活动","25":"旅游路线","28":"运动","32":"住宿","38":"购物" },
+        levelTitles: ["无路之人","留下痕迹者","探险家","开路者","踏风者","记忆收集者","双轮旅者","绘图者","道路年代记","开拓者","速度探险家","轨道驰骋者","横越大陆者","世界见证者","世界记录者"]
+    }
+};
+
+function varcoTranslate(text, targetLang) {
+    if (!text || targetLang === "ko") return Promise.resolve(text);
+    var cacheKey = targetLang + "::" + text;
+    if (translateCache[cacheKey]) return Promise.resolve(translateCache[cacheKey]);
+    return fetch(VARCO_TRANSLATE_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "openapi_key": VARCO_API_KEY },
+        body: JSON.stringify({
+            TID: "giloa-" + Date.now(),
+            svc: "varco-translation",
+            provider: "content",
+            source_lang: "ko",
+            source_text: text,
+            target_lang: targetLang
+        })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+        var result = data.target_text || text;
+        translateCache[cacheKey] = result;
+        return result;
+    })
+    .catch(function() { return text; });
+}
+
+function translateTourItems(lang) {
+    if (lang === "ko") { renderTourCards(); return; }
+    if (tourItems.length === 0) { renderTourCards(); return; }
+    var pending = tourItems.length * 2;
+    var done = 0;
+    var check = function() { done++; if (done >= pending) renderTourCards(); };
+    tourItems.forEach(function(item) {
+        varcoTranslate(item.title || "", lang).then(function(t) { item["_title_" + lang] = t; check(); });
+        varcoTranslate(item.addr1 || "", lang).then(function(t) { item["_addr_" + lang] = t; check(); });
+    });
+}
+
+function getTourTitle(item) {
+    if (currentLang === "ko") return item.title || "";
+    return item["_title_" + currentLang] || item.title || "";
+}
+function getTourAddr(item) {
+    if (currentLang === "ko") return item.addr1 || "";
+    return item["_addr_" + currentLang] || item.addr1 || "";
+}
+
+function setLang(lang) {
+    currentLang = lang;
+    document.querySelectorAll(".lang-btn").forEach(function(btn) { btn.classList.remove("active"); });
+    var activeBtn = document.querySelector('.lang-btn[onclick="setLang(\'' + lang + '\')"]');
+    if (activeBtn) activeBtn.classList.add("active");
+    applyLang();
+    if (tourPanelOpen && tourItems.length > 0) translateTourItems(lang);
+}
+
+function applyLang() {
+    var L = LANG[currentLang]; if (!L) return;
+    var appTitle = document.querySelector(".sidebar-header h2");
+    if (appTitle) appTitle.textContent = L.appTitle;
+    var fogLabel = document.querySelector(".fog-toggle-label");
+    if (fogLabel) fogLabel.textContent = L.fogEffect;
+    var fogState = document.getElementById("fog-toggle-state");
+    if (fogState) fogState.textContent = isFogEnabled ? L.on : L.off;
+    var tabTexts = {
+        "tab-memory": L.tabMemory, "tab-photo": L.tabPhoto, "tab-gpx": L.tabGpx,
+        "tab-game1": L.tabMission, "tab-game2": L.tabQuest, "tab-game3": L.tabExplore
+    };
+    Object.keys(tabTexts).forEach(function(id) {
+        var el = document.querySelector("#" + id + " .sidebar-tab-text");
+        if (el) el.textContent = tabTexts[id];
+    });
+    var tourTitle = document.getElementById("tour-title");
+    if (tourTitle) tourTitle.textContent = L.nearbyTour;
+    var tourLoading = document.getElementById("tour-loading");
+    if (tourLoading) tourLoading.textContent = L.searching;
+    var tourEmpty = document.getElementById("tour-empty");
+    if (tourEmpty) tourEmpty.textContent = L.noTour;
+    if (recStatusBox) recStatusBox.textContent = isRecording ? L.recording : L.waiting;
+    var hudLabels = document.querySelectorAll(".hud-prog-label");
+    if (hudLabels[0]) hudLabels[0].textContent = L.hudDist;
+    if (hudLabels[1]) hudLabels[1].textContent = L.hudMem;
+    if (hudLabels[2]) hudLabels[2].textContent = L.hudPhoto;
+    var hudTitleLabel = document.getElementById("hud-title-label");
+    if (hudTitleLabel) hudTitleLabel.textContent = L.hudTitle;
+    if (L.tourTypes) {
+        Object.keys(L.tourTypes).forEach(function(k) { TOUR_TYPE_NAMES[k] = L.tourTypes[k]; });
+        if (tourPanelOpen) renderTourCards();
+    }
+    if (L.levelTitles) {
+        L.levelTitles.forEach(function(title, i) { if (LEVEL_TABLE[i]) LEVEL_TABLE[i].title = title; });
+        updateHud();
+    }
+}
+
 map.on("moveend", scheduleTourFetch);
 scheduleTourFetch();
 
