@@ -1566,7 +1566,7 @@ function scheduleTourFetch() {
 // ── 다국어 시스템 + VARCO 번역 ──
 var currentLang = "ko";
 var VARCO_API_KEY = "9yUWJoapaQfdiYdq9Hd1knN4IMbOFO0w";
-var VARCO_TRANSLATE_URL = "https://api.varco.ai/mt/chat-content/v1/translate";
+var VARCO_TRANSLATE_URL = "https://corsproxy.io/?https://api.varco.ai/mt/chat-content/v1/translate";
 var translateCache = {};
 
 var LANG = {
