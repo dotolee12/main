@@ -1433,11 +1433,11 @@ function renderTourCards() {
 
             var nameEl = document.createElement("div");
             nameEl.className = "tour-card-name";
-            nameEl.textContent = item.title || "이름 없음";
+            nameEl.textContent = getTourTitle(item) || "이름 없음";  // ← 수정
 
             var typeEl = document.createElement("div");
             typeEl.className = "tour-card-type";
-            typeEl.textContent = TOUR_TYPE_NAMES[item.contenttypeid] || "관광";
+            typeEl.textContent = TOUR_TYPE_NAMES[item.contenttypeid] || "관광";  // 이건 이미 OK
 
             var distEl = document.createElement("div");
             distEl.className = "tour-card-dist";
