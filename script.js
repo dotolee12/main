@@ -1313,11 +1313,10 @@ function init() {
     initGpxDial();
     initHudTapTargets();
     initCompass();
-    applyLang(); // ← 추가
-
     setTimeout(function() {
         if (!isRecording) toggleRecording();
     }, 5000);
+    applyLang(); // ← 추가
 }
 map.whenReady(function() { init(); });
 
@@ -1671,6 +1670,7 @@ function setLang(lang) {
 
 function applyLang() {
     var L = LANG[currentLang]; if (!L) return;
+    if (typeof TOUR_TYPE_NAMES === "undefined") return; // ← 추가
     var appTitle = document.querySelector(".sidebar-header h2");
     if (appTitle) appTitle.textContent = L.appTitle;
     var fogLabel = document.querySelector(".fog-toggle-label");
@@ -1698,9 +1698,9 @@ function applyLang() {
     if (hudLabels[2]) hudLabels[2].textContent = L.hudPhoto;
     var hudTitleLabel = document.getElementById("hud-title-label");
     if (hudTitleLabel) hudTitleLabel.textContent = L.hudTitle;
-    if (L.tourTypes) {
+    if (L.tourTypes && typeof TOUR_TYPE_NAMES !== "undefined") {
         Object.keys(L.tourTypes).forEach(function(k) { TOUR_TYPE_NAMES[k] = L.tourTypes[k]; });
-        if (tourPanelOpen) renderTourCards();
+        if (typeof tourPanelOpen !== "undefined" && tourPanelOpen) renderTourCards();
     }
     if (L.levelTitles) {
         L.levelTitles.forEach(function(title, i) { if (LEVEL_TABLE[i]) LEVEL_TABLE[i].title = title; });
