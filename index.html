@@ -15,6 +15,8 @@
 <script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.js"></script>
 </head>
 <body>
+
+<!-- ── 사이드바 ── -->
 <div id="sidebar">
 <div class="sidebar-header">
 <h2>나의 기록들</h2>
@@ -23,7 +25,7 @@
 
 <div id="fog-toggle-wrap">
 <div class="fog-toggle-row" onclick="toggleFog()">
-<span class="fog-toggle-label">어둠 효과</span>
+<span class="fog-toggle-label">안개 효과</span>
 <div style="display:flex;align-items:center;gap:8px;">
 <span id="fog-toggle-state" class="fog-toggle-state on">켜짐</span>
 <div id="fog-toggle-btn" class="toggle-switch on">
@@ -34,7 +36,8 @@
 <div class="sidebar-divider"></div>
 </div>
 
-<div class="sidebar-tabs">
+<!-- 위쪽 탭 3개 (기록) -->
+<div class="sidebar-tabs" id="tabs-top">
 <div class="sidebar-tab active" id="tab-memory" onclick="switchTab('memory')">
 <span class="sidebar-tab-icon">★</span>
 <span class="sidebar-tab-text">기억</span>
@@ -47,23 +50,9 @@
 <span class="sidebar-tab-icon">👣</span>
 <span class="sidebar-tab-text">발걸음</span>
 </div>
-<!-- 아래쪽 탭 3개 (게임/경험치) -->
-<div class="sidebar-tabs sidebar-tabs-bottom" id="tabs-bottom">
-  <div class="sidebar-tab" id="tab-game1" onclick="switchTab('game1')">
-    <span class="sidebar-tab-icon">⚔️</span>
-    <span class="sidebar-tab-text">미션</span>
-  </div>
-  <div class="sidebar-tab" id="tab-game2" onclick="switchTab('game2')">
-    <span class="sidebar-tab-icon">📜</span>
-    <span class="sidebar-tab-text">퀘스트</span>
-  </div>
-  <div class="sidebar-tab" id="tab-game3" onclick="switchTab('game3')">
-    <span class="sidebar-tab-icon">🗺</span>
-    <span class="sidebar-tab-text">탐험</span>
-  </div>
-</div>
 </div>
 
+<!-- 가운데 패널 영역 -->
 <div id="panel-memory" class="tab-panel">
 <div id="memory-list-container">
 <p class="empty-message">아직 기록이 없습니다.</p>
@@ -105,6 +94,33 @@
 <input type="file" id="gpx-file-input" accept=".gpx" style="display:none" onchange="importGpxFile(event)">
 <div id="gpx-import-status" class="gpx-status"></div>
 </div>
+
+<div id="panel-game1" class="tab-panel" style="display:none;">
+<p class="empty-message" style="margin-top:60px;">🚧 준비 중인 기능이에요</p>
+</div>
+<div id="panel-game2" class="tab-panel" style="display:none;">
+<p class="empty-message" style="margin-top:60px;">🚧 준비 중인 기능이에요</p>
+</div>
+<div id="panel-game3" class="tab-panel" style="display:none;">
+<p class="empty-message" style="margin-top:60px;">🚧 준비 중인 기능이에요</p>
+</div>
+
+<!-- 아래쪽 탭 3개 (게임/경험치) -->
+<div class="sidebar-tabs sidebar-tabs-bottom" id="tabs-bottom">
+<div class="sidebar-tab" id="tab-game1" onclick="switchTab('game1')">
+<span class="sidebar-tab-icon">⚔️</span>
+<span class="sidebar-tab-text">미션</span>
+</div>
+<div class="sidebar-tab" id="tab-game2" onclick="switchTab('game2')">
+<span class="sidebar-tab-icon">📜</span>
+<span class="sidebar-tab-text">퀘스트</span>
+</div>
+<div class="sidebar-tab" id="tab-game3" onclick="switchTab('game3')">
+<span class="sidebar-tab-icon">🗺</span>
+<span class="sidebar-tab-text">탐험</span>
+</div>
+</div>
+
 </div>
 
 <div id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
@@ -130,7 +146,7 @@
 <span id="tour-count"></span>
 </div>
 <div id="tour-list"></div>
-<div id="tour-expand-btn" onclick="toggleTourExpand()">
+<div id="tour-expand-btn">
 <span id="tour-expand-icon">▼</span> <span id="tour-expand-text">더보기</span>
 </div>
 <div id="tour-loading" style="display:none;">검색 중...</div>
