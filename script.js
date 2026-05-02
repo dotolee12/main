@@ -1537,6 +1537,7 @@ function addTourMarkers() {
         var color = TOUR_COLORS[idx % TOUR_COLORS.length];
         item._color = color;  // 카드 렌더링 때 참조
         var marker = L.circleMarker([lat, lng], {
+            pane: "tourPane",
             radius: 7,
             color: "#fff",
             fillColor: color,
