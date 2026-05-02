@@ -1301,6 +1301,7 @@ var TOUR_API_KEY = "c6995449e23f94083d88f198fe2617a8f957a2063bc6ac0d19816c9f27a0
 var TOUR_ENDPOINT = "https://apis.data.go.kr/B551011/KorService2/locationBasedList2";
 var tourItems = [];
 var tourExpanded = false;
+var tourPanelOpen = false;
 var tourFetchTimer = null;
 var tourMarkers = [];
 var TOUR_VISIBLE_COUNT = 3;
@@ -1311,10 +1312,11 @@ var TOUR_TYPE_NAMES = {
     "38": "쇼핑", "39": "음식점"
 };
 var TOUR_COLORS = [
-    "#ff6b6b","#ffd93d","#6bcb77","#4d96ff","#ff922b",
-    "#cc5de8","#20c997","#f06595","#74c0fc","#a9e34b",
-    "#ff8787","#ffe066","#63e6be","#748ffc","#ffa94d",
-    "#e599f7","#38d9a9","#f783ac","#4dabf7","#c0eb75"
+    "#ff6b6b","#ffd93d","#6bcb77","#ff922b",
+    "#cc5de8","#20c997","#f06595","#a9e34b",
+    "#ff8787","#ffe066","#63e6be","#ffa94d",
+    "#e599f7","#38d9a9","#f783ac","#c0eb75",
+    "#ff6b9d","#ffb347","#7bed9f","#ff4757"
 ];
 
 function fetchTourSpots() {
@@ -1332,10 +1334,10 @@ function fetchTourSpots() {
 
     if (!listEl || !loadingEl || !emptyEl || !expandBtn || !countEl) return;
 
-    loadingEl.style.display = "";
-    emptyEl.style.display = "none";
+    // 패널이 닫혀있으면 데이터만 받고 렌더링 안 함
     listEl.innerHTML = "";
     expandBtn.style.display = "none";
+    emptyEl.style.display = "none";
 
     var url = TOUR_ENDPOINT
         + "?serviceKey=" + TOUR_API_KEY
@@ -1359,20 +1361,22 @@ function fetchTourSpots() {
 
             clearTourMarkers();
             tourItems = items;
-
-            if (items.length === 0) {
-                emptyEl.style.display = "";
-                countEl.textContent = "";
-                return;
-            }
-
             countEl.textContent = items.length + "곳";
-            renderTourCards();
+
+            if (tourPanelOpen) {
+                if (items.length === 0) {
+                    emptyEl.style.display = "";
+                } else {
+                    renderTourCards();
+                }
+            }
         })
         .catch(function(err) {
             loadingEl.style.display = "none";
-            emptyEl.style.display = "";
-            emptyEl.textContent = "불러오기 실패";
+            if (tourPanelOpen) {
+                emptyEl.style.display = "";
+                emptyEl.textContent = "불러오기 실패";
+            }
             countEl.textContent = "";
             console.warn("TourAPI 에러", err);
         });
@@ -1385,7 +1389,7 @@ function renderTourCards() {
     listEl.innerHTML = "";
 
     var center = map.getCenter();
-    var showCount = tourExpanded ? tourItems.length : Math.min(TOUR_VISIBLE_COUNT, tourItems.length);
+    var showCount = tourItems.length;  // 패널 열리면 전체 표시
 
     for (var i = 0; i < showCount; i++) {
         (function(item, idx) {
@@ -1441,30 +1445,33 @@ function renderTourCards() {
         })(tourItems[i], i);
     }
 
-    if (tourItems.length > TOUR_VISIBLE_COUNT) {
-        expandBtn.style.display = "";
-        var iconEl = document.getElementById("tour-expand-icon");
-        var textEl = document.getElementById("tour-expand-text");
-        if (tourExpanded) {
-            iconEl.textContent = "▲";
-            textEl.textContent = "접기";
-            listEl.classList.add("expanded");
-        } else {
-            iconEl.textContent = "▼";
-            textEl.textContent = "+" + (tourItems.length - TOUR_VISIBLE_COUNT) + "곳 더보기";
-            listEl.classList.remove("expanded");
-        }
-    } else {
-        expandBtn.style.display = "none";
-        listEl.classList.remove("expanded");
-    }
 
     addTourMarkers();
 }
 
-function toggleTourExpand() {
-    tourExpanded = !tourExpanded;
-    renderTourCards();
+function toggleTourPanel() {
+    tourPanelOpen = !tourPanelOpen;
+    var listEl = document.getElementById("tour-list");
+    var emptyEl = document.getElementById("tour-empty");
+    var expandBtn = document.getElementById("tour-expand-btn");
+    var headerEl = document.getElementById("tour-header");
+
+    if (tourPanelOpen) {
+        headerEl.style.borderBottomLeftRadius = "0";
+        headerEl.style.borderBottomRightRadius = "0";
+        if (tourItems.length === 0) {
+            emptyEl.style.display = "";
+        } else {
+            renderTourCards();
+        }
+    } else {
+        if (listEl) listEl.innerHTML = "";
+        if (emptyEl) emptyEl.style.display = "none";
+        if (expandBtn) expandBtn.style.display = "none";
+        headerEl.style.borderBottomLeftRadius = "10px";
+        headerEl.style.borderBottomRightRadius = "10px";
+        clearTourMarkers();
+    }
 }
 
 function showTourPopup(item, color) {
