@@ -1312,12 +1312,12 @@ function init() {
     scheduleRender();
     initGpxDial();
     initHudTapTargets();
+    initCompass(); // ← 추가
 
     setTimeout(function() {
         if (!isRecording) toggleRecording();
     }, 5000);
 }
-
 map.whenReady(function() { init(); });
 
 // ── TourAPI 관광지 추천 ──
@@ -1562,6 +1562,159 @@ function scheduleTourFetch() {
         fetchTourSpots();
     }, 1200);
 }
-
 map.on("moveend", scheduleTourFetch);
 scheduleTourFetch();
+
+// ── 나침반 + 시야각 ──
+var compassHeading   = null;
+var movingHeading    = null;
+var lastCompassPos   = null;
+var compassCanvas    = null;
+var compassCtx       = null;
+
+function initCompass() {
+    // 나침반 캔버스 생성
+    compassCanvas = document.createElement("canvas");
+    compassCanvas.id = "compass-canvas";
+    compassCanvas.style.cssText = "position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:403;";
+    compassCanvas.width  = window.innerWidth;
+    compassCanvas.height = window.innerHeight;
+    document.getElementById("map-wrap").appendChild(compassCanvas);
+    compassCtx = compassCanvas.getContext("2d");
+
+    window.addEventListener("resize", function() {
+        compassCanvas.width  = window.innerWidth;
+        compassCanvas.height = window.innerHeight;
+        renderCompassOverlay();
+    });
+
+    // 기기 나침반 이벤트
+    if (window.DeviceOrientationEvent) {
+        if (typeof DeviceOrientationEvent.requestPermission === "function") {
+            // iOS 13+
+            DeviceOrientationEvent.requestPermission().then(function(state) {
+                if (state === "granted") {
+                    window.addEventListener("deviceorientation", handleOrientation);
+                }
+            }).catch(function() {});
+        } else {
+            window.addEventListener("deviceorientation", handleOrientation);
+        }
+    }
+
+    map.on("move zoom", renderCompassOverlay);
+    setInterval(renderCompassOverlay, 500);
+}
+
+function handleOrientation(event) {
+    var alpha = event.webkitCompassHeading || event.alpha;
+    if (alpha !== null && alpha !== undefined) {
+        compassHeading = alpha;
+        renderCompassOverlay();
+    }
+}
+
+function calcMovingHeading() {
+    if (pathCoordinates.length < 2) return null;
+    var last = pathCoordinates[pathCoordinates.length - 1];
+    var prev = pathCoordinates[pathCoordinates.length - 2];
+    var dLat = last.lat - prev.lat;
+    var dLng = last.lng - prev.lng;
+    if (Math.abs(dLat) < 0.000001 && Math.abs(dLng) < 0.000001) return null;
+    var angle = Math.atan2(dLng, dLat) * 180 / Math.PI;
+    return (angle + 360) % 360;
+}
+
+function renderCompassOverlay() {
+    if (!compassCtx) return;
+    var w = compassCanvas.width;
+    var h = compassCanvas.height;
+    compassCtx.clearRect(0, 0, w, h);
+
+    // 이동 방향 계산 (나침반 없을 때 대체)
+    var heading = compassHeading !== null ? compassHeading : calcMovingHeading();
+
+    // ── 시야각 부채꼴 ──
+    if (currentPos && heading !== null) {
+        var center = map.latLngToContainerPoint(currentPos);
+        var fovAngle  = 70;  // 시야각 70도
+        var fovRadius = Math.min(w, h) * 0.28;
+        var startAngle = (heading - fovAngle / 2 - 90) * Math.PI / 180;
+        var endAngle   = (heading + fovAngle / 2 - 90) * Math.PI / 180;
+
+        var grad = compassCtx.createRadialGradient(
+            center.x, center.y, 0,
+            center.x, center.y, fovRadius
+        );
+        grad.addColorStop(0,   "rgba(255, 255, 255, 0.18)");
+        grad.addColorStop(0.6, "rgba(255, 255, 255, 0.07)");
+        grad.addColorStop(1,   "rgba(255, 255, 255, 0)");
+
+        compassCtx.beginPath();
+        compassCtx.moveTo(center.x, center.y);
+        compassCtx.arc(center.x, center.y, fovRadius, startAngle, endAngle);
+        compassCtx.closePath();
+        compassCtx.fillStyle = grad;
+        compassCtx.fill();
+
+        // 부채꼴 테두리
+        compassCtx.beginPath();
+        compassCtx.moveTo(center.x, center.y);
+        compassCtx.arc(center.x, center.y, fovRadius, startAngle, endAngle);
+        compassCtx.closePath();
+        compassCtx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+        compassCtx.lineWidth = 1.5;
+        compassCtx.stroke();
+    }
+
+    // ── 동서남북 UI ──
+    renderNSEW(w, h, heading);
+}
+
+function renderNSEW(w, h, heading) {
+    var cx = w / 2;
+    var cy = h / 2;
+    var r  = Math.min(w, h) * 0.44; // 화면 가장자리에 배치
+
+    var dirs = [
+        { label: "N", angle: 0,   color: "#ff4444" },
+        { label: "E", angle: 90,  color: "rgba(255,255,255,0.7)" },
+        { label: "S", angle: 180, color: "rgba(255,255,255,0.7)" },
+        { label: "W", angle: 270, color: "rgba(255,255,255,0.7)" }
+    ];
+
+    // 나침반이 있으면 지도 회전과 무관하게 실제 방위 표시
+    var mapBearing = heading !== null ? heading : 0;
+
+    dirs.forEach(function(d) {
+        var rad = (d.angle - mapBearing) * Math.PI / 180;
+        // 화면 중앙 기준 가장자리 위치 계산
+        var tx = cx + Math.sin(rad) * r;
+        var ty = cy - Math.cos(rad) * r;
+
+        // 화면 안으로 클리핑
+        tx = Math.max(20, Math.min(w - 20, tx));
+        ty = Math.max(20, Math.min(h - 20, ty));
+
+        // 배경 원
+        compassCtx.beginPath();
+        compassCtx.arc(tx, ty, 14, 0, Math.PI * 2);
+        compassCtx.fillStyle = d.label === "N"
+            ? "rgba(180, 30, 30, 0.75)"
+            : "rgba(20, 20, 35, 0.65)";
+        compassCtx.fill();
+        compassCtx.strokeStyle = d.label === "N"
+            ? "rgba(255, 80, 80, 0.6)"
+            : "rgba(255,255,255,0.2)";
+        compassCtx.lineWidth = 1;
+        compassCtx.stroke();
+
+        // 텍스트
+        compassCtx.font = "bold 11px 'Apple SD Gothic Neo', sans-serif";
+        compassCtx.fillStyle = d.color;
+        compassCtx.textAlign = "center";
+        compassCtx.textBaseline = "middle";
+        compassCtx.fillText(d.label, tx, ty);
+    });
+}
+
