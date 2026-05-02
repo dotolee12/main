@@ -1640,12 +1640,33 @@ function varcoTranslate(text, targetLang) {
 function translateTourItems(lang) {
     if (lang === "ko") { renderTourCards(); return; }
     if (tourItems.length === 0) { renderTourCards(); return; }
-    var pending = tourItems.length * 2;
+
+    var total = tourItems.length * 2;
     var done = 0;
-    var check = function() { done++; if (done >= pending) renderTourCards(); };
+
+    function check() {
+        done++;
+        if (done >= total) renderTourCards(); // 모두 완료 후 한번만 렌더
+    }
+
     tourItems.forEach(function(item) {
-        varcoTranslate(item.title || "", lang).then(function(t) { item["_title_" + lang] = t; check(); });
-        varcoTranslate(item.addr1 || "", lang).then(function(t) { item["_addr_" + lang] = t; check(); });
+        if (item["_title_" + lang]) {
+            check();
+        } else {
+            varcoTranslate(item.title || "", lang).then(function(t) {
+                item["_title_" + lang] = t;
+                check();
+            });
+        }
+
+        if (item["_addr_" + lang]) {
+            check();
+        } else {
+            varcoTranslate(item.addr1 || "", lang).then(function(t) {
+                item["_addr_" + lang] = t;
+                check();
+            });
+        }
     });
 }
 
@@ -1664,7 +1685,14 @@ function setLang(lang) {
     var activeBtn = document.querySelector('.lang-btn[onclick="setLang(\'' + lang + '\')"]');
     if (activeBtn) activeBtn.classList.add("active");
     applyLang();
-    if (tourPanelOpen && tourItems.length > 0) translateTourItems(lang);
+    
+    // 관광지 번역
+    if (lang === "ko") {
+        if (tourPanelOpen) renderTourCards();
+    } else {
+        // 번역 먼저 완료 후 카드 그리기
+        translateTourItems(lang);
+    }
 }
 
 function applyLang() {
