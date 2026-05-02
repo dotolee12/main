@@ -1616,16 +1616,21 @@ function varcoTranslate(text, targetLang) {
     if (!text || targetLang === "ko") return Promise.resolve(text);
     var cacheKey = targetLang + "::" + text;
     if (translateCache[cacheKey]) return Promise.resolve(translateCache[cacheKey]);
-    return fetch(VARCO_TRANSLATE_URL, {
+    
+    // URL에 API 키를 쿼리 파라미터로 넣어서 헤더 없이 시도
+    var url = "https://corsproxy.io/?https://api.varco.ai/mt/chat-content/v1/translate";
+    
+    return fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "openapi_key": VARCO_API_KEY },
+        headers: { "Content-Type": "application/json" }, // openapi_key 헤더 제거
         body: JSON.stringify({
             TID: "giloa-" + Date.now(),
             svc: "varco-translation",
             provider: "content",
             source_lang: "ko",
             source_text: text,
-            target_lang: targetLang
+            target_lang: targetLang,
+            openapi_key: VARCO_API_KEY  // ← body에 넣기
         })
     })
     .then(function(res) { return res.json(); })
@@ -1636,7 +1641,6 @@ function varcoTranslate(text, targetLang) {
     })
     .catch(function() { return text; });
 }
-
 function translateTourItems(lang) {
     if (lang === "ko") { renderTourCards(); return; }
     if (tourItems.length === 0) { renderTourCards(); return; }
