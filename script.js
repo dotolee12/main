@@ -1521,6 +1521,15 @@ function clearTourMarkers() {
 
 function addTourMarkers() {
     clearTourMarkers();
+   
+    // 관광지 전용 pane이 없으면 생성 (안개 위, z-index 620)
+    if (!map.getPane("tourPane")) {
+        map.createPane("tourPane");
+        map.getPane("tourPane").style.zIndex = "620";
+        map.getPane("tourPane").style.pointerEvents = "auto";
+    }
+
+    
     tourItems.forEach(function(item, idx) {
         var lat = parseFloat(item.mapy);
         var lng = parseFloat(item.mapx);
@@ -1536,7 +1545,7 @@ function addTourMarkers() {
             opacity: 0.95
         }).addTo(map);
         marker._tourIdx = idx;
-        marker.on("click", function() { showTourPopup(item); });
+        marker.on("click", function() { showTourPopup(item, color); });
         // 호버 시 마커 강조
         marker.on("mouseover", function() { marker.setRadius(11); });
         marker.on("mouseout",  function() { marker.setRadius(7);  });
