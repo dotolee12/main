@@ -190,6 +190,30 @@ const map = L.map("map", { zoomControl: false, attributionControl: false })
 
 L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png").addTo(map);
 
+// 캔버스를 Leaflet 내부로 편입시켜 마커가 안개 위에 보이도록 함
+map.whenReady(function() {
+    var mapPane = map.getPane("mapPane");
+    var fogC  = document.getElementById("fog-canvas");
+    var ageC  = document.getElementById("age-canvas");
+    var stayC = document.getElementById("stay-canvas");
+
+    mapPane.appendChild(stayC);
+    mapPane.appendChild(ageC);
+    mapPane.appendChild(fogC);
+
+    stayC.style.zIndex = "402";
+    ageC.style.zIndex  = "401";
+    fogC.style.zIndex  = "400";
+
+    map.on("move", function() {
+        var offset = map._getMapPanePos();
+        var t = "translate3d(" + (-offset.x) + "px," + (-offset.y) + "px,0)";
+        fogC.style.transform  = t;
+        ageC.style.transform  = t;
+        stayC.style.transform = t;
+    });
+    map.fire("move");
+});
 map.createPane("photoPane");
 map.getPane("photoPane").style.zIndex = 630;
 
