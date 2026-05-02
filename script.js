@@ -1388,9 +1388,20 @@ function renderTourCards() {
     var showCount = tourExpanded ? tourItems.length : Math.min(TOUR_VISIBLE_COUNT, tourItems.length);
 
     for (var i = 0; i < showCount; i++) {
-        (function(item) {
+        (function(item, idx) {
+            var color = TOUR_COLORS[idx % TOUR_COLORS.length];
+
             var card = document.createElement("div");
             card.className = "tour-card";
+            card.style.display = "flex";
+            card.style.alignItems = "flex-start";
+            card.style.gap = "8px";
+
+            var dot = document.createElement("div");
+            dot.style.cssText = "width:10px;height:10px;border-radius:50%;background:" + color + ";flex-shrink:0;margin-top:3px;box-shadow:0 0 6px " + color + "99;";
+
+            var textWrap = document.createElement("div");
+            textWrap.style.cssText = "flex:1;min-width:0;";
 
             var nameEl = document.createElement("div");
             nameEl.className = "tour-card-name";
@@ -1405,20 +1416,10 @@ function renderTourCards() {
             var distM = center.distanceTo([parseFloat(item.mapy), parseFloat(item.mapx)]);
             distEl.textContent = distM < 1000 ? Math.round(distM) + "m" : (distM / 1000).toFixed(1) + "km";
 
-var color = TOUR_COLORS[tourItems.indexOf(item) % TOUR_COLORS.length];
-            var dot = document.createElement("div");
-            dot.style.cssText = "width:10px;height:10px;border-radius:50%;background:" + color
-                + ";flex-shrink:0;margin-top:2px;box-shadow:0 0 6px " + color + "88;";
-
-            var textWrap = document.createElement("div");
-            textWrap.style.cssText = "flex:1;min-width:0;";
             textWrap.appendChild(nameEl);
             textWrap.appendChild(typeEl);
             textWrap.appendChild(distEl);
 
-            card.style.display = "flex";
-            card.style.alignItems = "flex-start";
-            card.style.gap = "8px";
             card.appendChild(dot);
             card.appendChild(textWrap);
 
@@ -1426,11 +1427,18 @@ var color = TOUR_COLORS[tourItems.indexOf(item) % TOUR_COLORS.length];
                 var lat = parseFloat(item.mapy);
                 var lng = parseFloat(item.mapx);
                 map.flyTo([lat, lng], 17);
-                showTourPopup(item);
+                showTourPopup(item, color);
+                // 해당 마커 강조
+                if (tourMarkers[idx]) {
+                    tourMarkers[idx].setRadius(13);
+                    setTimeout(function() {
+                        if (tourMarkers[idx]) tourMarkers[idx].setRadius(7);
+                    }, 1500);
+                }
             });
 
             listEl.appendChild(card);
-        })(tourItems[i]);
+        })(tourItems[i], i);
     }
 
     if (tourItems.length > TOUR_VISIBLE_COUNT) {
@@ -1459,13 +1467,15 @@ function toggleTourExpand() {
     renderTourCards();
 }
 
-function showTourPopup(item) {
+function showTourPopup(item, color) {
     var lat = parseFloat(item.mapy);
     var lng = parseFloat(item.mapx);
     var typeName = TOUR_TYPE_NAMES[item.contenttypeid] || "관광";
     var addr = item.addr1 || "";
-    var popupHtml = "<b>" + escapeHtml(item.title || "") + "</b><br>"
-        + '<small style="color:rgba(120,220,140,0.9);">' + typeName + "</small><br>"
+    var dotColor = color || "#78dc8c";
+    var popupHtml = '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + dotColor + ';margin-right:6px;vertical-align:middle;"></span>'
+        + "<b>" + escapeHtml(item.title || "") + "</b><br>"
+        + '<small style="color:' + dotColor + ';">' + typeName + "</small><br>"
         + '<small>' + escapeHtml(addr) + "</small>";
     L.popup({ className: "tour-popup" })
         .setLatLng([lat, lng])
