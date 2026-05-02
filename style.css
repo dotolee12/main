@@ -439,3 +439,22 @@ html, body {
     font-size: 11px; color: rgba(255,255,255,0.35);
     pointer-events: auto;
 }
+.sidebar-tabs-bottom {
+    margin-top: auto;
+    margin-bottom: 0;
+    flex-shrink: 0;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 12px;
+}
+
+#tab-game1 { border-color: rgba(255,100,100,0.42); }
+#tab-game1 .sidebar-tab-icon { color: #ff6464; }
+#tab-game1.active { border-color: #ff6464; background: linear-gradient(180deg, rgba(80,20,20,0.92), rgba(60,10,10,0.9)); }
+
+#tab-game2 { border-color: rgba(255,210,80,0.42); }
+#tab-game2 .sidebar-tab-icon { color: #ffd250; }
+#tab-game2.active { border-color: #ffd250; background: linear-gradient(180deg, rgba(80,60,10,0.92), rgba(60,45,5,0.9)); }
+
+#tab-game3 { border-color: rgba(120,220,140,0.42); }
+#tab-game3 .sidebar-tab-icon { color: #78dc8c; }
+#tab-game3.active { border-color: #78dc8c; background: linear-gradient(180deg, rgba(20,70,30,0.92), rgba(12,50,22,0.9)); }
