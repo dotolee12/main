@@ -458,3 +458,22 @@ html, body {
 #tab-game3 { border-color: rgba(120,220,140,0.42); }
 #tab-game3 .sidebar-tab-icon { color: #78dc8c; }
 #tab-game3.active { border-color: #78dc8c; background: linear-gradient(180deg, rgba(20,70,30,0.92), rgba(12,50,22,0.9)); }
+
+/* ── 언어 전환 버튼 ── */
+#lang-btn-wrap {
+    display: flex; gap: 4px; align-items: center;
+}
+.lang-btn {
+    padding: 5px 9px; border-radius: 8px;
+    background: rgba(30,30,45,0.75);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.5);
+    font-size: 11px; font-weight: 700;
+    cursor: pointer; backdrop-filter: blur(8px);
+    transition: 0.2s;
+}
+.lang-btn.active {
+    background: rgba(77,184,255,0.25);
+    border-color: #4db8ff;
+    color: #4db8ff;
+}
