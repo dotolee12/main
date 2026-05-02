@@ -1576,10 +1576,10 @@ function initCompass() {
     // 나침반 캔버스 생성
     compassCanvas = document.createElement("canvas");
     compassCanvas.id = "compass-canvas";
-    compassCanvas.style.cssText = "position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:403;";
-    compassCanvas.width  = window.innerWidth;
-    compassCanvas.height = window.innerHeight;
-    document.getElementById("map-wrap").appendChild(compassCanvas);
+    compassCanvas.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1050;";
+compassCanvas.width  = window.innerWidth;
+compassCanvas.height = window.innerHeight;
+document.body.appendChild(compassCanvas);
     compassCtx = compassCanvas.getContext("2d");
 
     window.addEventListener("resize", function() {
