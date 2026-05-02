@@ -1310,6 +1310,12 @@ var TOUR_TYPE_NAMES = {
     "25": "여행코스", "28": "레포츠", "32": "숙박",
     "38": "쇼핑", "39": "음식점"
 };
+var TOUR_COLORS = [
+    "#ff6b6b","#ffd93d","#6bcb77","#4d96ff","#ff922b",
+    "#cc5de8","#20c997","#f06595","#74c0fc","#a9e34b",
+    "#ff8787","#ffe066","#63e6be","#748ffc","#ffa94d",
+    "#e599f7","#38d9a9","#f783ac","#4dabf7","#c0eb75"
+];
 
 function fetchTourSpots() {
     var bounds = map.getBounds();
@@ -1399,9 +1405,22 @@ function renderTourCards() {
             var distM = center.distanceTo([parseFloat(item.mapy), parseFloat(item.mapx)]);
             distEl.textContent = distM < 1000 ? Math.round(distM) + "m" : (distM / 1000).toFixed(1) + "km";
 
-            card.appendChild(nameEl);
-            card.appendChild(typeEl);
-            card.appendChild(distEl);
+var color = TOUR_COLORS[tourItems.indexOf(item) % TOUR_COLORS.length];
+            var dot = document.createElement("div");
+            dot.style.cssText = "width:10px;height:10px;border-radius:50%;background:" + color
+                + ";flex-shrink:0;margin-top:2px;box-shadow:0 0 6px " + color + "88;";
+
+            var textWrap = document.createElement("div");
+            textWrap.style.cssText = "flex:1;min-width:0;";
+            textWrap.appendChild(nameEl);
+            textWrap.appendChild(typeEl);
+            textWrap.appendChild(distEl);
+
+            card.style.display = "flex";
+            card.style.alignItems = "flex-start";
+            card.style.gap = "8px";
+            card.appendChild(dot);
+            card.appendChild(textWrap);
 
             card.addEventListener("click", function() {
                 var lat = parseFloat(item.mapy);
@@ -1461,15 +1480,25 @@ function clearTourMarkers() {
 
 function addTourMarkers() {
     clearTourMarkers();
-    tourItems.forEach(function(item) {
+    tourItems.forEach(function(item, idx) {
         var lat = parseFloat(item.mapy);
         var lng = parseFloat(item.mapx);
         if (!isFinite(lat) || !isFinite(lng)) return;
+        var color = TOUR_COLORS[idx % TOUR_COLORS.length];
+        item._color = color;  // 카드 렌더링 때 참조
         var marker = L.circleMarker([lat, lng], {
-            radius: 5, color: "#78dc8c", fillColor: "#78dc8c",
-            fillOpacity: 0.7, weight: 1.5, opacity: 0.9
+            radius: 7,
+            color: "#fff",
+            fillColor: color,
+            fillOpacity: 0.9,
+            weight: 1.5,
+            opacity: 0.95
         }).addTo(map);
+        marker._tourIdx = idx;
         marker.on("click", function() { showTourPopup(item); });
+        // 호버 시 마커 강조
+        marker.on("mouseover", function() { marker.setRadius(11); });
+        marker.on("mouseout",  function() { marker.setRadius(7);  });
         tourMarkers.push(marker);
     });
 }
