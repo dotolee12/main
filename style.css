@@ -14,7 +14,7 @@ html, body {
 #fog-canvas, #age-canvas, #stay-canvas {
     position: absolute; pointer-events: none;
     top: 0; left: 0;
-    width: 100%; height: 100%;
+    width: 100vw; height: 100vh;
 }
 #fog-canvas  { z-index: 400; }
 #age-canvas  { z-index: 401; }
