@@ -1324,6 +1324,246 @@ function init() {
 }
 map.whenReady(function() { init(); });
 
+var LOCATION_MISSIONS = [
+    {
+        id: "ddp",
+        name: "DDP 탐험가",
+        lat: 37.5665, lng: 127.0092,
+        radius: 200,
+        icon: "🌀",
+        color: "#4db8ff",
+        reward: "DDP 기념 메달",
+        rewardImg: "https://dotolee12.github.io/sub/images/ddp.png",
+        desc: "동대문디자인플라자를 30분 이상 탐험하세요!",
+        stayStart: null, achieved: false
+    },
+    {
+        id: "cheonggyecheon",
+        name: "청계천 탐험가",
+        lat: 37.5697, lng: 126.9784,
+        radius: 200,
+        icon: "🌊",
+        color: "#20c997",
+        reward: "청계천 기념 메달",
+        rewardImg: "https://dotolee12.github.io/sub/images/cheonggyecheon.png",
+        desc: "청계천을 30분 이상 거닐어보세요!",
+        stayStart: null, achieved: false
+    },
+    {
+        id: "seoul_plaza",
+        name: "서울광장 탐험가",
+        lat: 37.5663, lng: 126.9779,
+        radius: 200,
+        icon: "🏛",
+        color: "#ffd93d",
+        reward: "서울광장 기념 메달",
+        rewardImg: "https://dotolee12.github.io/sub/images/seoul_plaza.png",
+        desc: "서울광장에서 30분 이상 머물러보세요!",
+        stayStart: null, achieved: false
+    },
+    {
+        id: "hangang",
+        name: "한강 탐험가",
+        lat: 37.5285, lng: 126.9344,
+        radius: 300,
+        icon: "🌅",
+        color: "#ff922b",
+        reward: "한강 기념 메달",
+        rewardImg: "https://dotolee12.github.io/sub/images/hangang.png",
+        desc: "한강공원에서 30분 이상 즐겨보세요!",
+        stayStart: null, achieved: false
+    },
+    {
+        id: "seoul_botanic",
+        name: "서울식물원 탐험가",
+        lat: 37.5703, lng: 126.8349,
+        radius: 200,
+        icon: "🌿",
+        color: "#6bcb77",
+        reward: "서울식물원 기념 메달",
+        rewardImg: "https://dotolee12.github.io/sub/images/seoul_botanic.png",
+        desc: "서울식물원에서 30분 이상 자연을 느껴보세요!",
+        stayStart: null, achieved: false
+    },
+    {
+        id: "worldcup_park",
+        name: "월드컵공원 탐험가",
+        lat: 37.5703, lng: 126.8969,
+        radius: 300,
+        icon: "⚽",
+        color: "#cc5de8",
+        reward: "월드컵공원 기념 메달",
+        rewardImg: "https://dotolee12.github.io/sub/images/worldcup_park.png",
+        desc: "월드컵공원에서 30분 이상 머물러보세요!",
+        stayStart: null, achieved: false
+    },
+    {
+        id: "yeouido_park",
+        name: "여의도공원 탐험가",
+        lat: 37.5263, lng: 126.9244,
+        radius: 250,
+        icon: "🌸",
+        color: "#f06595",
+        reward: "여의도공원 기념 메달",
+        rewardImg: "https://dotolee12.github.io/sub/images/yeouido_park.png",
+        desc: "여의도공원에서 30분 이상 산책해보세요!",
+        stayStart: null, achieved: false
+    },
+    {
+        id: "hanyangdoseong",
+        name: "한양도성 탐험가",
+        lat: 37.5947, lng: 126.9819,
+        radius: 300,
+        icon: "🏯",
+        color: "#ff8787",
+        reward: "한양도성 기념 메달",
+        rewardImg: "https://dotolee12.github.io/sub/images/hanyangdoseong.png",
+        desc: "한양도성을 30분 이상 걸어보세요!",
+        stayStart: null, achieved: false
+    },
+    {
+        id: "seoullo7017",
+        name: "서울로7017 탐험가",
+        lat: 37.5548, lng: 126.9706,
+        radius: 200,
+        icon: "🌉",
+        color: "#a9e34b",
+        reward: "서울로7017 기념 메달",
+        rewardImg: "https://dotolee12.github.io/sub/images/seoullo7017.png",
+        desc: "서울로7017에서 30분 이상 거닐어보세요!",
+        stayStart: null, achieved: false
+    },
+    {
+        id: "gyeongbokgung",
+        name: "경복궁 탐험가",
+        lat: 37.5796, lng: 126.9770,
+        radius: 300,
+        icon: "🏛",
+        color: "#ffd700",
+        reward: "경복궁 미니어처",
+        rewardImg: "https://dotolee12.github.io/sub/images/gyeongbokgung.png",
+        desc: "경복궁을 30분 이상 탐험하세요!",
+        stayStart: null, achieved: false
+    }
+];
+
+// ── 미션 마커 지도 표시 ──
+var missionMarkers = [];
+
+function renderMissionMarkers() {
+    missionMarkers.forEach(function(m) { map.removeLayer(m); });
+    missionMarkers = [];
+
+    if (!map.getPane("missionPane")) {
+        map.createPane("missionPane");
+        map.getPane("missionPane").style.zIndex = "610";
+    }
+
+    LOCATION_MISSIONS.forEach(function(mission) {
+        if (mission.achieved) return; // 달성한 건 숨김
+
+        var marker = L.marker([mission.lat, mission.lng], {
+            pane: "missionPane",
+            icon: L.divIcon({
+                className: "",
+                html: '<div style="'
+                    + 'width:44px;height:44px;'
+                    + 'background:' + mission.color + ';'
+                    + 'border-radius:50%;'
+                    + 'display:flex;align-items:center;justify-content:center;'
+                    + 'font-size:22px;'
+                    + 'border:3px solid rgba(255,255,255,0.8);'
+                    + 'box-shadow:0 0 12px ' + mission.color + '99;'
+                    + 'animation:missionPulse 2s ease-in-out infinite;'
+                    + '">' + mission.icon + '</div>'
+                    + '<div style="'
+                    + 'position:absolute;top:48px;left:50%;transform:translateX(-50%);'
+                    + 'background:rgba(0,0,0,0.75);color:#fff;'
+                    + 'font-size:10px;font-weight:700;'
+                    + 'padding:3px 8px;border-radius:8px;white-space:nowrap;'
+                    + 'border:1px solid ' + mission.color + ';'
+                    + '">' + mission.name + '</div>',
+                iconSize: [44, 44],
+                iconAnchor: [22, 22],
+                popupAnchor: [0, -30]
+            })
+        }).addTo(map);
+
+        marker.bindPopup(
+            '<div style="text-align:center;min-width:160px;">'
+            + '<div style="font-size:28px;margin-bottom:6px;">' + mission.icon + '</div>'
+            + '<b style="font-size:13px;">' + mission.name + '</b><br>'
+            + '<small style="color:rgba(255,255,255,0.6);">' + mission.desc + '</small><br>'
+            + '<small style="color:' + mission.color + ';margin-top:4px;display:block;">⏱ 30분 체류 시 달성</small>'
+            + '</div>',
+            { className: "tour-popup" }
+        );
+
+        missionMarkers.push(marker);
+    });
+}
+
+function checkLocationMissions(latlng, now) {
+    LOCATION_MISSIONS.forEach(function(mission) {
+        if (mission.achieved) return;
+        var dist = latlng.distanceTo([mission.lat, mission.lng]);
+
+        if (dist <= mission.radius) {
+            // 반경 안에 있음
+            if (!mission.stayStart) {
+                mission.stayStart = now;
+                // 상태바 표시
+                recStatusBox.textContent = "기록 중 · " + mission.name + " 미션 진행 중";
+            } else {
+                var elapsed = now - mission.stayStart;
+                var remaining = 30 * 60 * 1000 - elapsed; // 30분
+                if (remaining <= 0) {
+                    // 미션 달성!
+                    mission.achieved = true;
+                    mission.stayStart = null;
+                    saveMissionState();
+                    renderMissionMarkers(); // 달성한 마커 제거
+                    showMissionReward(mission);
+                } else {
+                    var mins = Math.ceil(remaining / 60000);
+                    recStatusBox.textContent = "기록 중 · " + mission.name + " " + mins + "분 남음";
+                }
+            }
+        } else {
+            // 반경 밖으로 나감
+            if (mission.stayStart) {
+                mission.stayStart = null;
+                recStatusBox.textContent = "기록 중";
+            }
+        }
+    });
+}
+// 미션 마커 펄스 애니메이션
+if (!document.getElementById("mission-marker-style")) {
+    var mStyle = document.createElement("style");
+    mStyle.id = "mission-marker-style";
+    mStyle.textContent = "@keyframes missionPulse{"
+        + "0%,100%{transform:scale(1);box-shadow:0 0 12px rgba(255,255,255,0.3);}"
+        + "50%{transform:scale(1.12);box-shadow:0 0 20px rgba(255,255,255,0.5);}"
+        + "}";
+    document.head.appendChild(mStyle);
+}
+
+// ── 미션 저장/복원 ──
+var MISSION_STORAGE_KEY = "giloa-missions";
+
+function loadMissionState() {
+    try {
+        var raw = localStorage.getItem(MISSION_STORAGE_KEY);
+        if (!raw) return;
+        var saved = JSON.parse(raw);
+        LOCATION_MISSIONS.forEach(function(m) {
+            if (saved[m.id]) m.achieved = true;
+        });
+    } catch(e) {}
+}
+
+
 // ── TourAPI 관광지 추천 ──
 var TOUR_API_KEY = "c6995449e23f94083d88f198fe2617a8f957a2063bc6ac0d19816c9f27a0ed6c";
 var TOUR_ENDPOINT = "https://apis.data.go.kr/B551011/KorService2/locationBasedList2";
@@ -1745,245 +1985,6 @@ function applyLang() {
 
 map.on("moveend", scheduleTourFetch);
 scheduleTourFetch();
-
-var LOCATION_MISSIONS = [
-    {
-        id: "ddp",
-        name: "DDP 탐험가",
-        lat: 37.5665, lng: 127.0092,
-        radius: 200,
-        icon: "🌀",
-        color: "#4db8ff",
-        reward: "DDP 기념 메달",
-        rewardImg: "https://dotolee12.github.io/sub/images/ddp.png",
-        desc: "동대문디자인플라자를 30분 이상 탐험하세요!",
-        stayStart: null, achieved: false
-    },
-    {
-        id: "cheonggyecheon",
-        name: "청계천 탐험가",
-        lat: 37.5697, lng: 126.9784,
-        radius: 200,
-        icon: "🌊",
-        color: "#20c997",
-        reward: "청계천 기념 메달",
-        rewardImg: "https://dotolee12.github.io/sub/images/cheonggyecheon.png",
-        desc: "청계천을 30분 이상 거닐어보세요!",
-        stayStart: null, achieved: false
-    },
-    {
-        id: "seoul_plaza",
-        name: "서울광장 탐험가",
-        lat: 37.5663, lng: 126.9779,
-        radius: 200,
-        icon: "🏛",
-        color: "#ffd93d",
-        reward: "서울광장 기념 메달",
-        rewardImg: "https://dotolee12.github.io/sub/images/seoul_plaza.png",
-        desc: "서울광장에서 30분 이상 머물러보세요!",
-        stayStart: null, achieved: false
-    },
-    {
-        id: "hangang",
-        name: "한강 탐험가",
-        lat: 37.5285, lng: 126.9344,
-        radius: 300,
-        icon: "🌅",
-        color: "#ff922b",
-        reward: "한강 기념 메달",
-        rewardImg: "https://dotolee12.github.io/sub/images/hangang.png",
-        desc: "한강공원에서 30분 이상 즐겨보세요!",
-        stayStart: null, achieved: false
-    },
-    {
-        id: "seoul_botanic",
-        name: "서울식물원 탐험가",
-        lat: 37.5703, lng: 126.8349,
-        radius: 200,
-        icon: "🌿",
-        color: "#6bcb77",
-        reward: "서울식물원 기념 메달",
-        rewardImg: "https://dotolee12.github.io/sub/images/seoul_botanic.png",
-        desc: "서울식물원에서 30분 이상 자연을 느껴보세요!",
-        stayStart: null, achieved: false
-    },
-    {
-        id: "worldcup_park",
-        name: "월드컵공원 탐험가",
-        lat: 37.5703, lng: 126.8969,
-        radius: 300,
-        icon: "⚽",
-        color: "#cc5de8",
-        reward: "월드컵공원 기념 메달",
-        rewardImg: "https://dotolee12.github.io/sub/images/worldcup_park.png",
-        desc: "월드컵공원에서 30분 이상 머물러보세요!",
-        stayStart: null, achieved: false
-    },
-    {
-        id: "yeouido_park",
-        name: "여의도공원 탐험가",
-        lat: 37.5263, lng: 126.9244,
-        radius: 250,
-        icon: "🌸",
-        color: "#f06595",
-        reward: "여의도공원 기념 메달",
-        rewardImg: "https://dotolee12.github.io/sub/images/yeouido_park.png",
-        desc: "여의도공원에서 30분 이상 산책해보세요!",
-        stayStart: null, achieved: false
-    },
-    {
-        id: "hanyangdoseong",
-        name: "한양도성 탐험가",
-        lat: 37.5947, lng: 126.9819,
-        radius: 300,
-        icon: "🏯",
-        color: "#ff8787",
-        reward: "한양도성 기념 메달",
-        rewardImg: "https://dotolee12.github.io/sub/images/hanyangdoseong.png",
-        desc: "한양도성을 30분 이상 걸어보세요!",
-        stayStart: null, achieved: false
-    },
-    {
-        id: "seoullo7017",
-        name: "서울로7017 탐험가",
-        lat: 37.5548, lng: 126.9706,
-        radius: 200,
-        icon: "🌉",
-        color: "#a9e34b",
-        reward: "서울로7017 기념 메달",
-        rewardImg: "https://dotolee12.github.io/sub/images/seoullo7017.png",
-        desc: "서울로7017에서 30분 이상 거닐어보세요!",
-        stayStart: null, achieved: false
-    },
-    {
-        id: "gyeongbokgung",
-        name: "경복궁 탐험가",
-        lat: 37.5796, lng: 126.9770,
-        radius: 300,
-        icon: "🏛",
-        color: "#ffd700",
-        reward: "경복궁 미니어처",
-        rewardImg: "https://dotolee12.github.io/sub/images/gyeongbokgung.png",
-        desc: "경복궁을 30분 이상 탐험하세요!",
-        stayStart: null, achieved: false
-    }
-];
-
-// ── 미션 마커 지도 표시 ──
-var missionMarkers = [];
-
-function renderMissionMarkers() {
-    missionMarkers.forEach(function(m) { map.removeLayer(m); });
-    missionMarkers = [];
-
-    if (!map.getPane("missionPane")) {
-        map.createPane("missionPane");
-        map.getPane("missionPane").style.zIndex = "610";
-    }
-
-    LOCATION_MISSIONS.forEach(function(mission) {
-        if (mission.achieved) return; // 달성한 건 숨김
-
-        var marker = L.marker([mission.lat, mission.lng], {
-            pane: "missionPane",
-            icon: L.divIcon({
-                className: "",
-                html: '<div style="'
-                    + 'width:44px;height:44px;'
-                    + 'background:' + mission.color + ';'
-                    + 'border-radius:50%;'
-                    + 'display:flex;align-items:center;justify-content:center;'
-                    + 'font-size:22px;'
-                    + 'border:3px solid rgba(255,255,255,0.8);'
-                    + 'box-shadow:0 0 12px ' + mission.color + '99;'
-                    + 'animation:missionPulse 2s ease-in-out infinite;'
-                    + '">' + mission.icon + '</div>'
-                    + '<div style="'
-                    + 'position:absolute;top:48px;left:50%;transform:translateX(-50%);'
-                    + 'background:rgba(0,0,0,0.75);color:#fff;'
-                    + 'font-size:10px;font-weight:700;'
-                    + 'padding:3px 8px;border-radius:8px;white-space:nowrap;'
-                    + 'border:1px solid ' + mission.color + ';'
-                    + '">' + mission.name + '</div>',
-                iconSize: [44, 44],
-                iconAnchor: [22, 22],
-                popupAnchor: [0, -30]
-            })
-        }).addTo(map);
-
-        marker.bindPopup(
-            '<div style="text-align:center;min-width:160px;">'
-            + '<div style="font-size:28px;margin-bottom:6px;">' + mission.icon + '</div>'
-            + '<b style="font-size:13px;">' + mission.name + '</b><br>'
-            + '<small style="color:rgba(255,255,255,0.6);">' + mission.desc + '</small><br>'
-            + '<small style="color:' + mission.color + ';margin-top:4px;display:block;">⏱ 30분 체류 시 달성</small>'
-            + '</div>',
-            { className: "tour-popup" }
-        );
-
-        missionMarkers.push(marker);
-    });
-}
-
-function checkLocationMissions(latlng, now) {
-    LOCATION_MISSIONS.forEach(function(mission) {
-        if (mission.achieved) return;
-        var dist = latlng.distanceTo([mission.lat, mission.lng]);
-
-        if (dist <= mission.radius) {
-            // 반경 안에 있음
-            if (!mission.stayStart) {
-                mission.stayStart = now;
-                // 상태바 표시
-                recStatusBox.textContent = "기록 중 · " + mission.name + " 미션 진행 중";
-            } else {
-                var elapsed = now - mission.stayStart;
-                var remaining = 30 * 60 * 1000 - elapsed; // 30분
-                if (remaining <= 0) {
-                    // 미션 달성!
-                    mission.achieved = true;
-                    mission.stayStart = null;
-                    saveMissionState();
-                    renderMissionMarkers(); // 달성한 마커 제거
-                    showMissionReward(mission);
-                } else {
-                    var mins = Math.ceil(remaining / 60000);
-                    recStatusBox.textContent = "기록 중 · " + mission.name + " " + mins + "분 남음";
-                }
-            }
-        } else {
-            // 반경 밖으로 나감
-            if (mission.stayStart) {
-                mission.stayStart = null;
-                recStatusBox.textContent = "기록 중";
-            }
-        }
-    });
-}
-// 미션 마커 펄스 애니메이션
-if (!document.getElementById("mission-marker-style")) {
-    var mStyle = document.createElement("style");
-    mStyle.id = "mission-marker-style";
-    mStyle.textContent = "@keyframes missionPulse{"
-        + "0%,100%{transform:scale(1);box-shadow:0 0 12px rgba(255,255,255,0.3);}"
-        + "50%{transform:scale(1.12);box-shadow:0 0 20px rgba(255,255,255,0.5);}"
-        + "}";
-    document.head.appendChild(mStyle);
-}
-
-// ── 미션 저장/복원 ──
-var MISSION_STORAGE_KEY = "giloa-missions";
-
-function loadMissionState() {
-    try {
-        var raw = localStorage.getItem(MISSION_STORAGE_KEY);
-        if (!raw) return;
-        var saved = JSON.parse(raw);
-        LOCATION_MISSIONS.forEach(function(m) {
-            if (saved[m.id]) m.achieved = true;
-        });
-    } catch(e) {}
-}
 
 function saveMissionState() {
     var data = {};
