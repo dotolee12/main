@@ -1322,7 +1322,7 @@ function init() {
     }, 5000);
     setTimeout(function() { applyLang(); }, 100);
 }
-map.whenReady(function() { init(); });
+
 
 var LOCATION_MISSIONS = [
     {
@@ -1446,6 +1446,8 @@ var LOCATION_MISSIONS = [
         stayStart: null, achieved: false
     }
 ];
+
+map.whenReady(function() { init(); });
 
 // ── 미션 마커 지도 표시 ──
 var missionMarkers = [];
