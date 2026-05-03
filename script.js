@@ -707,7 +707,8 @@ function handlePosition(position) {
     if (pathCoordinates.length === 0) {
         pathCoordinates.push(createPathPoint(latlng, now));
         checkStayBonus(latlng, now);
-        updateStats(); scheduleSave(); scheduleRender(); return;
+        checkLocationMissions(latlng, now); // ← 추가
+        updateStats(); scheduleSave(); scheduleRender();
     }
 
     var last          = pathCoordinates[pathCoordinates.length - 1];
@@ -723,6 +724,7 @@ function handlePosition(position) {
         if (pathCoordinates.length > MAX_PATH_POINTS) compactPathData();
     }
     checkStayBonus(latlng, now);
+    checkLocationMissions(latlng, now);
     updateStats(); scheduleSave(); scheduleRender();
 }
 
@@ -1303,6 +1305,7 @@ function init() {
     resizeCanvas();
     loadState();
     loadBonusState();
+    loadMissionState(); // ← 먼저 복원
     renderStoredMarkers();
     renderStoredPhotoMarkers();
     updateStats();
@@ -1313,10 +1316,11 @@ function init() {
     initGpxDial();
     initHudTapTargets();
     initCompass();
+    renderMissionMarkers(); // ← 복원 후 렌더링
     setTimeout(function() {
         if (!isRecording) toggleRecording();
     }, 5000);
-    setTimeout(function() { applyLang(); }, 100); // ← 이렇게 변경
+    setTimeout(function() { applyLang(); }, 100);
 }
 map.whenReady(function() { init(); });
 
@@ -1741,6 +1745,356 @@ function applyLang() {
 
 map.on("moveend", scheduleTourFetch);
 scheduleTourFetch();
+
+var LOCATION_MISSIONS = [
+    {
+        id: "ddp",
+        name: "DDP 탐험가",
+        lat: 37.5665, lng: 127.0092,
+        radius: 200,
+        icon: "🌀",
+        color: "#4db8ff",
+        reward: "DDP 기념 메달",
+        rewardImg: "https://dotolee12.github.io/sub/images/ddp.png",
+        desc: "동대문디자인플라자를 30분 이상 탐험하세요!",
+        stayStart: null, achieved: false
+    },
+    {
+        id: "cheonggyecheon",
+        name: "청계천 탐험가",
+        lat: 37.5697, lng: 126.9784,
+        radius: 200,
+        icon: "🌊",
+        color: "#20c997",
+        reward: "청계천 기념 메달",
+        rewardImg: "https://dotolee12.github.io/sub/images/cheonggyecheon.png",
+        desc: "청계천을 30분 이상 거닐어보세요!",
+        stayStart: null, achieved: false
+    },
+    {
+        id: "seoul_plaza",
+        name: "서울광장 탐험가",
+        lat: 37.5663, lng: 126.9779,
+        radius: 200,
+        icon: "🏛",
+        color: "#ffd93d",
+        reward: "서울광장 기념 메달",
+        rewardImg: "https://dotolee12.github.io/sub/images/seoul_plaza.png",
+        desc: "서울광장에서 30분 이상 머물러보세요!",
+        stayStart: null, achieved: false
+    },
+    {
+        id: "hangang",
+        name: "한강 탐험가",
+        lat: 37.5285, lng: 126.9344,
+        radius: 300,
+        icon: "🌅",
+        color: "#ff922b",
+        reward: "한강 기념 메달",
+        rewardImg: "https://dotolee12.github.io/sub/images/hangang.png",
+        desc: "한강공원에서 30분 이상 즐겨보세요!",
+        stayStart: null, achieved: false
+    },
+    {
+        id: "seoul_botanic",
+        name: "서울식물원 탐험가",
+        lat: 37.5703, lng: 126.8349,
+        radius: 200,
+        icon: "🌿",
+        color: "#6bcb77",
+        reward: "서울식물원 기념 메달",
+        rewardImg: "https://dotolee12.github.io/sub/images/seoul_botanic.png",
+        desc: "서울식물원에서 30분 이상 자연을 느껴보세요!",
+        stayStart: null, achieved: false
+    },
+    {
+        id: "worldcup_park",
+        name: "월드컵공원 탐험가",
+        lat: 37.5703, lng: 126.8969,
+        radius: 300,
+        icon: "⚽",
+        color: "#cc5de8",
+        reward: "월드컵공원 기념 메달",
+        rewardImg: "https://dotolee12.github.io/sub/images/worldcup_park.png",
+        desc: "월드컵공원에서 30분 이상 머물러보세요!",
+        stayStart: null, achieved: false
+    },
+    {
+        id: "yeouido_park",
+        name: "여의도공원 탐험가",
+        lat: 37.5263, lng: 126.9244,
+        radius: 250,
+        icon: "🌸",
+        color: "#f06595",
+        reward: "여의도공원 기념 메달",
+        rewardImg: "https://dotolee12.github.io/sub/images/yeouido_park.png",
+        desc: "여의도공원에서 30분 이상 산책해보세요!",
+        stayStart: null, achieved: false
+    },
+    {
+        id: "hanyangdoseong",
+        name: "한양도성 탐험가",
+        lat: 37.5947, lng: 126.9819,
+        radius: 300,
+        icon: "🏯",
+        color: "#ff8787",
+        reward: "한양도성 기념 메달",
+        rewardImg: "https://dotolee12.github.io/sub/images/hanyangdoseong.png",
+        desc: "한양도성을 30분 이상 걸어보세요!",
+        stayStart: null, achieved: false
+    },
+    {
+        id: "seoullo7017",
+        name: "서울로7017 탐험가",
+        lat: 37.5548, lng: 126.9706,
+        radius: 200,
+        icon: "🌉",
+        color: "#a9e34b",
+        reward: "서울로7017 기념 메달",
+        rewardImg: "https://dotolee12.github.io/sub/images/seoullo7017.png",
+        desc: "서울로7017에서 30분 이상 거닐어보세요!",
+        stayStart: null, achieved: false
+    },
+    {
+        id: "gyeongbokgung",
+        name: "경복궁 탐험가",
+        lat: 37.5796, lng: 126.9770,
+        radius: 300,
+        icon: "🏛",
+        color: "#ffd700",
+        reward: "경복궁 미니어처",
+        rewardImg: "https://dotolee12.github.io/sub/images/gyeongbokgung.png",
+        desc: "경복궁을 30분 이상 탐험하세요!",
+        stayStart: null, achieved: false
+    }
+];
+
+// ── 미션 마커 지도 표시 ──
+var missionMarkers = [];
+
+function renderMissionMarkers() {
+    missionMarkers.forEach(function(m) { map.removeLayer(m); });
+    missionMarkers = [];
+
+    if (!map.getPane("missionPane")) {
+        map.createPane("missionPane");
+        map.getPane("missionPane").style.zIndex = "610";
+    }
+
+    LOCATION_MISSIONS.forEach(function(mission) {
+        if (mission.achieved) return; // 달성한 건 숨김
+
+        var marker = L.marker([mission.lat, mission.lng], {
+            pane: "missionPane",
+            icon: L.divIcon({
+                className: "",
+                html: '<div style="'
+                    + 'width:44px;height:44px;'
+                    + 'background:' + mission.color + ';'
+                    + 'border-radius:50%;'
+                    + 'display:flex;align-items:center;justify-content:center;'
+                    + 'font-size:22px;'
+                    + 'border:3px solid rgba(255,255,255,0.8);'
+                    + 'box-shadow:0 0 12px ' + mission.color + '99;'
+                    + 'animation:missionPulse 2s ease-in-out infinite;'
+                    + '">' + mission.icon + '</div>'
+                    + '<div style="'
+                    + 'position:absolute;top:48px;left:50%;transform:translateX(-50%);'
+                    + 'background:rgba(0,0,0,0.75);color:#fff;'
+                    + 'font-size:10px;font-weight:700;'
+                    + 'padding:3px 8px;border-radius:8px;white-space:nowrap;'
+                    + 'border:1px solid ' + mission.color + ';'
+                    + '">' + mission.name + '</div>',
+                iconSize: [44, 44],
+                iconAnchor: [22, 22],
+                popupAnchor: [0, -30]
+            })
+        }).addTo(map);
+
+        marker.bindPopup(
+            '<div style="text-align:center;min-width:160px;">'
+            + '<div style="font-size:28px;margin-bottom:6px;">' + mission.icon + '</div>'
+            + '<b style="font-size:13px;">' + mission.name + '</b><br>'
+            + '<small style="color:rgba(255,255,255,0.6);">' + mission.desc + '</small><br>'
+            + '<small style="color:' + mission.color + ';margin-top:4px;display:block;">⏱ 30분 체류 시 달성</small>'
+            + '</div>',
+            { className: "tour-popup" }
+        );
+
+        missionMarkers.push(marker);
+    });
+}
+
+function checkLocationMissions(latlng, now) {
+    LOCATION_MISSIONS.forEach(function(mission) {
+        if (mission.achieved) return;
+        var dist = latlng.distanceTo([mission.lat, mission.lng]);
+
+        if (dist <= mission.radius) {
+            // 반경 안에 있음
+            if (!mission.stayStart) {
+                mission.stayStart = now;
+                // 상태바 표시
+                recStatusBox.textContent = "기록 중 · " + mission.name + " 미션 진행 중";
+            } else {
+                var elapsed = now - mission.stayStart;
+                var remaining = 30 * 60 * 1000 - elapsed; // 30분
+                if (remaining <= 0) {
+                    // 미션 달성!
+                    mission.achieved = true;
+                    mission.stayStart = null;
+                    saveMissionState();
+                    renderMissionMarkers(); // 달성한 마커 제거
+                    showMissionReward(mission);
+                } else {
+                    var mins = Math.ceil(remaining / 60000);
+                    recStatusBox.textContent = "기록 중 · " + mission.name + " " + mins + "분 남음";
+                }
+            }
+        } else {
+            // 반경 밖으로 나감
+            if (mission.stayStart) {
+                mission.stayStart = null;
+                recStatusBox.textContent = "기록 중";
+            }
+        }
+    });
+}
+// 미션 마커 펄스 애니메이션
+if (!document.getElementById("mission-marker-style")) {
+    var mStyle = document.createElement("style");
+    mStyle.id = "mission-marker-style";
+    mStyle.textContent = "@keyframes missionPulse{"
+        + "0%,100%{transform:scale(1);box-shadow:0 0 12px rgba(255,255,255,0.3);}"
+        + "50%{transform:scale(1.12);box-shadow:0 0 20px rgba(255,255,255,0.5);}"
+        + "}";
+    document.head.appendChild(mStyle);
+}
+
+// ── 미션 저장/복원 ──
+var MISSION_STORAGE_KEY = "giloa-missions";
+
+function loadMissionState() {
+    try {
+        var raw = localStorage.getItem(MISSION_STORAGE_KEY);
+        if (!raw) return;
+        var saved = JSON.parse(raw);
+        LOCATION_MISSIONS.forEach(function(m) {
+            if (saved[m.id]) m.achieved = true;
+        });
+    } catch(e) {}
+}
+
+function saveMissionState() {
+    var data = {};
+    LOCATION_MISSIONS.forEach(function(m) { data[m.id] = m.achieved; });
+    localStorage.setItem(MISSION_STORAGE_KEY, JSON.stringify(data));
+}
+
+function showMissionReward(mission) {
+    var descPromise   = currentLang !== "ko" ? varcoTranslate(mission.desc,   currentLang) : Promise.resolve(mission.desc);
+    var rewardPromise = currentLang !== "ko" ? varcoTranslate(mission.reward, currentLang) : Promise.resolve(mission.reward);
+    var namePromise   = currentLang !== "ko" ? varcoTranslate(mission.name,   currentLang) : Promise.resolve(mission.name);
+    Promise.all([descPromise, rewardPromise, namePromise]).then(function(r) {
+        showRewardPopup(r[2], r[1], r[0], mission.rewardImg, mission.color, mission.icon);
+    });
+}
+
+function showRewardPopup(name, reward, desc, imgUrl, color, icon) {
+    var existing = document.getElementById("mission-reward-popup");
+    if (existing) existing.remove();
+
+    var overlay = document.createElement("div");
+    overlay.id = "mission-reward-popup";
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;";
+
+    var box = document.createElement("div");
+    box.style.cssText = "background:linear-gradient(160deg,rgba(20,16,40,0.99),rgba(10,10,24,0.99));border:1px solid " + (color || "#ffd700") + "66;border-radius:24px;padding:32px 24px 28px;width:300px;text-align:center;position:relative;animation:popIn 0.5s cubic-bezier(0.34,1.56,0.64,1);";
+
+    var badge = document.createElement("div");
+    badge.style.cssText = "position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,#f59e0b,#fbbf24);color:#1a0a00;font-size:11px;font-weight:800;padding:4px 18px;border-radius:20px;letter-spacing:1px;white-space:nowrap;";
+    badge.textContent = "🏆 미션 달성!";
+
+    var iconEl = document.createElement("div");
+    iconEl.style.cssText = "font-size:56px;margin:8px 0;line-height:1;";
+    iconEl.textContent = icon || "🏅";
+
+    var imgEl = document.createElement("img");
+    imgEl.src = imgUrl;
+    imgEl.style.cssText = "width:120px;height:120px;object-fit:cover;border-radius:12px;border:2px solid " + (color || "#ffd700") + "66;display:block;margin:8px auto;";
+    imgEl.onerror = function() { this.style.display = "none"; };
+
+    var nameEl = document.createElement("div");
+    nameEl.style.cssText = "font-size:18px;font-weight:800;color:#fef3c7;margin-top:10px;";
+    nameEl.textContent = name;
+
+    var rewardEl = document.createElement("div");
+    rewardEl.style.cssText = "font-size:13px;color:" + (color || "#ffd700") + ";margin-top:6px;font-weight:700;";
+    rewardEl.textContent = "🎁 " + reward;
+
+    var descEl = document.createElement("div");
+    descEl.style.cssText = "font-size:11px;color:rgba(255,255,255,0.45);margin-top:8px;line-height:1.6;";
+    descEl.textContent = desc;
+
+    var closeBtn = document.createElement("button");
+    closeBtn.style.cssText = "width:100%;margin-top:18px;padding:12px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);";
+    closeBtn.textContent = "닫기";
+    closeBtn.onclick = function() { overlay.remove(); };
+
+    if (!document.getElementById("mission-anim-style")) {
+        var st = document.createElement("style");
+        st.id = "mission-anim-style";
+        st.textContent = "@keyframes popIn{from{opacity:0;transform:scale(0.7)}to{opacity:1;transform:scale(1)}}";
+        document.head.appendChild(st);
+    }
+
+    box.appendChild(badge);
+    box.appendChild(iconEl);
+    box.appendChild(imgEl);
+    box.appendChild(nameEl);
+    box.appendChild(rewardEl);
+    box.appendChild(descEl);
+    box.appendChild(closeBtn);
+    overlay.appendChild(box);
+    overlay.addEventListener("click", function(e) { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+    launchConfetti();
+}
+
+function launchConfetti() {
+    var canvas = document.createElement("canvas");
+    canvas.style.cssText = "position:fixed;inset:0;pointer-events:none;z-index:10000;";
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    document.body.appendChild(canvas);
+    var ctx = canvas.getContext("2d");
+    var particles = [];
+    var colors = ["#ffd700","#ff6b6b","#4db8ff","#78dc8c","#ffa94d","#f06595"];
+    for (var i = 0; i < 80; i++) {
+        particles.push({
+            x: window.innerWidth/2, y: window.innerHeight/2,
+            vx: (Math.random()-0.5)*14, vy: (Math.random()-4)*7,
+            color: colors[Math.floor(Math.random()*colors.length)],
+            size: Math.random()*7+3, alpha: 1,
+            rot: Math.random()*360, rotV: (Math.random()-0.5)*8
+        });
+    }
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        var alive = false;
+        particles.forEach(function(p) {
+            p.x+=p.vx; p.y+=p.vy; p.vy+=0.25; p.alpha-=0.013; p.rot+=p.rotV;
+            if (p.alpha > 0) {
+                alive = true;
+                ctx.save(); ctx.globalAlpha=p.alpha; ctx.fillStyle=p.color;
+                ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
+                ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size); ctx.restore();
+            }
+        });
+        if (alive) requestAnimationFrame(animate); else canvas.remove();
+    }
+    animate();
+}
 
 // ── 나침반 + 시야각 ──
 var compassHeading   = null;
