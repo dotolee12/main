@@ -704,11 +704,12 @@ function handlePosition(position) {
     var now = Date.now();
     recStatusBox.textContent = accuracy > MAX_ACCURACY_M ? "GPS 약함 (" + Math.round(accuracy) + "m)" : "기록 중";
 
-    if (pathCoordinates.length === 0) {
-        pathCoordinates.push(createPathPoint(latlng, now));
-        checkStayBonus(latlng, now);
-        checkLocationMissions(latlng, now); // ← 추가
-        updateStats(); scheduleSave(); scheduleRender();
+  if (pathCoordinates.length === 0) {
+    pathCoordinates.push(createPathPoint(latlng, now));
+    checkStayBonus(latlng, now);
+    checkLocationMissions(latlng, now);
+    updateStats(); scheduleSave(); scheduleRender();
+    return; // ← 추가!
     }
 
     var last          = pathCoordinates[pathCoordinates.length - 1];
