@@ -1,3 +1,41 @@
+// ===================================================
+// [필수 추가] 지도 생성 및 글로벌 변수 초기화 엔진
+// ===================================================
+var map;
+var attractionClusterGroup; 
+
+function initMap() {
+    // 1. HTML의 #map 엘리먼트에 Leaflet 지도 객체 생성 (서울 중심 좌표 기준)
+    map = L.map('map', {
+        zoomControl: false,
+        attributionControl: false
+    }).setView([37.5665, 126.9780], 14);
+
+    // 2. 오픈스트리트맵(OSM) 타일 레이어 추가
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19
+    }).addTo(map);
+
+    // 3. 주변 관광지 아이콘들을 묶어줄 마커 클러스터 그룹 초기화
+    if (typeof L.markerClusterGroup === 'function') {
+        attractionClusterGroup = L.markerClusterGroup().addTo(map);
+    }
+
+    // 4. 지도 크기 재연산 (화면 깨짐 및 검은 화면 방지)
+    setTimeout(function() {
+        if (map) {
+            map.invalidateSize();
+        }
+    }, 200);
+}
+
+// 브라우저가 HTML을 모두 읽으면 자동으로 지도를 구동하도록 설정
+window.addEventListener('DOMContentLoaded', initMap);
+// ===================================================
+
+
+// (이 아래에서부터 기존에 가지고 계시던 requestLocationPermission() 코드가 이어지면 됩니다!)
+
 // ── 앱 시작 시 위치 권한 요청 ──
 async function requestLocationPermission() {
     if (window.Capacitor && window.Capacitor.isNativePlatform()) {
