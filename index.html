@@ -104,9 +104,11 @@
 <div id="top-bar">
 <div id="ham-btn" onclick="toggleSidebar()"><div class="hline"></div><div class="hline"></div><div class="hline"></div></div>
 <div id="rec-status-box">대기 중</div>
-<div id="lang-toggle">
-    <button id="lang-btn-ko" class="lang-btn active" onclick="toggleLang('ko')">KO</button>
-    <button id="lang-btn-en" class="lang-btn" onclick="toggleLang('en')">EN</button>
+<div id="lang-toggle" aria-label="언어 선택">
+    <button id="lang-btn-ko" class="lang-btn active" data-lang="ko" onclick="toggleLang('ko')">KO</button>
+    <button id="lang-btn-en" class="lang-btn" data-lang="en" onclick="toggleLang('en')">EN</button>
+    <button id="lang-btn-ja" class="lang-btn" data-lang="ja" onclick="toggleLang('ja')">JA</button>
+    <button id="lang-btn-zh" class="lang-btn" data-lang="zh" onclick="toggleLang('zh')">ZH</button>
 </div>
 </div>
 

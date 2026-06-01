@@ -1,4 +1,4 @@
-// ── 앱 시작 시 위치 권한 요청 ──
+﻿// ── 앱 시작 시 위치 권한 요청 ──
 async function requestLocationPermission() {
     if (window.Capacitor && window.Capacitor.isNativePlatform()) {
         try {
@@ -23,8 +23,8 @@ requestLocationPermission();
 const STORAGE_KEY = "giloa-v7";
 const FOG_ENABLED_KEY = "giloa-fog-enabled";
 const GPX_SAVES_KEY = "giloa-gpx-saves";
-const FOG_ALPHA_BASE = 0.80;
-const FOG_ALPHA_PER_LV = 0.01;
+const FOG_ALPHA_BASE = 0.40;
+const FOG_ALPHA_PER_LV = 0;
 function getFogAlpha() { const lv = calcLevel().level; return Math.max(0, FOG_ALPHA_BASE - (lv - 1) * FOG_ALPHA_PER_LV); }
 const FOG_RADIUS_M = 18;
 const MIN_MOVE_M = 15;
@@ -126,11 +126,14 @@ map.createPane("memoryPane");
 map.getPane("memoryPane").style.zIndex = 640;
 map.createPane("playerPane");
 map.getPane("playerPane").style.zIndex = 650;
+map.createPane("tourPane");
+map.getPane("tourPane").style.zIndex = 660;
+var tourRenderer = L.svg({ pane: "tourPane" });
 
-var mapWrap = document.getElementById("map-wrap");
-mapWrap.appendChild(document.getElementById("fog-canvas"));
-mapWrap.appendChild(document.getElementById("age-canvas"));
-mapWrap.appendChild(document.getElementById("stay-canvas"));
+var fogPane = map.getPane("fogPane");
+fogPane.appendChild(document.getElementById("fog-canvas"));
+fogPane.appendChild(document.getElementById("age-canvas"));
+fogPane.appendChild(document.getElementById("stay-canvas"));
 
 const photoClusterGroup = L.markerClusterGroup({
     clusterPane: "photoPane", maxClusterRadius: 60, disableClusteringAtZoom: CLUSTER_ZOOM_THRESHOLD + 1,
@@ -148,6 +151,13 @@ const fogScratchCanvas = document.createElement("canvas");
 const ageScratchCanvas = document.createElement("canvas");
 const fogScratchCtx = fogScratchCanvas.getContext("2d");
 const ageScratchCtx = ageScratchCanvas.getContext("2d");
+let canvasTopLeft = L.point(0, 0);
+
+function syncCanvasPosition() {
+    canvasTopLeft = map.containerPointToLayerPoint([0, 0]);
+    [fogCanvas, ageCanvas, stayCanvas].forEach(function(c) { L.DomUtil.setPosition(c, canvasTopLeft); });
+}
+function latLngToCanvasPoint(latlng) { return map.latLngToLayerPoint(latlng).subtract(canvasTopLeft); }
 
 function resizeCanvas() {
     var mapEl = document.getElementById("map");
@@ -155,6 +165,7 @@ function resizeCanvas() {
     var h = mapEl.clientHeight || window.innerHeight;
     [fogCanvas, ageCanvas, stayCanvas].forEach(function(c) { c.width = w; c.height = h; });
     [fogScratchCanvas, ageScratchCanvas].forEach(function(c) { c.width = w; c.height = h; });
+    syncCanvasPosition();
     scheduleRender();
 }
 
@@ -163,7 +174,7 @@ map.on("move zoom", scheduleRender);
 map.on("zoomend", updatePhotoMarkerSizes);
 
 function scheduleRender() { if (rafId !== null) return; rafId = requestAnimationFrame(function() { rafId = null; render(); }); }
-function render() { renderFog(); renderAgeTint(); renderStayTint(); }
+function render() { syncCanvasPosition(); renderFog(); renderAgeTint(); renderStayTint(); }
 function calcMpp() { var center = map.getCenter(); var pt = map.latLngToContainerPoint(center); var ll2 = map.containerPointToLatLng(L.point(pt.x + 10, pt.y)); return center.distanceTo(ll2) || 1; }
 function metersToPixels(meters, mpp) { return (meters / mpp) * 10; }
 
@@ -174,7 +185,7 @@ function renderFog() {
     fogCtx.fillRect(0, 0, w, h);
     if (currentPos) {
         var mpp = calcMpp();
-        var pos = map.latLngToContainerPoint(currentPos);
+        var pos = latLngToCanvasPoint(currentPos);
         var playerRadius = metersToPixels(FOG_RADIUS_M * 1.5, mpp);
         fogCtx.save();
         fogCtx.globalCompositeOperation = "destination-out";
@@ -196,12 +207,12 @@ function renderFog() {
             var point = pathCoordinates[idx];
             var ageHours = (now - point.startTime) / 3600000;
             var alpha = getPathVisibility(ageHours);
-            var pos = map.latLngToContainerPoint([point.lat, point.lng]);
+            var pos = latLngToCanvasPoint([point.lat, point.lng]);
             var stayMin = (point.endTime - point.startTime) / 60000;
             var stayR = metersToPixels(getStayRadiusMeters(stayMin), mpp);
             addToBucket(alpha, function(ctx) { ctx.beginPath(); ctx.arc(pos.x, pos.y, stayR, 0, Math.PI * 2); ctx.fill(); });
             if (idx > 0) {
-                var prev = map.latLngToContainerPoint([pathCoordinates[idx - 1].lat, pathCoordinates[idx - 1].lng]);
+                var prev = latLngToCanvasPoint([pathCoordinates[idx - 1].lat, pathCoordinates[idx - 1].lng]);
                 var timeGap = point.startTime - pathCoordinates[idx - 1].endTime;
                 if (timeGap <= GAP_THRESHOLD_MS) {
                     addToBucket(alpha, function(ctx) { ctx.beginPath(); ctx.moveTo(prev.x, prev.y); ctx.lineTo(pos.x, pos.y); ctx.stroke(); });
@@ -233,8 +244,8 @@ function renderAgeTint() {
     var buckets = new Map();
     pathCoordinates.forEach(function(point, i) {
         var ageDays = (now - point.startTime) / 86400000; var color = getAgeColor(ageDays); if (!color) return;
-        if (!buckets.has(color)) buckets.set(color, []); var pos = map.latLngToContainerPoint([point.lat, point.lng]);
-        if (i > 0) { var timeGap = point.startTime - pathCoordinates[i - 1].endTime; if (timeGap <= GAP_THRESHOLD_MS) { var prev = map.latLngToContainerPoint([pathCoordinates[i - 1].lat, pathCoordinates[i - 1].lng]); buckets.get(color).push({ x1: prev.x, y1: prev.y, x2: pos.x, y2: pos.y }); } }
+        if (!buckets.has(color)) buckets.set(color, []); var pos = latLngToCanvasPoint([point.lat, point.lng]);
+        if (i > 0) { var timeGap = point.startTime - pathCoordinates[i - 1].endTime; if (timeGap <= GAP_THRESHOLD_MS) { var prev = latLngToCanvasPoint([pathCoordinates[i - 1].lat, pathCoordinates[i - 1].lng]); buckets.get(color).push({ x1: prev.x, y1: prev.y, x2: pos.x, y2: pos.y }); } }
     });
     var offCtx = ageScratchCtx;
     buckets.forEach(function(draws, color) {
@@ -251,7 +262,7 @@ function renderStayTint() {
     if (pathCoordinates.length === 0) return; var mpp = calcMpp();
     pathCoordinates.forEach(function(point) {
         var stayMin = (point.endTime - point.startTime) / 60000; if (stayMin < 10) return;
-        var pos = map.latLngToContainerPoint([point.lat, point.lng]); var radius = metersToPixels(getStayRadiusMeters(stayMin), mpp);
+        var pos = latLngToCanvasPoint([point.lat, point.lng]); var radius = metersToPixels(getStayRadiusMeters(stayMin), mpp);
         var grad = stayCtx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, radius);
         grad.addColorStop(0, "rgba(255, 220, 100, 0.18)"); grad.addColorStop(0.6, "rgba(255, 220, 100, 0.08)"); grad.addColorStop(1, "rgba(255, 220, 100, 0)");
         stayCtx.fillStyle = grad; stayCtx.beginPath(); stayCtx.arc(pos.x, pos.y, radius, 0, Math.PI * 2); stayCtx.fill();
@@ -296,8 +307,8 @@ function updateStats() { var todayDist = calcTodayDistance(); var distEl = docum
 
 function toggleHud() { isHudExpanded = !isHudExpanded; document.getElementById("hud").classList.toggle("expanded", isHudExpanded); document.getElementById("controls").classList.toggle("hud-open", isHudExpanded); document.getElementById("help-btn").classList.toggle("hud-open", isHudExpanded); if (isHudExpanded) { setTimeout(function() { document.addEventListener("click", handleHudOutsideClick); }, 0); } else { document.removeEventListener("click", handleHudOutsideClick); } }
 function handleHudOutsideClick(event) { var hud = document.getElementById("hud"); if (!hud.contains(event.target)) { isHudExpanded = false; hud.classList.remove("expanded"); document.getElementById("controls").classList.remove("hud-open"); document.getElementById("help-btn").classList.remove("hud-open"); document.removeEventListener("click", handleHudOutsideClick); } }
-function syncRecordingUI() { recBtn.classList.toggle("recording", isRecording); recStatusBox.textContent = isRecording ? "기록 중" : "대기 중"; recStatusBox.classList.toggle("recording", isRecording); }
-function syncFogButton() { var toggleBtn = document.getElementById("fog-toggle-btn"); var toggleState = document.getElementById("fog-toggle-state"); if (!toggleBtn) return; toggleBtn.classList.toggle("on", isFogEnabled); toggleBtn.classList.toggle("off", !isFogEnabled); if (toggleState) { toggleState.textContent = isFogEnabled ? "켜짐" : "꺼짐"; toggleState.classList.toggle("on", isFogEnabled); toggleState.classList.toggle("off", !isFogEnabled); } }
+function syncRecordingUI() { var t = UI_TEXT[currentLang] || UI_TEXT.ko; recBtn.classList.toggle("recording", isRecording); recStatusBox.textContent = isRecording ? t.rec_active : t.rec_idle; recStatusBox.classList.toggle("recording", isRecording); }
+function syncFogButton() { var t = UI_TEXT[currentLang] || UI_TEXT.ko; var toggleBtn = document.getElementById("fog-toggle-btn"); var toggleState = document.getElementById("fog-toggle-state"); if (!toggleBtn) return; toggleBtn.classList.toggle("on", isFogEnabled); toggleBtn.classList.toggle("off", !isFogEnabled); if (toggleState) { toggleState.textContent = isFogEnabled ? t.fog_on : t.fog_off; toggleState.classList.toggle("on", isFogEnabled); toggleState.classList.toggle("off", !isFogEnabled); } }
 function toggleHelp() { document.getElementById("help-popup").classList.toggle("show"); }
 function handleHelpOverlayClick(event) { var box = document.getElementById("help-content-box"); if (!box.contains(event.target)) toggleHelp(); }
 function switchHelpTab(tab) { ["ask", "info"].forEach(function(t) { document.getElementById("htab-" + t).classList.toggle("active", t === tab); document.getElementById("hpanel-" + t).style.display = t === tab ? "" : "none"; }); }
@@ -401,7 +412,9 @@ function handlePosition(position) {
     var accuracy = Number(position.coords.accuracy) || Infinity;
     var latlng = L.latLng(position.coords.latitude, position.coords.longitude);
     var heading = position.coords.heading;
+    var prevPos = currentPos;
     if (isFinite(heading)) playerHeading = heading;
+    else if (prevPos && prevPos.distanceTo(latlng) > 2) playerHeading = bearingBetween(prevPos, latlng);
     currentPos = latlng;
     if (!playerMarker) { playerMarker = L.marker(latlng, { pane: "playerPane", icon: L.divIcon({ className: "player-marker", iconSize: [18, 18] }) }).addTo(map); map.setView(latlng, 16); }
     else { playerMarker.setLatLng(latlng); }
@@ -818,20 +831,47 @@ function init() {
     updateMemoryList();
     syncRecordingUI();
     syncFogButton();
+    applyUILang(currentLang);
     setTimeout(function() { render(); scheduleRender(); }, 100);
     initGpxDial();
     initHudTapTargets();
     setTimeout(function() { if (!isRecording) toggleRecording(); }, 5000);
 }
-map.whenReady(function() { init(); });
+map.whenReady(function() { setTimeout(init, 0); });
 
 // ── TourAPI 관광지 추천 ──
 var TOUR_API_KEY = "c6995449e23f94083d88f198fe2617a8f957a2063bc6ac0d19816c9f27a0ed6c";
-var TOUR_ENDPOINT = "https://apis.data.go.kr/B551011/KorService2/locationBasedList2";
-var FESTIVAL_ENDPOINT = "https://apis.data.go.kr/B551011/KorService2/searchFestival2";
+var TOUR_API_BASES = { ko: "KorService2", en: "EngService2", ja: "JpnService2", zh: "ChsService2" };
+function getTourApiBase(lang) { return "https://apis.data.go.kr/B551011/" + (TOUR_API_BASES[lang || currentLang] || TOUR_API_BASES.ko); }
+function getTourEndpoint(path, lang) { return getTourApiBase(lang) + "/" + path; }
+function formatTourCount(count) { var suffix = ((UI_TEXT[currentLang] || UI_TEXT.ko).count_suffix); return currentLang === "ko" || currentLang === "ja" || currentLang === "zh" ? String(count) + suffix : String(count) + " " + suffix; }
 var tourItems = []; var festivalItems = []; var tourExpanded = false;
 var tourFetchTimer = null; var tourMarkers = []; var TOUR_VISIBLE_COUNT = 3;
-var TOUR_TYPE_NAMES = { "12": "관광지", "14": "문화시설", "15": "축제/행사", "25": "여행코스", "28": "레포츠", "32": "숙박", "38": "쇼핑", "39": "음식점" };
+var TOUR_TYPE_NAMES = {
+    ko: { "12": "관광지", "14": "문화시설", "15": "축제/행사", "25": "여행코스", "28": "레포츠", "32": "숙박", "38": "쇼핑", "39": "음식점" },
+    en: { "12": "Attraction", "14": "Culture", "15": "Festival", "25": "Course", "28": "Leports", "32": "Stay", "38": "Shopping", "39": "Food" },
+    ja: { "12": "観光地", "14": "文化施設", "15": "祭り", "25": "旅行コース", "28": "レポーツ", "32": "宿泊", "38": "ショッピング", "39": "グルメ" },
+    zh: { "12": "景点", "14": "文化设施", "15": "庆典", "25": "旅行路线", "28": "休闲运动", "32": "住宿", "38": "购物", "39": "美食" }
+};
+var TOUR_TYPE_LABELS = {
+    ko: { "25": "여행", "28": "레포츠", "38": "쇼핑", "15": "축제", "12": "관광", "14": "문화", default: "관광" },
+    en: { "25": "Course", "28": "Leports", "38": "Shop", "15": "Fest", "12": "Spot", "14": "Culture", default: "Spot" },
+    ja: { "25": "コース", "28": "レポーツ", "38": "買物", "15": "祭り", "12": "観光", "14": "文化", default: "観光" },
+    zh: { "25": "路线", "28": "运动", "38": "购物", "15": "庆典", "12": "景点", "14": "文化", default: "景点" }
+};
+function getTourTypeName(contentTypeId) { var names = TOUR_TYPE_NAMES[currentLang] || TOUR_TYPE_NAMES.ko; return names[String(contentTypeId)] || names["12"]; }
+function getTourTypeLabel(contentTypeId) { var labels = TOUR_TYPE_LABELS[currentLang] || TOUR_TYPE_LABELS.ko; return labels[String(contentTypeId)] || labels.default; }
+var TOUR_TYPE_META = {
+    "25": { label: "여행", color: "#ef4444", fill: "rgba(239,68,68,0.18)", border: "rgba(239,68,68,0.55)" },
+    "28": { label: "레포츠", color: "#38bdf8", fill: "rgba(56,189,248,0.18)", border: "rgba(56,189,248,0.55)" },
+    "38": { label: "쇼핑", color: "#facc15", fill: "rgba(250,204,21,0.18)", border: "rgba(250,204,21,0.58)" },
+    "15": { label: "축제", color: "#c084fc", fill: "rgba(192,132,252,0.18)", border: "rgba(192,132,252,0.58)" },
+    "12": { label: "관광", color: "#78dc8c", fill: "rgba(120,220,140,0.16)", border: "rgba(120,220,140,0.48)" },
+    "14": { label: "문화", color: "#2dd4bf", fill: "rgba(45,212,191,0.16)", border: "rgba(45,212,191,0.48)" },
+    default: { label: "관광", color: "#78dc8c", fill: "rgba(120,220,140,0.16)", border: "rgba(120,220,140,0.48)" }
+};
+function getTourTypeMeta(contentTypeId) { var meta = TOUR_TYPE_META[String(contentTypeId)] || TOUR_TYPE_META.default; return Object.assign({}, meta, { label: getTourTypeLabel(contentTypeId) }); }
+function applyTourTypeVars(el, meta) { el.style.setProperty("--tour-color", meta.color); el.style.setProperty("--tour-fill", meta.fill); el.style.setProperty("--tour-border", meta.border); }
 
 function getTodayString() {
     var d = new Date();
@@ -843,8 +883,9 @@ function getTodayString() {
 function fetchFestivals() {
     var center = map.getCenter();
     var today = getTodayString();
-    var url = FESTIVAL_ENDPOINT + "?serviceKey=" + TOUR_API_KEY + "&eventStartDate=" + today + "&mapX=" + center.lng.toFixed(6) + "&mapY=" + center.lat.toFixed(6) + "&radius=50000" + "&numOfRows=20&pageNo=1&MobileOS=ETC&MobileApp=Giloa&_type=json&arrange=E";
-    fetch(url).then(function(res) { return res.json(); }).then(function(data) {
+    var requestLang = currentLang;
+    var buildUrl = function(lang) { return getTourEndpoint("searchFestival2", lang) + "?serviceKey=" + TOUR_API_KEY + "&eventStartDate=" + today + "&mapX=" + center.lng.toFixed(6) + "&mapY=" + center.lat.toFixed(6) + "&radius=50000" + "&numOfRows=20&pageNo=1&MobileOS=ETC&MobileApp=Giloa&_type=json&arrange=E"; };
+    fetchTourJsonWithFallback(buildUrl, requestLang).then(function(data) {
         var body = data && data.response && data.response.body;
         var items = [];
         if (body && body.items && body.items.item) { items = Array.isArray(body.items.item) ? body.items.item : [body.items.item]; }
@@ -857,7 +898,7 @@ function fetchFestivals() {
 function updateFestivalBadge() {
     var badge = document.getElementById("tour-festival-badge");
     if (!badge) return;
-    if (festivalItems.length > 0) { badge.textContent = "🎪 축제 " + festivalItems.length; badge.classList.add("show"); }
+    if (festivalItems.length > 0) { badge.textContent = (UI_TEXT[currentLang] || UI_TEXT.ko).festival_badge + " " + festivalItems.length; badge.classList.add("show"); }
     else { badge.classList.remove("show"); }
 }
 
@@ -869,7 +910,8 @@ function renderFestivalStrip() {
     strip.innerHTML = "";
     var center = map.getCenter();
     festivalItems.forEach(function(item) {
-        var card = document.createElement("div"); card.className = "festival-card";
+        var card = document.createElement("div"); card.className = "festival-card"; applyTourTypeVars(card, getTourTypeMeta("15"));
+        var typeEl = document.createElement("div"); typeEl.className = "tour-card-type"; typeEl.textContent = getTourTypeName("15");
         var nameEl = document.createElement("div"); nameEl.className = "festival-card-name"; nameEl.textContent = item.title || "축제";
         var dateEl = document.createElement("div"); dateEl.className = "festival-card-date";
         var start = item.eventstartdate || ""; var end = item.eventenddate || "";
@@ -879,13 +921,13 @@ function renderFestivalStrip() {
         var distEl = document.createElement("div"); distEl.className = "festival-card-dist";
         var distM = center.distanceTo([parseFloat(item.mapy), parseFloat(item.mapx)]);
         distEl.textContent = distM < 1000 ? Math.round(distM) + "m" : (distM / 1000).toFixed(1) + "km";
-        card.appendChild(nameEl); card.appendChild(dateEl); card.appendChild(distEl);
+        card.appendChild(typeEl); card.appendChild(nameEl); card.appendChild(dateEl); card.appendChild(distEl);
         card.addEventListener("click", function() {
             map.flyTo([parseFloat(item.mapy), parseFloat(item.mapx)], 15);
             var addr = item.addr1 || "";
             var tel = item.tel ? "<br><a href='tel:" + item.tel + "' style='color:#4db8ff;font-size:12px;'>📞 " + escapeHtml(item.tel) + "</a>" : "";
-            L.popup({ className: "tour-popup" }).setLatLng([parseFloat(item.mapy), parseFloat(item.mapx)]).setContent("<b>" + escapeHtml(item.title || "") + "</b><br><small style='color:#4db8ff;'>🎪 축제</small><br><small>" + escapeHtml(addr) + "</small>" + tel).openOn(map);
-            addVisitStamp(item.title, "축제", parseFloat(item.mapy), parseFloat(item.mapx));
+            L.popup({ className: "tour-popup" }).setLatLng([parseFloat(item.mapy), parseFloat(item.mapx)]).setContent("<b>" + escapeHtml(item.title || "") + "</b><br><span class='tour-popup-tag' style='color:" + getTourTypeMeta("15").color + ";border-color:" + getTourTypeMeta("15").border + ";background:" + getTourTypeMeta("15").fill + ";'>" + escapeHtml(getTourTypeName("15")) + "</span><br><small>" + escapeHtml(addr) + "</small>" + tel).openOn(map);
+            addVisitStamp(item.title, getTourTypeName("15"), parseFloat(item.mapy), parseFloat(item.mapx));
         });
         strip.appendChild(card);
     });
@@ -899,16 +941,31 @@ function fetchTourSpots() {
     var emptyEl = document.getElementById("tour-empty"); var expandBtn = document.getElementById("tour-expand-btn"); var countEl = document.getElementById("tour-count");
     if (!listEl || !loadingEl || !emptyEl || !expandBtn || !countEl) return;
     loadingEl.style.display = tourExpanded ? "" : "none"; emptyEl.style.display = "none"; listEl.innerHTML = ""; expandBtn.style.display = "none";
-    var url = TOUR_ENDPOINT + "?serviceKey=" + TOUR_API_KEY + "&mapX=" + center.lng.toFixed(6) + "&mapY=" + center.lat.toFixed(6) + "&radius=" + radiusM + "&numOfRows=20&pageNo=1&MobileOS=ETC&MobileApp=Giloa&_type=json&arrange=E";
-    fetch(url).then(function(res) { return res.json(); }).then(function(data) {
+    var requestLang = currentLang;
+    var buildUrl = function(lang) { return getTourEndpoint("locationBasedList2", lang) + "?serviceKey=" + TOUR_API_KEY + "&mapX=" + center.lng.toFixed(6) + "&mapY=" + center.lat.toFixed(6) + "&radius=" + radiusM + "&numOfRows=20&pageNo=1&MobileOS=ETC&MobileApp=Giloa&_type=json&arrange=E"; };
+    fetchTourJsonWithFallback(buildUrl, requestLang).then(function(data) {
         loadingEl.style.display = "none"; var body = data && data.response && data.response.body; var items = [];
         if (body && body.items && body.items.item) { items = Array.isArray(body.items.item) ? body.items.item : [body.items.item]; items = items.filter(function(item) { return item.contenttypeid !== "39" && item.contenttypeid !== "32"; }); }
         clearTourMarkers(); tourItems = items;
         if (items.length === 0) { emptyEl.style.display = tourExpanded ? "" : "none"; countEl.textContent = ""; return; }
-        countEl.textContent = items.length + "곳"; renderTourCards();
-    }).catch(function(err) { loadingEl.style.display = "none"; emptyEl.style.display = tourExpanded ? "" : "none"; emptyEl.textContent = "불러오기 실패"; countEl.textContent = ""; console.warn("TourAPI 에러", err); });
+        countEl.textContent = formatTourCount(items.length); renderTourCards();
+    }).catch(function(err) { loadingEl.style.display = "none"; emptyEl.style.display = tourExpanded ? "" : "none"; emptyEl.textContent = (UI_TEXT[currentLang] || UI_TEXT.ko).empty_tour; countEl.textContent = ""; console.warn("TourAPI 에러", err); });
 }
 
+function tourResponseHasItems(data) {
+    var body = data && data.response && data.response.body;
+    return !!(body && body.items && body.items.item);
+}
+
+function fetchTourJsonWithFallback(buildUrl, lang) {
+    return fetch(buildUrl(lang)).then(function(res) { return res.json(); }).then(function(data) {
+        if (lang === "ko" || tourResponseHasItems(data)) return data;
+        return fetch(buildUrl("ko")).then(function(res) { return res.json(); }).catch(function() { return data; });
+    }).catch(function(err) {
+        if (lang === "ko") throw err;
+        return fetch(buildUrl("ko")).then(function(res) { return res.json(); });
+    });
+}
 function hideFestivalStrip() {
     var strip = document.getElementById("festival-strip");
     var label = document.getElementById("festival-strip-label");
@@ -926,7 +983,18 @@ function renderTourCards() {
     listEl.innerHTML = ""; var center = map.getCenter();
     var showCount = tourExpanded ? tourItems.length : 0;
     for (var i = 0; i < showCount; i++) {
-        (function(item) { var card = document.createElement("div"); card.className = "tour-card"; var nameEl = document.createElement("div"); nameEl.className = "tour-card-name"; nameEl.textContent = item.title || "이름 없음"; var typeEl = document.createElement("div"); typeEl.className = "tour-card-type"; typeEl.textContent = TOUR_TYPE_NAMES[item.contenttypeid] || "관광"; var distEl = document.createElement("div"); distEl.className = "tour-card-dist"; var distM = center.distanceTo([parseFloat(item.mapy), parseFloat(item.mapx)]); distEl.textContent = distM < 1000 ? Math.round(distM) + "m" : (distM / 1000).toFixed(1) + "km"; card.appendChild(nameEl); card.appendChild(typeEl); card.appendChild(distEl); card.addEventListener("click", function() { map.flyTo([parseFloat(item.mapy), parseFloat(item.mapx)], 17); showTourPopup(item); }); listEl.appendChild(card); })(tourItems[i]);
+        (function(item) {
+            var meta = getTourTypeMeta(item.contenttypeid);
+            var card = document.createElement("div"); card.className = "tour-card"; applyTourTypeVars(card, meta);
+            var nameEl = document.createElement("div"); nameEl.className = "tour-card-name"; nameEl.textContent = item.title || "이름 없음";
+            var typeEl = document.createElement("div"); typeEl.className = "tour-card-type"; typeEl.textContent = getTourTypeName(item.contenttypeid) || meta.label;
+            var distEl = document.createElement("div"); distEl.className = "tour-card-dist";
+            var distM = center.distanceTo([parseFloat(item.mapy), parseFloat(item.mapx)]);
+            distEl.textContent = distM < 1000 ? Math.round(distM) + "m" : (distM / 1000).toFixed(1) + "km";
+            card.appendChild(nameEl); card.appendChild(typeEl); card.appendChild(distEl);
+            card.addEventListener("click", function() { map.flyTo([parseFloat(item.mapy), parseFloat(item.mapx)], 17); showTourPopup(item); });
+            listEl.appendChild(card);
+        })(tourItems[i]);
     }
     expandBtn.style.display = "none";
     listEl.classList.toggle("expanded", tourItems.length > 0 && tourExpanded);
@@ -960,16 +1028,18 @@ function toggleTourExpand() {
 
 function showTourPopup(item) {
     var lat = parseFloat(item.mapy); var lng = parseFloat(item.mapx);
-    var typeName = TOUR_TYPE_NAMES[item.contenttypeid] || "관광";
+    var typeName = getTourTypeName(item.contenttypeid);
+    var meta = getTourTypeMeta(item.contenttypeid);
     var title = getTourDisplayTitle(item);
     var addr = getTourDisplayAddr(item);
     var tel = item.tel ? "<br><a href='tel:" + item.tel + "' style='color:#4db8ff;font-size:12px;'>📞 " + escapeHtml(item.tel) + "</a>" : "";
+    var tag = "<span class='tour-popup-tag' style='color:" + meta.color + ";border-color:" + meta.border + ";background:" + meta.fill + ";'>" + escapeHtml(typeName) + "</span>";
     addVisitStamp(item.title, typeName, lat, lng);
-    L.popup({ className: "tour-popup" }).setLatLng([lat, lng]).setContent("<b>" + escapeHtml(title) + "</b><br><small style='color:rgba(120,220,140,0.9);'>" + typeName + "</small><br><small>" + escapeHtml(addr) + "</small>" + tel).openOn(map);
+    L.popup({ className: "tour-popup" }).setLatLng([lat, lng]).setContent("<b>" + escapeHtml(title) + "</b><br>" + tag + "<br><small>" + escapeHtml(addr) + "</small>" + tel).openOn(map);
 }
 
 function clearTourMarkers() { tourMarkers.forEach(function(m) { map.removeLayer(m); }); tourMarkers = []; }
-function addTourMarkers() { clearTourMarkers(); tourItems.forEach(function(item) { var lat = parseFloat(item.mapy); var lng = parseFloat(item.mapx); if (!isFinite(lat) || !isFinite(lng)) return; var marker = L.circleMarker([lat, lng], { radius: 5, color: "#78dc8c", fillColor: "#78dc8c", fillOpacity: 0.7, weight: 1.5, opacity: 0.9, pane: "memoryPane" }).addTo(map); marker.on("click", function() { showTourPopup(item); }); tourMarkers.push(marker); }); }
+function addTourMarkers() { clearTourMarkers(); tourItems.forEach(function(item) { var lat = parseFloat(item.mapy); var lng = parseFloat(item.mapx); if (!isFinite(lat) || !isFinite(lng)) return; var meta = getTourTypeMeta(item.contenttypeid); var icon = L.divIcon({ className: "tour-map-marker-wrap", html: "<div class='tour-map-marker' style='--tour-color:" + meta.color + ";--tour-fill:" + meta.fill + ";--tour-border:" + meta.border + ";'><span class='tour-map-dot'></span><span class='tour-map-label'>" + escapeHtml(meta.label) + "</span></div>", iconSize: [76, 28], iconAnchor: [10, 14] }); var marker = L.marker([lat, lng], { pane: "tourPane", icon: icon, title: (getTourTypeName(item.contenttypeid) || meta.label) + " - " + (item.title || "") }).addTo(map); marker.on("click", function() { showTourPopup(item); }); tourMarkers.push(marker); }); }
 
 function scheduleTourFetch() { if (tourFetchTimer) clearTimeout(tourFetchTimer); tourFetchTimer = setTimeout(function() { tourFetchTimer = null; tourExpanded = false; fetchTourSpots(); fetchFestivals(); }, 1200); }
 map.on("moveend", scheduleTourFetch);
@@ -990,8 +1060,10 @@ function varcoTranslate(text, sourceLang, targetLang) {
 }
 
 var UI_TEXT = {
-    ko: { sidebar_title: "나의 기록들", fog_label: "어둠 효과", fog_on: "켜짐", fog_off: "꺼짐", tab_memory: "기억", tab_photo: "사진", tab_gpx: "발걸음", rec_idle: "대기 중", rec_active: "기록 중", empty_memory: "아직 기록이 없습니다.", empty_photo: "아직 사진이 없습니다.", tour_title: "📍 주변 관광지", festival_label: "🎪 주변 축제" },
-    en: { sidebar_title: "My Records", fog_label: "Fog Effect", fog_on: "On", fog_off: "Off", tab_memory: "Memory", tab_photo: "Photo", tab_gpx: "Steps", rec_idle: "Standby", rec_active: "Recording", empty_memory: "No records yet.", empty_photo: "No photos yet.", tour_title: "📍 Nearby Places", festival_label: "🎪 Nearby Festivals" }
+    ko: { sidebar_title: "나의 기록들", fog_label: "어둠 효과", fog_on: "켜짐", fog_off: "꺼짐", tab_memory: "기억", tab_photo: "사진", tab_gpx: "발걸음", tab_badge: "뱃지", tab_visit: "방문", tab_item: "아이템", rec_idle: "대기 중", rec_active: "기록 중", empty_memory: "아직 기록이 없습니다.", empty_photo: "아직 사진이 없습니다.", tour_title: "📍 주변 관광지", festival_label: "🎪 주변 축제", festival_badge: "🎪 축제", loading: "검색 중...", empty_tour: "이 지도에 관광지가 없어요", close: "닫기", count_suffix: "곳" },
+    en: { sidebar_title: "My Records", fog_label: "Fog Effect", fog_on: "On", fog_off: "Off", tab_memory: "Memory", tab_photo: "Photo", tab_gpx: "Steps", tab_badge: "Badges", tab_visit: "Visits", tab_item: "Items", rec_idle: "Standby", rec_active: "Recording", empty_memory: "No records yet.", empty_photo: "No photos yet.", tour_title: "📍 Nearby Places", festival_label: "🎪 Nearby Festivals", festival_badge: "🎪 Festivals", loading: "Searching...", empty_tour: "No nearby places", close: "Close", count_suffix: "places" },
+    ja: { sidebar_title: "記録", fog_label: "霧効果", fog_on: "オン", fog_off: "オフ", tab_memory: "記憶", tab_photo: "写真", tab_gpx: "足跡", tab_badge: "バッジ", tab_visit: "訪問", tab_item: "アイテム", rec_idle: "待機中", rec_active: "記録中", empty_memory: "記録はまだありません。", empty_photo: "写真はまだありません。", tour_title: "📍 周辺スポット", festival_label: "🎪 周辺の祭り", festival_badge: "🎪 祭り", loading: "検索中...", empty_tour: "周辺スポットがありません", close: "閉じる", count_suffix: "件" },
+    zh: { sidebar_title: "我的记录", fog_label: "雾效", fog_on: "开", fog_off: "关", tab_memory: "记忆", tab_photo: "照片", tab_gpx: "足迹", tab_badge: "徽章", tab_visit: "访问", tab_item: "物品", rec_idle: "待机中", rec_active: "记录中", empty_memory: "还没有记录。", empty_photo: "还没有照片。", tour_title: "📍 附近景点", festival_label: "🎪 附近庆典", festival_badge: "🎪 庆典", loading: "搜索中...", empty_tour: "附近没有景点", close: "关闭", count_suffix: "处" }
 };
 
 function applyUILang(lang) {
@@ -1004,21 +1076,36 @@ function applyUILang(lang) {
     var tabMemory = document.querySelector("#tab-memory .sidebar-tab-text");
     var tabPhoto = document.querySelector("#tab-photo .sidebar-tab-text");
     var tabGpx = document.querySelector("#tab-gpx .sidebar-tab-text");
+    var tabBadge = document.querySelector("#tab-badge .sidebar-tab-text");
+    var tabVisit = document.querySelector("#tab-visit .sidebar-tab-text");
+    var tabItem = document.querySelector("#tab-item .sidebar-tab-text");
     if (tabMemory) tabMemory.textContent = t.tab_memory;
     if (tabPhoto) tabPhoto.textContent = t.tab_photo;
     if (tabGpx) tabGpx.textContent = t.tab_gpx;
+    if (tabBadge) tabBadge.textContent = t.tab_badge;
+    if (tabVisit) tabVisit.textContent = t.tab_visit;
+    if (tabItem) tabItem.textContent = t.tab_item;
     if (el("tour-title")) el("tour-title").textContent = t.tour_title;
     if (el("festival-strip-label")) el("festival-strip-label").textContent = t.festival_label;
+    if (el("tour-loading")) el("tour-loading").textContent = t.loading;
+    if (el("tour-empty")) el("tour-empty").textContent = t.empty_tour;
+    if (el("tour-close-btn")) el("tour-close-btn").setAttribute("aria-label", t.close);
+    syncFogButton();
     if (!isRecording) { if (el("rec-status-box")) el("rec-status-box").textContent = t.rec_idle; }
-    var btnKo = document.getElementById("lang-btn-ko"); var btnEn = document.getElementById("lang-btn-en");
-    if (btnKo) btnKo.classList.toggle("active", lang === "ko");
-    if (btnEn) btnEn.classList.toggle("active", lang === "en");
+    document.querySelectorAll(".lang-btn").forEach(function(btn) { btn.classList.toggle("active", btn.dataset.lang === lang); });
+    renderTourCards();
+    renderFestivalStrip();
 }
 
 function toggleLang(lang) {
     if (currentLang === lang) return;
+    currentLang = lang;
     applyUILang(lang);
-    if (lang === "en" && tourItems.length > 0) translateTourItems();
+    clearTourMarkers();
+    tourItems = [];
+    festivalItems = [];
+    fetchTourSpots();
+    fetchFestivals();
 }
 
 function translateTourItems() {
@@ -1029,8 +1116,8 @@ function translateTourItems() {
     });
 }
 
-function getTourDisplayTitle(item) { return (currentLang === "en" && item._titleEn) ? item._titleEn : (item.title || ""); }
-function getTourDisplayAddr(item) { return (currentLang === "en" && item._addrEn) ? item._addrEn : (item.addr1 || ""); }
+function getTourDisplayTitle(item) { return item.title || ""; }
+function getTourDisplayAddr(item) { return item.addr1 || ""; }
 
 // ── 수집함 ──
 var COLLECTION_KEY = "giloa-collection";
@@ -1146,15 +1233,25 @@ function showCollectionToast(msg) {
 
 // ── 시야각 부채꼴 ──
 var visionCone = null;
+var visionLine = null;
 function updateVisionCone(latlng) {
     if (visionCone) { map.removeLayer(visionCone); visionCone = null; }
+    if (visionLine) { map.removeLayer(visionLine); visionLine = null; }
     if (playerHeading === null) return;
-    var center = [latlng.lat, latlng.lng]; var radiusM = 40; var spreadDeg = 60;
+    var center = [latlng.lat, latlng.lng]; var radiusM = 70; var spreadDeg = 70;
     var startAngle = playerHeading - spreadDeg / 2; var endAngle = playerHeading + spreadDeg / 2;
     var points = [center];
     for (var a = startAngle; a <= endAngle; a += 3) { points.push(destPoint(center, a, radiusM)); }
     points.push(destPoint(center, endAngle, radiusM)); points.push(center);
-    visionCone = L.polygon(points, { color: "rgba(77, 184, 255, 0.3)", fillColor: "rgba(77, 184, 255, 0.15)", fillOpacity: 1, weight: 0, pane: "playerPane" }).addTo(map);
+    visionCone = L.polygon(points, { color: "rgba(77, 184, 255, 0.95)", fillColor: "rgba(77, 184, 255, 0.28)", fillOpacity: 1, weight: 2, opacity: 0.95, pane: "playerPane", interactive: false }).addTo(map);
+    visionLine = L.polyline([center, destPoint(center, playerHeading, radiusM * 1.05)], { color: "#ffffff", weight: 2, opacity: 0.9, pane: "playerPane", interactive: false }).addTo(map);
+}
+function bearingBetween(from, to) {
+    var lat1 = from.lat * Math.PI / 180; var lat2 = to.lat * Math.PI / 180;
+    var dLng = (to.lng - from.lng) * Math.PI / 180;
+    var y = Math.sin(dLng) * Math.cos(lat2);
+    var x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+    return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
 }
 function destPoint(center, angleDeg, distanceM) {
     var R = 6371000; var lat1 = center[0] * Math.PI / 180; var lng1 = center[1] * Math.PI / 180; var brng = angleDeg * Math.PI / 180; var d = distanceM / R;
