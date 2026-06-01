@@ -1,41 +1,3 @@
-// ===================================================
-// [필수 추가] 지도 생성 및 글로벌 변수 초기화 엔진
-// ===================================================
-var map;
-var attractionClusterGroup; 
-
-function initMap() {
-    // 1. HTML의 #map 엘리먼트에 Leaflet 지도 객체 생성 (서울 중심 좌표 기준)
-    map = L.map('map', {
-        zoomControl: false,
-        attributionControl: false
-    }).setView([37.5665, 126.9780], 14);
-
-    // 2. 오픈스트리트맵(OSM) 타일 레이어 추가
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19
-    }).addTo(map);
-
-    // 3. 주변 관광지 아이콘들을 묶어줄 마커 클러스터 그룹 초기화
-    if (typeof L.markerClusterGroup === 'function') {
-        attractionClusterGroup = L.markerClusterGroup().addTo(map);
-    }
-
-    // 4. 지도 크기 재연산 (화면 깨짐 및 검은 화면 방지)
-    setTimeout(function() {
-        if (map) {
-            map.invalidateSize();
-        }
-    }, 200);
-}
-
-// 브라우저가 HTML을 모두 읽으면 자동으로 지도를 구동하도록 설정
-window.addEventListener('DOMContentLoaded', initMap);
-// ===================================================
-
-
-// (이 아래에서부터 기존에 가지고 계시던 requestLocationPermission() 코드가 이어지면 됩니다!)
-
 // ── 앱 시작 시 위치 권한 요청 ──
 async function requestLocationPermission() {
     if (window.Capacitor && window.Capacitor.isNativePlatform()) {
@@ -157,13 +119,13 @@ const map = L.map("map", { zoomControl: false, attributionControl: false }).setV
 L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { zIndex: 10 }).addTo(map);
 
 map.createPane("fogPane");
-map.getPane("fogPane").style.zIndex = 410;
+map.getPane("fogPane").style.zIndex = 450;
 map.createPane("photoPane");
 map.getPane("photoPane").style.zIndex = 630;
 map.createPane("memoryPane");
 map.getPane("memoryPane").style.zIndex = 640;
 map.createPane("playerPane");
-map.getPane("playerPane").style.zIndex = 660;
+map.getPane("playerPane").style.zIndex = 650;
 
 var mapWrap = document.getElementById("map-wrap");
 mapWrap.appendChild(document.getElementById("fog-canvas"));
@@ -859,9 +821,6 @@ function init() {
     setTimeout(function() { render(); scheduleRender(); }, 100);
     initGpxDial();
     initHudTapTargets();
-    // 언어 모달 미리 빌드, 저장된 언어 적용
-    buildLangModal();
-    applyUILang(currentLang);
     setTimeout(function() { if (!isRecording) toggleRecording(); }, 5000);
 }
 map.whenReady(function() { init(); });
@@ -1017,27 +976,10 @@ map.on("moveend", scheduleTourFetch);
 map.on("click", function() { collapseTourPanel(); });
 scheduleTourFetch();
 
-// ── VARCO 번역 + 다국어 ──
+// ── VARCO 번역 ──
 var VARCO_API_KEY = "9yUWJoapaQfdiYdq9Hd1knN4IMbOFO0w";
 var VARCO_TRANSLATE_URL = "https://api.varco.ai/mt/chat-content/v1/translate";
-var currentLang = localStorage.getItem("giloa-ui-lang") || "ko";
-
-// 지원 언어 목록
-var LANG_LIST = [
-    { code: "ko",   flag: "🇰🇷", label: "한국어",   varco: null    },
-    { code: "en",   flag: "🇺🇸", label: "English",  varco: "en"    },
-    { code: "ja",   flag: "🇯🇵", label: "日本語",    varco: "ja"    },
-    { code: "zh_s", flag: "🇨🇳", label: "简体中文",  varco: "zh-CN" },
-    { code: "zh_t", flag: "🇹🇼", label: "繁體中文",  varco: "zh-TW" }
-];
-
-var UI_TEXT = {
-    ko:   { sidebar_title: "나의 기록들",  fog_label: "어둠 효과",  fog_on: "켜짐",  fog_off: "꺼짐",  tab_memory: "기억",   tab_photo: "사진",  tab_gpx: "발걸음", rec_idle: "대기 중",  rec_active: "기록 중",   empty_memory: "아직 기록이 없습니다.",  empty_photo: "아직 사진이 없습니다.",  tour_title: "📍 주변 관광지",      festival_label: "🎪 주변 축제"       },
-    en:   { sidebar_title: "My Records",   fog_label: "Fog Effect",  fog_on: "On",    fog_off: "Off",   tab_memory: "Memory",  tab_photo: "Photo", tab_gpx: "Steps",  rec_idle: "Standby",  rec_active: "Recording",  empty_memory: "No records yet.",      empty_photo: "No photos yet.",        tour_title: "📍 Nearby Places",     festival_label: "🎪 Nearby Festivals" },
-    ja:   { sidebar_title: "私の記録",      fog_label: "霧エフェクト", fog_on: "オン",  fog_off: "オフ",  tab_memory: "記憶",    tab_photo: "写真",  tab_gpx: "足跡",   rec_idle: "待機中",   rec_active: "記録中",     empty_memory: "まだ記録がありません。", empty_photo: "まだ写真がありません。", tour_title: "📍 周辺観光地",        festival_label: "🎪 周辺イベント"    },
-    zh_s: { sidebar_title: "我的记录",      fog_label: "迷雾效果",    fog_on: "开启",  fog_off: "关闭",  tab_memory: "记忆",    tab_photo: "照片",  tab_gpx: "足迹",   rec_idle: "待机中",   rec_active: "记录中",     empty_memory: "暂无记录。",          empty_photo: "暂无照片。",            tour_title: "📍 附近景点",          festival_label: "🎪 附近节日"        },
-    zh_t: { sidebar_title: "我的記錄",      fog_label: "迷霧效果",    fog_on: "開啟",  fog_off: "關閉",  tab_memory: "記憶",    tab_photo: "照片",  tab_gpx: "足跡",   rec_idle: "待機中",   rec_active: "記錄中",     empty_memory: "暫無記錄。",          empty_photo: "暫無照片。",            tour_title: "📍 附近景點",          festival_label: "🎪 附近節日"        }
-};
+var currentLang = "ko";
 
 function varcoTranslate(text, sourceLang, targetLang) {
     return fetch(VARCO_TRANSLATE_URL, {
@@ -1047,131 +989,48 @@ function varcoTranslate(text, sourceLang, targetLang) {
     }).then(function(res) { return res.json(); }).then(function(data) { return data.target_text || text; }).catch(function() { return text; });
 }
 
+var UI_TEXT = {
+    ko: { sidebar_title: "나의 기록들", fog_label: "어둠 효과", fog_on: "켜짐", fog_off: "꺼짐", tab_memory: "기억", tab_photo: "사진", tab_gpx: "발걸음", rec_idle: "대기 중", rec_active: "기록 중", empty_memory: "아직 기록이 없습니다.", empty_photo: "아직 사진이 없습니다.", tour_title: "📍 주변 관광지", festival_label: "🎪 주변 축제" },
+    en: { sidebar_title: "My Records", fog_label: "Fog Effect", fog_on: "On", fog_off: "Off", tab_memory: "Memory", tab_photo: "Photo", tab_gpx: "Steps", rec_idle: "Standby", rec_active: "Recording", empty_memory: "No records yet.", empty_photo: "No photos yet.", tour_title: "📍 Nearby Places", festival_label: "🎪 Nearby Festivals" }
+};
+
 function applyUILang(lang) {
     currentLang = lang;
-    localStorage.setItem("giloa-ui-lang", lang);
     var t = UI_TEXT[lang] || UI_TEXT["ko"];
     var el = function(id) { return document.getElementById(id); };
-    if (el("sidebar-title"))       el("sidebar-title").textContent       = t.sidebar_title;
-    if (el("fog-toggle-label-el"))  el("fog-toggle-label-el").textContent  = t.fog_label;
-    if (el("fog-toggle-state"))     el("fog-toggle-state").textContent     = isFogEnabled ? t.fog_on : t.fog_off;
+    if (el("sidebar-title")) el("sidebar-title").textContent = t.sidebar_title;
+    if (el("fog-toggle-label-el")) el("fog-toggle-label-el").textContent = t.fog_label;
+    if (el("fog-toggle-state")) el("fog-toggle-state").textContent = isFogEnabled ? t.fog_on : t.fog_off;
     var tabMemory = document.querySelector("#tab-memory .sidebar-tab-text");
-    var tabPhoto  = document.querySelector("#tab-photo .sidebar-tab-text");
-    var tabGpx    = document.querySelector("#tab-gpx .sidebar-tab-text");
+    var tabPhoto = document.querySelector("#tab-photo .sidebar-tab-text");
+    var tabGpx = document.querySelector("#tab-gpx .sidebar-tab-text");
     if (tabMemory) tabMemory.textContent = t.tab_memory;
-    if (tabPhoto)  tabPhoto.textContent  = t.tab_photo;
-    if (tabGpx)    tabGpx.textContent    = t.tab_gpx;
-    if (el("tour-title"))          el("tour-title").textContent          = t.tour_title;
+    if (tabPhoto) tabPhoto.textContent = t.tab_photo;
+    if (tabGpx) tabGpx.textContent = t.tab_gpx;
+    if (el("tour-title")) el("tour-title").textContent = t.tour_title;
     if (el("festival-strip-label")) el("festival-strip-label").textContent = t.festival_label;
-    if (!isRecording && el("rec-status-box")) el("rec-status-box").textContent = t.rec_idle;
-    // 모달 내 체크 표시 갱신
-    LANG_LIST.forEach(function(l) {
-        var chk = document.getElementById("lang-modal-check-" + l.code);
-        var btn = document.getElementById("lang-modal-btn-"  + l.code);
-        if (chk) chk.style.display = l.code === lang ? "block" : "none";
-        if (btn) {
-            btn.style.background   = l.code === lang ? "rgba(77,184,255,0.18)" : "rgba(255,255,255,0.05)";
-            btn.style.borderColor  = l.code === lang ? "rgba(77,184,255,0.55)" : "rgba(255,255,255,0.1)";
-        }
-    });
-    // 헤더 언어 버튼 라벨 갱신
-    var headerBtn = document.getElementById("header-lang-flag");
-    if (headerBtn) { var cur = LANG_LIST.find(function(l){ return l.code === lang; }); if (cur) headerBtn.textContent = cur.flag; }
+    if (!isRecording) { if (el("rec-status-box")) el("rec-status-box").textContent = t.rec_idle; }
+    var btnKo = document.getElementById("lang-btn-ko"); var btnEn = document.getElementById("lang-btn-en");
+    if (btnKo) btnKo.classList.toggle("active", lang === "ko");
+    if (btnEn) btnEn.classList.toggle("active", lang === "en");
 }
 
-// index.html의 KO/EN 버튼 대신 모달 열기로 연결
-function toggleLang(lang) { openLangModal(); }
-
-// ── 언어 선택 모달 ──
-function buildLangModal() {
-    if (document.getElementById("lang-modal-overlay")) return;
-    var overlay = document.createElement("div");
-    overlay.id = "lang-modal-overlay";
-    overlay.style.cssText = "display:none;position:fixed;inset:0;z-index:3500;background:rgba(0,0,0,0.62);align-items:center;justify-content:center;";
-    overlay.addEventListener("click", function(e) { if (e.target === overlay) closeLangModal(); });
-
-    var box = document.createElement("div");
-    box.style.cssText = "background:rgba(18,18,30,0.98);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:22px 20px 16px;width:290px;color:#fff;backdrop-filter:blur(20px);box-shadow:0 10px 50px rgba(0,0,0,0.7);";
-
-    var title = document.createElement("div");
-    title.style.cssText = "font-size:15px;font-weight:800;margin-bottom:14px;color:#fff;letter-spacing:-0.01em;";
-    title.textContent = "🌐 언어 선택 / Language";
-    box.appendChild(title);
-
-    LANG_LIST.forEach(function(lang) {
-        var btn = document.createElement("button");
-        btn.id = "lang-modal-btn-" + lang.code;
-        var isActive = currentLang === lang.code;
-        btn.style.cssText = "display:flex;align-items:center;gap:12px;width:100%;padding:11px 14px;margin-bottom:8px;" +
-            "background:" + (isActive ? "rgba(77,184,255,0.18)" : "rgba(255,255,255,0.05)") + ";" +
-            "border:1px solid " + (isActive ? "rgba(77,184,255,0.55)" : "rgba(255,255,255,0.1)") + ";" +
-            "border-radius:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;text-align:left;transition:background 0.15s;";
-
-        var flagEl = document.createElement("span"); flagEl.style.fontSize = "22px"; flagEl.textContent = lang.flag;
-        var nameEl = document.createElement("span"); nameEl.textContent = lang.label;
-        var chk    = document.createElement("span");
-        chk.id = "lang-modal-check-" + lang.code;
-        chk.style.cssText = "margin-left:auto;color:#4db8ff;font-size:15px;display:" + (isActive ? "block" : "none") + ";";
-        chk.textContent = "✓";
-
-        btn.appendChild(flagEl); btn.appendChild(nameEl); btn.appendChild(chk);
-        btn.addEventListener("click", function() { selectLang(lang.code); });
-        box.appendChild(btn);
-    });
-
-    var closeBtn = document.createElement("button");
-    closeBtn.style.cssText = "width:100%;margin-top:4px;padding:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:rgba(255,255,255,0.5);font-size:13px;cursor:pointer;";
-    closeBtn.textContent = "닫기";
-    closeBtn.addEventListener("click", closeLangModal);
-    box.appendChild(closeBtn);
-
-    overlay.appendChild(box);
-    document.body.appendChild(overlay);
+function toggleLang(lang) {
+    if (currentLang === lang) return;
+    applyUILang(lang);
+    if (lang === "en" && tourItems.length > 0) translateTourItems();
 }
 
-function openLangModal() {
-    buildLangModal();
-    var overlay = document.getElementById("lang-modal-overlay");
-    if (overlay) overlay.style.display = "flex";
-}
-
-function closeLangModal() {
-    var overlay = document.getElementById("lang-modal-overlay");
-    if (overlay) overlay.style.display = "none";
-}
-
-function selectLang(code) {
-    closeLangModal();
-    applyUILang(code);
-    // 관광지 번역 (한국어 외 언어 선택 시)
-    var langObj = LANG_LIST.find(function(l) { return l.code === code; });
-    if (langObj && langObj.varco && tourItems.length > 0) translateTourItems(langObj.varco);
-    else if (code === "ko" && tourItems.length > 0) renderTourCards(); // 원문 복원
-}
-
-function translateTourItems(varcoTarget) {
+function translateTourItems() {
     tourItems.forEach(function(item) {
-        var cacheKey = "_title_" + currentLang;
-        if (item[cacheKey]) return;
-        varcoTranslate(item.title, "ko", varcoTarget).then(function(translated) {
-            item[cacheKey] = translated;
-            if (tourExpanded) renderTourCards();
-        });
-        if (item.addr1) {
-            var addrKey = "_addr_" + currentLang;
-            varcoTranslate(item.addr1, "ko", varcoTarget).then(function(translated) { item[addrKey] = translated; });
-        }
+        if (item._titleEn) return;
+        varcoTranslate(item.title, "ko", "en").then(function(translated) { item._titleEn = translated; });
+        if (item.addr1) { varcoTranslate(item.addr1, "ko", "en").then(function(translated) { item._addrEn = translated; }); }
     });
 }
 
-function getTourDisplayTitle(item) {
-    if (currentLang === "ko") return item.title || "";
-    return item["_title_" + currentLang] || item.title || "";
-}
-function getTourDisplayAddr(item) {
-    if (currentLang === "ko") return item.addr1 || "";
-    return item["_addr_" + currentLang] || item.addr1 || "";
-}
+function getTourDisplayTitle(item) { return (currentLang === "en" && item._titleEn) ? item._titleEn : (item.title || ""); }
+function getTourDisplayAddr(item) { return (currentLang === "en" && item._addrEn) ? item._addrEn : (item.addr1 || ""); }
 
 // ── 수집함 ──
 var COLLECTION_KEY = "giloa-collection";

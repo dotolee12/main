@@ -5,25 +5,25 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #111; font
 #map { width: 100%; height: 100%; filter: grayscale(0.12) contrast(1.04); overflow: hidden; }
 .leaflet-container { background: #080a12 !important; }
 
-/* 캔버스: #map-wrap 기준 absolute, 안개(400~402) < 마커pane(630~650) */
+/* canvas: Leaflet mapPane 안에 position:absolute
+   z-index는 JS에서 설정 (410~412), 마커pane(630~650)보다 낮음 */
 #fog-canvas, #age-canvas, #stay-canvas {
     position: absolute;
     top: 0; left: 0;
-    width: 100%; height: 100%;
     pointer-events: none;
 }
-#fog-canvas  { z-index: 400; }
-#age-canvas  { z-index: 401; }
-#stay-canvas { z-index: 402; }
-
-/* Leaflet pane z-index — 캔버스(400~402)보다 반드시 높게 */
-.leaflet-overlay-pane  { z-index: 403 !important; }
-.leaflet-marker-pane   { z-index: 600 !important; }
-.leaflet-popup-pane    { z-index: 1000 !important; }
-.leaflet-tooltip-pane  { z-index: 1001 !important; }
+.leaflet-fogPane-pane {
+    position: absolute !important; top: 0 !important; left: 0 !important;
+    width: 100% !important; height: 100% !important; pointer-events: none !important;
+    z-index: 450 !important;
+}
+.leaflet-marker-pane  { z-index: 600 !important; }
+.leaflet-popup-pane   { z-index: 1000 !important; }
+.leaflet-tooltip-pane { z-index: 1001 !important; }
 .leaflet-photoPane-pane   { z-index: 630 !important; }
 .leaflet-memoryPane-pane  { z-index: 640 !important; }
-.leaflet-playerPane-pane  { z-index: 660 !important; }
+.leaflet-playerPane-pane  { z-index: 650 !important; }
+.leaflet-overlay-pane { z-index: 400 !important; }
 
 .photo-cluster-icon { background: transparent !important; border: none !important; }
 .photo-cluster-inner {
@@ -322,17 +322,9 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #111; font
 #festival-strip-label.show { display: block; }
 
 /* ── 언어 토글 ── */
-/* 언어 선택 버튼 (헤더) */
-.lang-globe-btn {
-    padding: 5px 9px; border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.15);
-    background: rgba(30,30,45,0.75);
-    font-size: 18px; line-height: 1;
-    cursor: pointer; flex-shrink: 0;
-    backdrop-filter: blur(8px);
-    transition: background 0.2s, border-color 0.2s;
-}
-.lang-globe-btn:hover { background: rgba(77,184,255,0.2); border-color: #4db8ff; }
+#lang-toggle { display: flex; gap: 4px; flex-shrink: 0; }
+.lang-btn { padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(30,30,45,0.75); color: rgba(255,255,255,0.45); font-size: 11px; font-weight: 700; cursor: pointer; backdrop-filter: blur(8px); transition: 0.2s; }
+.lang-btn.active { background: rgba(77,184,255,0.2); border-color: #4db8ff; color: #4db8ff; }
 
 /* 뱃지 그리드 */
 #badge-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
