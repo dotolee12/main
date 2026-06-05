@@ -10,13 +10,16 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #111; font
 #fog-canvas, #age-canvas, #stay-canvas {
     position: absolute;
     top: 0; left: 0;
+    display: block;
     pointer-events: none;
-    z-index: 0;
 }
+#fog-canvas { z-index: 1; }
+#age-canvas { z-index: 2; }
+#stay-canvas { z-index: 3; }
 .leaflet-fogPane-pane {
     position: absolute !important; top: 0 !important; left: 0 !important;
-    width: 100% !important; height: 100% !important; pointer-events: none !important;
-    z-index: 450 !important;
+    width: 100% !important; height: 100% !important; overflow: hidden !important; pointer-events: none !important;
+    z-index: 590 !important;
 }
 .leaflet-marker-pane  { z-index: 600 !important; }
 .leaflet-popup-pane   { z-index: 1000 !important; }
@@ -25,6 +28,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #111; font
 .leaflet-memoryPane-pane  { z-index: 640 !important; }
 .leaflet-playerPane-pane  { z-index: 650 !important; }
 .leaflet-tourPane-pane {z-index: 660 !important; }
+.leaflet-libraryPane-pane { z-index: 665 !important; }
 .leaflet-overlay-pane { z-index: 400 !important; }
 
 .photo-cluster-icon { background: transparent !important; border: none !important; }
@@ -37,8 +41,8 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #111; font
 .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { display: none !important; }
 
 #top-bar {
-    position: absolute; top: 20px; left: 20px; right: 20px;
-    display: flex; justify-content: space-between; align-items: center; z-index: 1000; gap: 12px;
+    position: absolute; top: 14px; left: 14px; right: auto;
+    display: flex; justify-content: flex-start; align-items: center; z-index: 1000; gap: 10px;
 }
 #ham-btn {
     width: 48px; height: 48px; flex-shrink: 0; background: rgba(30,30,45,0.75);
@@ -49,9 +53,10 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #111; font
 .hline { width: 20px; height: 2px; background: #fff; border-radius: 1px; }
 
 #rec-status-box {
-    padding: 9px 16px; background: rgba(30,30,45,0.55); border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 12px; color: rgba(255,255,255,0.55); font-size: 13px; font-weight: 600;
+    padding: 8px 13px; background: rgba(30,30,45,0.55); border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px; color: rgba(255,255,255,0.55); font-size: 12px; font-weight: 700;
     backdrop-filter: blur(8px); transition: 0.25s ease; white-space: nowrap;
+    max-width: 118px; overflow: hidden; text-overflow: ellipsis;
 }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 #rec-status-box.recording { background: rgba(255,60,60,0.18); border-color: rgba(255,80,80,0.55); color: #ff8888; animation: blink 1.2s ease-in-out infinite; }
@@ -73,7 +78,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #111; font
 #fog-toggle-wrap { padding: 0 20px; flex-shrink: 0; }
 #top-tabs { padding: 0 20px; flex-shrink: 0; }
 
-/* 가?�데 ?�크�??�역 */
+/* 가?�데 ?�크�??�역 */
 #sidebar-content { flex: 1; overflow-y: auto; min-height: 0; padding: 12px 20px 12px; }
 
 /* ?�단 ??고정 */
@@ -238,8 +243,9 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #111; font
 .help-guide-icon { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 15px; }
 .red-dot { background: rgba(255,68,68,0.15); border-color: rgba(255,68,68,0.3); }
 .red-dot::after { content: ""; width: 10px; height: 10px; background: #ff4444; border-radius: 50%; }
-.blue-dot { background: rgba(77,184,255,0.15); border-color: rgba(77,184,255,0.3); }
-.blue-dot::after { content: ""; width: 10px; height: 10px; background: #4db8ff; border-radius: 50%; box-shadow: 0 0 8px #4db8ff; }
+.blue-dot { position: relative; background: rgba(20,28,42,0.92); border-color: rgba(77,184,255,0.42); box-shadow: inset 0 0 0 1px rgba(77,184,255,0.16); }
+.blue-dot::before { content: ""; width: 14px; height: 14px; border: 1.5px solid #4db8ff; border-radius: 50%; box-shadow: 0 0 8px rgba(77,184,255,0.55); }
+.blue-dot::after { content: ""; position: absolute; width: 20px; height: 20px; background: linear-gradient(#4db8ff,#4db8ff) 50% 0/1.5px 5px no-repeat, linear-gradient(#4db8ff,#4db8ff) 50% 100%/1.5px 5px no-repeat, linear-gradient(#4db8ff,#4db8ff) 0 50%/5px 1.5px no-repeat, linear-gradient(#4db8ff,#4db8ff) 100% 50%/5px 1.5px no-repeat; border-radius: 50%; }
 .help-guide-text { flex: 1; padding-top: 4px; }
 .help-guide-text b { font-size: 13px; color: #fff; display: block; margin-bottom: 3px; }
 .help-guide-text span { font-size: 11px; color: rgba(255,255,255,0.45); line-height: 1.6; }
@@ -282,7 +288,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #111; font
 .leaflet-popup-close-button { color: rgba(255,255,255,0.5) !important; font-size: 18px !important; }
 .photo-popup img { border-radius: 8px; margin-bottom: 8px; display: block; }
 
-/* ?�?� 관광�? 추천 ?�널 ?�?� */
+/* ?�?�?관광�? 추천 ?�널 ?�?�?*/
 #tour-panel { position: absolute; top: 80px; left: 14px; width: 160px; z-index: 1000; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
 #tour-header { display: flex; align-items: center; justify-content: space-between; background: rgba(20,20,35,0.55); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 8px 10px; cursor: pointer; pointer-events: auto; }
 #tour-header-right { display: flex; align-items: center; gap: 5px; }
@@ -299,6 +305,23 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #111; font
 #tour-list.expanded { max-height: 70vh; overflow-y: auto; }
 .tour-card { background: rgba(20,20,35,0.55); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px; cursor: pointer; transition: 0.2s; pointer-events: auto; }
 .tour-card:hover { border-color: rgba(120,220,140,0.5); background: rgba(120,220,140,0.08); }
+.library-map-marker-wrap { background: transparent !important; border: none !important; }
+.library-map-marker {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 7px 3px 5px; border-radius: 999px;
+    background: rgba(30, 58, 138, 0.92);
+    border: 1px solid rgba(96, 165, 250, 0.78);
+    color: #eff6ff; font-size: 10px; font-weight: 800;
+    line-height: 1; white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.42);
+}
+.library-map-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: #60a5fa; border: 2px solid #eff6ff;
+    box-shadow: 0 0 0 2px rgba(30,58,138,0.48);
+    flex-shrink: 0;
+}
+.library-map-label { color: #eff6ff; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
 .tour-card-name { font-size: 12px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
 .tour-card-type { font-size: 9px; color: rgba(120,220,140,0.8); font-weight: 600; margin-bottom: 2px; }
 .tour-card-dist { font-size: 9px; color: rgba(255,255,255,0.35); }
@@ -307,11 +330,11 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #111; font
 #tour-loading { background: rgba(20,20,35,0.55); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px; text-align: center; font-size: 11px; color: rgba(255,255,255,0.4); pointer-events: auto; }
 #tour-empty { background: rgba(20,20,35,0.55); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px; text-align: center; font-size: 11px; color: rgba(255,255,255,0.35); pointer-events: auto; }
 
-/* ?�?� 축제 뱃�? ?�?� */
+/* ?�?�?축제 뱃�? ?�?�?*/
 #tour-festival-badge { display: none; background: #4db8ff; color: #fff; font-size: 9px; font-weight: 700; border-radius: 999px; padding: 2px 7px; margin-left: 4px; white-space: nowrap; }
 #tour-festival-badge.show { display: inline-block; }
 
-/* ?�?� 축제 가�????�?� */
+/* ?�?�?축제 가�????�?�?*/
 #festival-strip { display: none; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 8px; padding: 8px 4px; pointer-events: auto; }
 #festival-strip::-webkit-scrollbar { display: none; }
 #festival-strip.show { display: flex; }
@@ -323,9 +346,9 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #111; font
 #festival-strip-label { font-size: 10px; font-weight: 700; color: #4db8ff; padding: 6px 4px 2px; display: none; pointer-events: none; }
 #festival-strip-label.show { display: block; }
 
-/* ?�?� ?�어 ?��? ?�?� */
-#lang-toggle { position: absolute; top: 0; right: 0; display: flex; gap: 4px; flex-shrink: 0; }
-.lang-btn { min-width: 34px; height: 28px; padding: 0 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(30,30,45,0.75); color: rgba(255,255,255,0.45); font-size: 11px; font-weight: 700; cursor: pointer; backdrop-filter: blur(8px); transition: 0.2s; }
+/* ?�?�??�어 ?��? ?�?�?*/
+#lang-toggle { position: static; display: flex; gap: 6px; flex-shrink: 0; }
+.lang-btn { min-width: 32px; height: 30px; padding: 0 8px; border-radius: 9px; border: 1px solid rgba(255,255,255,0.15); background: rgba(30,30,45,0.75); color: rgba(255,255,255,0.45); font-size: 11px; font-weight: 700; cursor: pointer; backdrop-filter: blur(8px); transition: 0.2s; }
 .lang-btn.active { background: rgba(77,184,255,0.2); border-color: #4db8ff; color: #4db8ff; }
 
 /* 뱃�? 그리??*/
@@ -430,4 +453,107 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #111; font
 .festival-card-date,
 #festival-strip-label {
     color: var(--tour-color, #c084fc);
+}
+@media (max-width: 420px) {
+    #top-bar { top: 10px; left: 10px; gap: 7px; }
+    #ham-btn { width: 46px; height: 46px; }
+    #rec-status-box { max-width: 94px; padding: 7px 9px; font-size: 11px; }
+    #lang-toggle { gap: 4px; }
+    .lang-btn { min-width: 30px; height: 28px; padding: 0 6px; }
+}
+
+#auto-recording-notice {
+    position: fixed;
+    inset: 0;
+    z-index: 4200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 22px;
+    background: rgba(0, 0, 0, 0.38);
+}
+#auto-recording-notice.show { display: flex; }
+.auto-recording-box {
+    position: relative;
+    width: min(360px, 100%);
+    padding: 22px 20px 20px;
+    border-radius: 16px;
+    background: rgba(18, 20, 32, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.46);
+    color: #fff;
+    backdrop-filter: blur(16px);
+}
+.auto-recording-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.86);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+.auto-recording-title {
+    padding-right: 30px;
+    margin-bottom: 10px;
+    color: #4db8ff;
+    font-size: 17px;
+    font-weight: 800;
+}
+.auto-recording-copy {
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.7;
+    word-break: keep-all;
+}
+
+#photo-btn.mission-active {
+    position: relative;
+    border-color: rgba(255, 255, 255, 0.9);
+    background: conic-gradient(from 0deg, #ff5f7e, #ffd55c, #78dc8c, #4db8ff, #a78bfa, #ff5f7e);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.16), 0 0 22px rgba(120,220,140,0.8);
+    animation: missionPulse 1.4s ease-in-out infinite;
+}
+#photo-btn.mission-active::after {
+    content: "미션";
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    padding: 3px 6px;
+    border-radius: 999px;
+    background: #fff;
+    color: #161827;
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.28);
+}
+@keyframes missionPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.07); }
+}
+
+.popup-memory-btn {
+    margin-top: 8px;
+    padding: 7px 12px;
+    border: 1px solid rgba(255, 216, 77, 0.45);
+    border-radius: 8px;
+    background: rgba(255, 216, 77, 0.16);
+    color: #ffd84d;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 800;
+    width: 100%;
+}
+.popup-memory-btn:hover { background: rgba(255, 216, 77, 0.26); }
+#tab-photo .sidebar-tab-icon svg {
+    width: 24px;
+    height: 24px;
+    display: block;
 }

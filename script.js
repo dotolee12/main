@@ -1,4 +1,4 @@
-ï»¿// â”€â”€ ì•± ì‹œì‘ ì‹œ ìœ„ì¹˜ ê¶Œí•œ ìš”ì²­ â”€â”€
+// ¦¡¦¡ ¾Û ½ÃÀÛ ½Ã À§Ä¡ ±ÇÇÑ ¿äÃ» ¦¡¦¡
 async function requestLocationPermission() {
     if (window.Capacitor && window.Capacitor.isNativePlatform()) {
         try {
@@ -7,15 +7,15 @@ async function requestLocationPermission() {
             const { BackgroundGeolocation } = window.Capacitor.Plugins;
             if (BackgroundGeolocation) {
                 await BackgroundGeolocation.addWatcher({
-                    backgroundMessage: "ê¸¸ë¡œì•„ê°€ ê²½ë¡œë¥¼ ê¸°ë¡í•˜ê³  ìˆì–´ìš”",
-                    backgroundTitle: "ê¸¸ë¡œì•„ ìœ„ì¹˜ ê¸°ë¡ ì¤‘",
+                    backgroundMessage: "±æ·Î¾Æ°¡ °æ·Î¸¦ ±â·ÏÇÏ°í ÀÖ¾î¿ä",
+                    backgroundTitle: "±æ·Î¾Æ À§Ä¡ ±â·Ï Áß",
                     requestPermissions: true, stale: false, distanceFilter: 10
                 }, function(location, error) {
-                    if (error) { console.warn("BG ìœ„ì¹˜ ì—ëŸ¬", error); return; }
+                    if (error) { console.warn("BG À§Ä¡ ¿¡·¯", error); return; }
                     if (location && isRecording) { handlePosition({ coords: { latitude: location.latitude, longitude: location.longitude, accuracy: location.accuracy } }); }
                 });
             }
-        } catch (e) { console.warn("ê¶Œí•œ ìš”ì²­ ì‹¤íŒ¨", e); }
+        } catch (e) { console.warn("±ÇÇÑ ¿äÃ» ½ÇÆĞ", e); }
     }
 }
 requestLocationPermission();
@@ -25,13 +25,17 @@ const FOG_ENABLED_KEY = "giloa-fog-enabled";
 const GPX_SAVES_KEY = "giloa-gpx-saves";
 const FOG_ALPHA_BASE = 0.40;
 const FOG_ALPHA_PER_LV = 0;
-function getFogAlpha() { const lv = calcLevel().level; return Math.max(0, FOG_ALPHA_BASE - (lv - 1) * FOG_ALPHA_PER_LV); }
+function getFogAlpha() { return FOG_ALPHA_BASE; }
 const FOG_RADIUS_M = 18;
+const VISION_CONE_RADIUS_M = 70;
+const VISION_CONE_SPREAD_DEG = 70;
 const MIN_MOVE_M = 15;
 const MAX_ACCURACY_M = 50;
 const STAY_ACCURACY_FACTOR = 0.6;
 const MAX_STAY_RADIUS_M = 36;
 const SAVE_DELAY_MS = 800;
+const SCREEN_AWAKE_MS = 8 * 60 * 60 * 1000;
+const AUTO_RECORDING_MS = 8 * 60 * 60 * 1000;
 const MERGE_DISTANCE_M = 6;
 const MERGE_TIME_GAP_MS = 2 * 60 * 1000;
 const MAX_PATH_POINTS = 5000;
@@ -61,27 +65,34 @@ const PHOTO_THUMB_MIN_QUALITY = 0.58;
 const PHOTO_THUMB_TARGET_BYTES = 24 * 1024;
 
 const LEVEL_TABLE = [
-{ level: 1, title: "ê¸¸ ì—†ëŠ” ì", distKm: 0, memories: 0, photos: 0 },
-{ level: 2, title: "í”ì ì„ ë‚¨ê¸´ ì", distKm: 1, memories: 0, photos: 0 },
-{ level: 3, title: "íƒí—˜ì", distKm: 10, memories: 1, photos: 0 },
-{ level: 4, title: "ê¸¸ì„ ë§Œë“  ì", distKm: 30, memories: 3, photos: 0 },
-{ level: 5, title: "ë°”ëŒì„ ê±·ëŠ” ì", distKm: 60, memories: 5, photos: 3 },
-{ level: 6, title: "ê¸°ì–µì„ ìˆ˜ì§‘í•˜ëŠ” ì", distKm: 100, memories: 8, photos: 5 },
-{ level: 7, title: "ë‘ ë°”í€´ì˜ ì—¬í–‰ì", distKm: 150, memories: 12, photos: 8 },
-{ level: 8, title: "ì§€ë„ë¥¼ ê·¸ë¦¬ëŠ” ì", distKm: 220, memories: 18, photos: 12 },
-{ level: 9, title: "ê¸¸ì˜ ì—°ëŒ€ê¸°", distKm: 300, memories: 25, photos: 18 },
-{ level: 10, title: "ê°œì²™ì", distKm: 400, memories: 35, photos: 25 },
-{ level: 11, title: "ì†ë„ì˜ íƒí—˜ê°€", distKm: 550, memories: 45, photos: 33 },
-{ level: 12, title: "ê¶¤ë„ë¥¼ ë‹¬ë¦¬ëŠ” ì", distKm: 720, memories: 58, photos: 43 },
-{ level: 13, title: "ëŒ€ë¥™ì„ ê°€ë¡œì§€ë¥´ëŠ” ì", distKm: 900, memories: 72, photos: 55 },
-{ level: 14, title: "ì„¸ê³„ì˜ ì¦ì¸", distKm: 1100, memories: 88, photos: 68 },
-{ level: 15, title: "ì„¸ê³„ì˜ ê¸°ë¡ì", distKm: 1350, memories: 107, photos: 84 },
+{ level: 1, title: "±æ ¾ø´Â ÀÚ", distKm: 0, memories: 0, photos: 0 },
+{ level: 2, title: "ÈçÀûÀ» ³²±ä ÀÚ", distKm: 1, memories: 0, photos: 0 },
+{ level: 3, title: "Å½ÇèÀÚ", distKm: 10, memories: 1, photos: 0 },
+{ level: 4, title: "±æÀ» ¸¸µç ÀÚ", distKm: 30, memories: 3, photos: 0 },
+{ level: 5, title: "¹Ù¶÷À» °È´Â ÀÚ", distKm: 60, memories: 5, photos: 3 },
+{ level: 6, title: "±â¾ïÀ» ¼öÁıÇÏ´Â ÀÚ", distKm: 100, memories: 8, photos: 5 },
+{ level: 7, title: "µÎ ¹ÙÄûÀÇ ¿©ÇàÀÚ", distKm: 150, memories: 12, photos: 8 },
+{ level: 8, title: "Áöµµ¸¦ ±×¸®´Â ÀÚ", distKm: 220, memories: 18, photos: 12 },
+{ level: 9, title: "±æÀÇ ¿¬´ë±â", distKm: 300, memories: 25, photos: 18 },
+{ level: 10, title: "°³Ã´ÀÚ", distKm: 400, memories: 35, photos: 25 },
+{ level: 11, title: "¼ÓµµÀÇ Å½Çè°¡", distKm: 550, memories: 45, photos: 33 },
+{ level: 12, title: "±Ëµµ¸¦ ´Ş¸®´Â ÀÚ", distKm: 720, memories: 58, photos: 43 },
+{ level: 13, title: "´ë·úÀ» °¡·ÎÁö¸£´Â ÀÚ", distKm: 900, memories: 72, photos: 55 },
+{ level: 14, title: "¼¼°èÀÇ ÁõÀÎ", distKm: 1100, memories: 88, photos: 68 },
+{ level: 15, title: "¼¼°èÀÇ ±â·ÏÀÚ", distKm: 1350, memories: 107, photos: 84 },
 ];
 
+const LEVEL_TITLE_I18N = {
+    ko: ["±æ ¾ø´Â ÀÚ", "ÈçÀûÀ» ³²±ä ÀÚ", "Å½ÇèÀÚ", "±æÀ» ¸¸µç ÀÚ", "¹Ù¶÷À» °È´Â ÀÚ", "±â¾ïÀ» ¼öÁıÇÏ´Â ÀÚ", "µÎ ¹ÙÄûÀÇ ¿©ÇàÀÚ", "Áöµµ¸¦ ±×¸®´Â ÀÚ", "±æÀÇ ¿¬´ë±â", "°³Ã´ÀÚ", "¼ÓµµÀÇ Å½Çè°¡", "±Ëµµ¸¦ ´Ş¸®´Â ÀÚ", "´ë·úÀ» °¡·ÎÁö¸£´Â ÀÚ", "¼¼°èÀÇ ÁõÀÎ", "¼¼°èÀÇ ±â·ÏÀÚ"],
+    en: ["Pathless One", "Trace Maker", "Explorer", "Path Builder", "Wind Walker", "Memory Collector", "Two-Wheel Traveler", "Map Maker", "Chronicle of Roads", "Pioneer", "Speed Explorer", "Orbit Rider", "Continent Crosser", "Witness of the World", "World Recorder"],
+    ja: ["Ô³ªÊª­íº", "ğëîæªò?ª¹íº", "÷®?íº", "Ô³ªòíÂªëíº", "ù¦ªò?ª¯íº", "ÑÀåãªòó¢ªáªëíº", "ì£×ÇªÎÕéìÑ", "ò¢?ªòÙÚª¯íº", "Ô³ªÎÒ´ÓÛÑÀ", "ËÒô¬íº", "áÜÓøªÎ÷®?Ê«", "ÏùÔ³ªòñËªëíº", "ÓŞ×Áªò??ª¹ªëíº", "á¦Í£ªÎ?ìÑ", "á¦Í£ªÎÑÀ?íº"],
+    zh: ["ÙéÖØñıìÑ", "×ºù»ğëîéîÜìÑ", "÷®ßãíº", "?ÖØíº", "?ñéú¼íº", "??â¥íúíº", "??Õéú¼íº", "ò¢??ğ¤íº", "Ô³ÖØ?Ò´ŞÈ", "?ô¬íº", "áÜÓø÷®?Ê«", "?îé?ú¼íº", "?Î¥ÓŞ?íº", "á¦Í£??íº", "á¦Í£??íº"]
+};
+function getLevelTitle(row) { var list = LEVEL_TITLE_I18N[currentLang] || LEVEL_TITLE_I18N.ko; return list[(row.level || 1) - 1] || row.title; }
 const SPEED_LIMIT_WALK = 7 / 3.6;
 const SPEED_LIMIT_BIKE = 30 / 3.6;
 
-// â”€â”€ IndexedDB â”€â”€
+// ¦¡¦¡ IndexedDB ¦¡¦¡
 const IDB_NAME = "giloa-photos"; const IDB_VERSION = 1; const IDB_STORE = "images"; let idb = null;
 function openIdb() { return new Promise(function(resolve, reject) { if (idb) { resolve(idb); return; } var req = indexedDB.open(IDB_NAME, IDB_VERSION); req.onupgradeneeded = function(e) { var db = e.target.result; if (!db.objectStoreNames.contains(IDB_STORE)) { db.createObjectStore(IDB_STORE, { keyPath: "id" }); } }; req.onsuccess = function(e) { idb = e.target.result; resolve(idb); }; req.onerror = function(e) { reject(e.target.error); }; }); }
 function idbSavePhoto(id, photo, thumb) { return openIdb().then(function(db) { return new Promise(function(resolve, reject) { var tx = db.transaction(IDB_STORE, "readwrite"); tx.objectStore(IDB_STORE).put({ id: id, photo: photo, thumb: thumb }); tx.oncomplete = resolve; tx.onerror = function(e) { reject(e.target.error); }; }); }); }
@@ -98,23 +109,26 @@ function migratePhotosToThumbOnly() {
         });
         if (tasks.length === 0) return;
         return Promise.all(tasks);
-    }).catch(function(e) { console.warn("ì‚¬ì§„ ê²½ëŸ‰í™” ì‹¤íŒ¨", e); });
+    }).catch(function(e) { console.warn("»çÁø °æ·®È­ ½ÇÆĞ", e); });
 }
 
-// â”€â”€ ìƒíƒœ ë³€ìˆ˜ â”€â”€
+// ¦¡¦¡ »óÅÂ º¯¼ö ¦¡¦¡
 let isRecording = false; let photos = []; let isFogEnabled = true; let isHudExpanded = false;
 let currentPos = null; let pathCoordinates = []; let memories = []; let totalDistance = 0;
 let playerMarker = null; let playerHeading = null; let watchId = null; let saveTimer = null; let rafId = null;
+let screenWakeLock = null; let screenWakeLockTimer = null; let screenAwakeUntil = 0; let autoRecordingTimer = null; let photoTapTimer = null;
 const memoryMarkers = new Map();
 let activeGpxId = null; let activeGpxLayers = []; let dialHours = 12;
 const STAY_BONUS_MS = 30 * 60 * 1000; const STAY_BONUS_RADIUS_M = 50;
+const IMAGE_MISSION_RADIUS_M = 120;
 let stayBonusStartTime = null; let stayBonusAnchor = null; let stayBonusLevelBoost = 0; let stayBonusPlaces = [];
+let activeImageMission = null;
 let lastPhotoMarkerSize = null;
 let heicLoaderPromise = null;
 const recBtn = document.getElementById("rec-btn");
 const recStatusBox = document.getElementById("rec-status-box");
 
-// â”€â”€ ì§€ë„ ì´ˆê¸°í™” â”€â”€
+// ¦¡¦¡ Áöµµ ÃÊ±âÈ­ ¦¡¦¡
 const map = L.map("map", { zoomControl: false, attributionControl: false }).setView([37.5665, 126.978], 16);
 L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", { zIndex: 10 }).addTo(map);
 
@@ -128,6 +142,8 @@ map.createPane("playerPane");
 map.getPane("playerPane").style.zIndex = 650;
 map.createPane("tourPane");
 map.getPane("tourPane").style.zIndex = 660;
+map.createPane("libraryPane");
+map.getPane("libraryPane").style.zIndex = 665;
 var tourRenderer = L.svg({ pane: "tourPane" });
 
 var fogPane = map.getPane("fogPane");
@@ -177,6 +193,27 @@ function scheduleRender() { if (rafId !== null) return; rafId = requestAnimation
 function render() { syncCanvasPosition(); renderFog(); renderAgeTint(); renderStayTint(); }
 function calcMpp() { var center = map.getCenter(); var pt = map.latLngToContainerPoint(center); var ll2 = map.containerPointToLatLng(L.point(pt.x + 10, pt.y)); return center.distanceTo(ll2) || 1; }
 function metersToPixels(meters, mpp) { return (meters / mpp) * 10; }
+function renderVisionFogClear(pos, mpp) {
+    if (!isRecording || playerHeading === null) return;
+    var radius = metersToPixels(VISION_CONE_RADIUS_M, mpp);
+    var spread = VISION_CONE_SPREAD_DEG * Math.PI / 180;
+    var heading = (playerHeading - 90) * Math.PI / 180;
+    var start = heading - spread / 2;
+    var end = heading + spread / 2;
+    fogCtx.save();
+    fogCtx.globalCompositeOperation = "destination-out";
+    var grad = fogCtx.createRadialGradient(pos.x, pos.y, radius * 0.16, pos.x, pos.y, radius);
+    grad.addColorStop(0, "rgba(0,0,0,0.95)");
+    grad.addColorStop(0.62, "rgba(0,0,0,0.62)");
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    fogCtx.fillStyle = grad;
+    fogCtx.beginPath();
+    fogCtx.moveTo(pos.x, pos.y);
+    fogCtx.arc(pos.x, pos.y, radius, start, end);
+    fogCtx.closePath();
+    fogCtx.fill();
+    fogCtx.restore();
+}
 
 function renderFog() {
     var w = fogCanvas.width, h = fogCanvas.height; fogCtx.clearRect(0, 0, w, h);
@@ -197,6 +234,7 @@ function renderFog() {
         fogCtx.arc(pos.x, pos.y, playerRadius, 0, Math.PI * 2);
         fogCtx.fill();
         fogCtx.restore();
+        renderVisionFogClear(pos, mpp);
     }
     if (pathCoordinates.length === 0) return;
     var now = Date.now(); var mpp = calcMpp(); var radius = metersToPixels(FOG_RADIUS_M, mpp);
@@ -288,31 +326,64 @@ function calcLevel() {
 }
 
 function updateHud() {
+    var t = UI_TEXT[currentLang] || UI_TEXT.ko;
     var current = calcLevel(); var distKm = totalDistance / 1000; var memCount = memories.length; var photoCount = photos.length;
     var nextRow = LEVEL_TABLE.find(function(r) { return r.level === current.level + 1; });
     var titleEl = document.getElementById("hud-title-text"); var levelEl = document.getElementById("hud-level-num");
-    if (titleEl) titleEl.textContent = current.title; if (levelEl) levelEl.textContent = current.level;
+    if (titleEl) titleEl.textContent = getLevelTitle(current); if (levelEl) levelEl.textContent = current.level;
     var distCurEl = document.getElementById("prog-dist-cur"); var distBarEl = document.getElementById("prog-dist-bar"); var distNextEl = document.getElementById("prog-dist-next");
     if (distCurEl) distCurEl.textContent = distKm.toFixed(2) + " km";
-    if (distBarEl && distNextEl) { if (!nextRow) { distBarEl.style.width = "100%"; distNextEl.textContent = "ìµœê³  ë ˆë²¨ ë‹¬ì„±!"; } else { var pct = nextRow.distKm > current.distKm ? Math.min(100, ((distKm - current.distKm) / (nextRow.distKm - current.distKm)) * 100) : 100; distBarEl.style.width = pct.toFixed(1) + "%"; var remain = Math.max(0, nextRow.distKm - distKm); distNextEl.textContent = remain > 0.01 ? "ë‹¤ìŒê¹Œì§€ " + remain.toFixed(1) + "km" : "ì¡°ê±´ ì¶©ì¡±!"; } }
+    if (distBarEl && distNextEl) { if (!nextRow) { distBarEl.style.width = "100%"; distNextEl.textContent = t.hud_max_level; } else { var pct = nextRow.distKm > current.distKm ? Math.min(100, ((distKm - current.distKm) / (nextRow.distKm - current.distKm)) * 100) : 100; distBarEl.style.width = pct.toFixed(1) + "%"; var remain = Math.max(0, nextRow.distKm - distKm); distNextEl.textContent = remain > 0.01 ? t.hud_next + " " + remain.toFixed(1) + "km" : t.hud_condition_met; } }
     var memCurEl = document.getElementById("prog-mem-cur"); var memBarEl = document.getElementById("prog-mem-bar"); var memNextEl = document.getElementById("prog-mem-next");
-    if (memCurEl) memCurEl.textContent = memCount + " ê°œ";
-    if (memBarEl && memNextEl) { if (!nextRow || nextRow.memories === 0) { memBarEl.style.width = "100%"; memNextEl.textContent = nextRow ? "ì¡°ê±´ ì—†ìŒ" : "ìµœê³ !"; } else { var pct2 = nextRow.memories > current.memories ? Math.min(100, ((memCount - current.memories) / (nextRow.memories - current.memories)) * 100) : 100; memBarEl.style.width = pct2.toFixed(1) + "%"; var remain2 = Math.max(0, nextRow.memories - memCount); memNextEl.textContent = remain2 > 0 ? "ë‹¤ìŒê¹Œì§€ " + remain2 + "ê°œ" : "ì¡°ê±´ ì¶©ì¡±!"; } }
+    if (memCurEl) memCurEl.textContent = memCount + t.unit_count;
+    if (memBarEl && memNextEl) { if (!nextRow || nextRow.memories === 0) { memBarEl.style.width = "100%"; memNextEl.textContent = nextRow ? t.hud_no_condition : t.hud_max; } else { var pct2 = nextRow.memories > current.memories ? Math.min(100, ((memCount - current.memories) / (nextRow.memories - current.memories)) * 100) : 100; memBarEl.style.width = pct2.toFixed(1) + "%"; var remain2 = Math.max(0, nextRow.memories - memCount); distNextEl; memNextEl.textContent = remain2 > 0 ? t.hud_next + " " + remain2 + t.unit_count : t.hud_condition_met; } }
     var photoCurEl = document.getElementById("prog-photo-cur"); var photoBarEl = document.getElementById("prog-photo-bar"); var photoNextEl = document.getElementById("prog-photo-next");
-    if (photoCurEl) photoCurEl.textContent = photoCount + " ê°œ";
-    if (photoBarEl && photoNextEl) { if (!nextRow || nextRow.photos === 0) { photoBarEl.style.width = "100%"; photoNextEl.textContent = nextRow ? "ì¡°ê±´ ì—†ìŒ" : "ìµœê³ !"; } else { var pct3 = nextRow.photos > current.photos ? Math.min(100, ((photoCount - current.photos) / (nextRow.photos - current.photos)) * 100) : 100; photoBarEl.style.width = pct3.toFixed(1) + "%"; var remain3 = Math.max(0, nextRow.photos - photoCount); photoNextEl.textContent = remain3 > 0 ? "ë‹¤ìŒê¹Œì§€ " + remain3 + "ê°œ" : "ì¡°ê±´ ì¶©ì¡±!"; } }
+    if (photoCurEl) photoCurEl.textContent = photoCount + t.unit_count;
+    if (photoBarEl && photoNextEl) { if (!nextRow || nextRow.photos === 0) { photoBarEl.style.width = "100%"; photoNextEl.textContent = nextRow ? t.hud_no_condition : t.hud_max; } else { var pct3 = nextRow.photos > current.photos ? Math.min(100, ((photoCount - current.photos) / (nextRow.photos - current.photos)) * 100) : 100; photoBarEl.style.width = pct3.toFixed(1) + "%"; var remain3 = Math.max(0, nextRow.photos - photoCount); photoNextEl.textContent = remain3 > 0 ? t.hud_next + " " + remain3 + t.unit_count : t.hud_condition_met; } }
 }
 
-function updateStats() { var todayDist = calcTodayDistance(); var distEl = document.getElementById("dist-val"); var todayEl = document.getElementById("today-dist-val"); var memEl = document.getElementById("memory-count-val"); var photoEl = document.getElementById("photo-count-val"); if (distEl) distEl.innerHTML = (totalDistance / 1000).toFixed(2) + "<span>km</span>"; if (todayEl) todayEl.innerHTML = (todayDist / 1000).toFixed(2) + "<span>km</span>"; if (memEl) memEl.innerHTML = memories.length + "<span>ê°œ</span>"; if (photoEl) photoEl.innerHTML = photos.length + "<span>ê°œ</span>"; updateHud(); checkBadges(); }
+function updateStats() { var todayDist = calcTodayDistance(); var distEl = document.getElementById("dist-val"); var todayEl = document.getElementById("today-dist-val"); var memEl = document.getElementById("memory-count-val"); var photoEl = document.getElementById("photo-count-val"); if (distEl) distEl.innerHTML = (totalDistance / 1000).toFixed(2) + "<span>km</span>"; if (todayEl) todayEl.innerHTML = (todayDist / 1000).toFixed(2) + "<span>km</span>"; if (memEl) memEl.innerHTML = memories.length + "<span>°³</span>"; if (photoEl) photoEl.innerHTML = photos.length + "<span>°³</span>"; updateHud(); checkBadges(); }
 
-function toggleHud() { isHudExpanded = !isHudExpanded; document.getElementById("hud").classList.toggle("expanded", isHudExpanded); document.getElementById("controls").classList.toggle("hud-open", isHudExpanded); document.getElementById("help-btn").classList.toggle("hud-open", isHudExpanded); if (isHudExpanded) { setTimeout(function() { document.addEventListener("click", handleHudOutsideClick); }, 0); } else { document.removeEventListener("click", handleHudOutsideClick); } }
+function toggleHud() { applyHudLang(UI_TEXT[currentLang] || UI_TEXT.ko); isHudExpanded = !isHudExpanded; document.getElementById("hud").classList.toggle("expanded", isHudExpanded); document.getElementById("controls").classList.toggle("hud-open", isHudExpanded); document.getElementById("help-btn").classList.toggle("hud-open", isHudExpanded); if (isHudExpanded) { setTimeout(function() { document.addEventListener("click", handleHudOutsideClick); }, 0); } else { document.removeEventListener("click", handleHudOutsideClick); } }
 function handleHudOutsideClick(event) { var hud = document.getElementById("hud"); if (!hud.contains(event.target)) { isHudExpanded = false; hud.classList.remove("expanded"); document.getElementById("controls").classList.remove("hud-open"); document.getElementById("help-btn").classList.remove("hud-open"); document.removeEventListener("click", handleHudOutsideClick); } }
-function syncRecordingUI() { var t = UI_TEXT[currentLang] || UI_TEXT.ko; recBtn.classList.toggle("recording", isRecording); recStatusBox.textContent = isRecording ? t.rec_active : t.rec_idle; recStatusBox.classList.toggle("recording", isRecording); }
+function syncRecordingUI() { var t = UI_TEXT[currentLang] || UI_TEXT.ko; recBtn.classList.toggle("recording", isRecording); recStatusBox.textContent = isRecording ? t.rec_active : t.rec_idle; recStatusBox.classList.toggle("recording", isRecording); syncImageMissionUI(); }
+function getImageMissionLatLng(item) {
+    if (!item) return null;
+    var lat = parseFloat(item.mapy !== undefined ? item.mapy : item.lat);
+    var lng = parseFloat(item.mapx !== undefined ? item.mapx : item.lng);
+    if (!isFinite(lat) || !isFinite(lng)) return null;
+    return L.latLng(lat, lng);
+}
+function getImageMissionName(item) { return getTourDisplayTitle(item) || item.name || item.LBRRY_NAME || item.title || "¹Ì¼Ç Àå¼Ò"; }
+function getActiveImageMission() {
+    if (!currentPos) return null;
+    var sources = [];
+    if (Array.isArray(tourItems)) sources = sources.concat(tourItems);
+    if (Array.isArray(festivalItems)) sources = sources.concat(festivalItems);
+    if (Array.isArray(libraryItems)) sources = sources.concat(libraryItems);
+    var best = null;
+    sources.forEach(function(item) {
+        var latlng = getImageMissionLatLng(item);
+        if (!latlng) return;
+        var dist = currentPos.distanceTo(latlng);
+        if (dist <= IMAGE_MISSION_RADIUS_M && (!best || dist < best.distance)) {
+            best = { item: item, distance: dist, name: getImageMissionName(item) };
+        }
+    });
+    return best;
+}
+function syncImageMissionUI() {
+    var photoBtn = document.getElementById("photo-btn");
+    if (!photoBtn) return;
+    activeImageMission = getActiveImageMission();
+    photoBtn.classList.toggle("mission-active", !!activeImageMission);
+    photoBtn.setAttribute("title", activeImageMission ? activeImageMission.name + " ÀÌ¹ÌÁö ¹Ì¼Ç" : "°¶·¯¸®¿¡¼­ »çÁø ºÒ·¯¿À±â");
+}
 function syncFogButton() { var t = UI_TEXT[currentLang] || UI_TEXT.ko; var toggleBtn = document.getElementById("fog-toggle-btn"); var toggleState = document.getElementById("fog-toggle-state"); if (!toggleBtn) return; toggleBtn.classList.toggle("on", isFogEnabled); toggleBtn.classList.toggle("off", !isFogEnabled); if (toggleState) { toggleState.textContent = isFogEnabled ? t.fog_on : t.fog_off; toggleState.classList.toggle("on", isFogEnabled); toggleState.classList.toggle("off", !isFogEnabled); } }
-function toggleHelp() { document.getElementById("help-popup").classList.toggle("show"); }
+function toggleHelp() { applyHelpLang(UI_TEXT[currentLang] || UI_TEXT.ko); document.getElementById("help-popup").classList.toggle("show"); }
 function handleHelpOverlayClick(event) { var box = document.getElementById("help-content-box"); if (!box.contains(event.target)) toggleHelp(); }
-function switchHelpTab(tab) { ["ask", "info"].forEach(function(t) { document.getElementById("htab-" + t).classList.toggle("active", t === tab); document.getElementById("hpanel-" + t).style.display = t === tab ? "" : "none"; }); }
-function togglePhotoMenu() { var menu = document.getElementById("photo-menu"); var overlay = document.getElementById("photo-menu-overlay"); if (menu.classList.contains("open")) { closePhotoMenu(); } else { menu.classList.add("open"); overlay.classList.add("show"); } }
+function switchHelpTab(tab) { applyHelpLang(UI_TEXT[currentLang] || UI_TEXT.ko); ["ask", "info"].forEach(function(t) { document.getElementById("htab-" + t).classList.toggle("active", t === tab); document.getElementById("hpanel-" + t).style.display = t === tab ? "" : "none"; }); }
+function togglePhotoMenu() { triggerGallery(); }
 function closePhotoMenu() { document.getElementById("photo-menu").classList.remove("open"); document.getElementById("photo-menu-overlay").classList.remove("show"); }
 
 async function triggerCamera() {
@@ -331,7 +402,7 @@ async function triggerCamera() {
             });
             return;
         } catch (e) {
-            console.warn("ì¹´ë©”ë¼ ì‹¤íŒ¨", e);
+            console.warn("Ä«¸Ş¶ó ½ÇÆĞ", e);
         }
     }
     document.getElementById("camera-input").click();
@@ -342,22 +413,25 @@ async function triggerGallery() {
     if (window.Capacitor && window.Capacitor.isNativePlatform()) {
         try {
             var Camera = window.Capacitor.Plugins.Camera;
-            var lat = currentPos ? currentPos.lat : map.getCenter().lat;
-            var lng = currentPos ? currentPos.lng : map.getCenter().lng;
+            var fallbackLat = currentPos ? currentPos.lat : map.getCenter().lat;
+            var fallbackLng = currentPos ? currentPos.lng : map.getCenter().lng;
             if (Camera && typeof Camera.pickImages === "function") {
                 var picked = await Camera.pickImages({ quality: 95 });
                 var list = picked && Array.isArray(picked.photos) ? picked.photos : [];
                 if (!list.length) return;
                 for (var i = 0; i < list.length; i++) {
-                    if (recStatusBox) recStatusBox.textContent = "ì‚¬ì§„ ì²˜ë¦¬ ì¤‘ " + (i + 1) + "/" + list.length;
+                    if (recStatusBox) recStatusBox.textContent = "»çÁø Ã³¸® Áß " + (i + 1) + "/" + list.length;
                     var one = list[i];
+                    var gpsOne = await getPhotoExifGps(one);
+                    var coordOne = gpsOne || { lat: fallbackLat, lng: fallbackLng };
                     var imgOne = await loadImageFromUrl(one.webPath || one.path);
-                    processPhoto(imgOne, new Date(), lat, lng, {
+                    processPhoto(imgOne, new Date(), coordOne.lat, coordOne.lng, {
                         deferUi: true,
                         openPopup: list.length === 1,
                         sourceUri: one.path || one.webPath || "",
                         sourceWebPath: one.webPath || "",
-                        sourceType: "gallery"
+                        sourceType: "gallery",
+                        locationSource: gpsOne ? "exif" : "fallback"
                     });
                 }
                 updateStats();
@@ -367,27 +441,33 @@ async function triggerGallery() {
                 return;
             }
             var single = await Camera.getPhoto({ quality: 95, resultType: "uri", source: "PHOTOS" });
+            var gpsSingle = await getPhotoExifGps(single);
+            var coordSingle = gpsSingle || { lat: fallbackLat, lng: fallbackLng };
             var img = await loadImageFromUrl(single.webPath || single.path);
-            processPhoto(img, new Date(), lat, lng, {
+            processPhoto(img, new Date(), coordSingle.lat, coordSingle.lng, {
                 sourceUri: single.path || single.webPath || "",
                 sourceWebPath: single.webPath || "",
-                sourceType: "gallery"
+                sourceType: "gallery",
+                locationSource: gpsSingle ? "exif" : "fallback"
             });
             return;
         } catch (e) {
-            console.warn("ê°¤ëŸ¬ë¦¬ ë¶ˆëŸ¬ì˜¤ê¸° ì‹¤íŒ¨", e);
+            console.warn("°¶·¯¸® ºÒ·¯¿À±â ½ÇÆĞ", e);
         }
     }
     document.getElementById("gallery-input").click();
 }
-
 async function openPhotoInGallery(data) {
     var sourceUri = data && (data.sourceUri || data.sourceWebPath);
     if (!sourceUri) {
-        alert("ì›ë³¸ ê²½ë¡œ ì •ë³´ê°€ ì—†ì–´ ê¸°ê¸° ê°¤ëŸ¬ë¦¬ë¡œ ë°”ë¡œ ì—´ ìˆ˜ ì—†ìŠµë‹ˆë‹¤.");
+        alert("¿øº» °æ·Î Á¤º¸°¡ ¾ø¾î ±â±â °¶·¯¸®·Î ¹Ù·Î ¿­ ¼ö ¾ø½À´Ï´Ù.");
         return;
     }
     try {
+        if (window.GiloaPhotoBridge && typeof window.GiloaPhotoBridge.openPhoto === "function") {
+            var opened = window.GiloaPhotoBridge.openPhoto(sourceUri);
+            if (opened) return;
+        }
         if (window.Capacitor && window.Capacitor.isNativePlatform()) {
             var plugins = window.Capacitor.Plugins || {};
             if (plugins.Browser && typeof plugins.Browser.open === "function") {
@@ -397,15 +477,100 @@ async function openPhotoInGallery(data) {
         }
         window.open(sourceUri, "_blank");
     } catch (e) {
-        console.warn("ì›ë³¸ ì—´ê¸° ì‹¤íŒ¨", e);
+        console.warn("¿øº» ¿­±â ½ÇÆĞ", e);
         try { window.open(sourceUri, "_blank"); }
-        catch (_) { alert("ì›ë³¸ ì‚¬ì§„ì„ ì—´ì§€ ëª»í–ˆìŠµë‹ˆë‹¤."); }
+        catch (_) { alert("¿øº» »çÁøÀ» ¿­Áö ¸øÇß½À´Ï´Ù."); }
     }
 }
-function resetRecordingState() { isRecording = false; syncRecordingUI(); stopTracking(); }
-function toggleRecording() { if (isRecording) { isRecording = false; syncRecordingUI(); stopTracking(); compactPathData(); scheduleSave(); return; } isRecording = true; syncRecordingUI(); startTracking(); }
+function focusPhotoOnMap(data) {
+    map.flyTo([data.lat, data.lng], 17);
+    var markerLayer = findPhotoMarker(data.id);
+    if (markerLayer) markerLayer.openPopup();
+    toggleSidebar(false);
+}
+function canUseScreenWakeLock() { return !!(navigator.wakeLock && typeof navigator.wakeLock.request === "function"); }
+function requestNativeScreenAwake() { try { if (window.GiloaScreenAwake && typeof window.GiloaScreenAwake.keepScreenOnFor === "function") window.GiloaScreenAwake.keepScreenOnFor(SCREEN_AWAKE_MS); } catch (e) { console.warn("³×ÀÌÆ¼ºê È­¸é À¯Áö ½ÇÆĞ", e); } }
+function releaseNativeScreenAwake() { try { if (window.GiloaScreenAwake && typeof window.GiloaScreenAwake.clearKeepScreenOn === "function") window.GiloaScreenAwake.clearKeepScreenOn(); } catch (e) { console.warn("³×ÀÌÆ¼ºê È­¸é À¯Áö ÇØÁ¦ ½ÇÆĞ", e); } }
+async function requestScreenAwake() {
+    screenAwakeUntil = Date.now() + SCREEN_AWAKE_MS;
+    requestNativeScreenAwake();
+    if (screenWakeLockTimer) clearTimeout(screenWakeLockTimer);
+    screenWakeLockTimer = setTimeout(releaseScreenAwake, SCREEN_AWAKE_MS);
+    if (!canUseScreenWakeLock() || document.visibilityState !== "visible") return;
+    try {
+        if (screenWakeLock && !screenWakeLock.released) return;
+        screenWakeLock = await navigator.wakeLock.request("screen");
+        screenWakeLock.addEventListener("release", function() {
+            screenWakeLock = null;
+            if (isRecording && Date.now() < screenAwakeUntil && document.visibilityState === "visible") {
+                setTimeout(requestScreenAwake, 500);
+            }
+        });
+    } catch (e) { console.warn("È­¸é ÄÑÁü À¯Áö ½ÇÆĞ", e); }
+}
+function releaseScreenAwake() {
+    screenAwakeUntil = 0;
+    releaseNativeScreenAwake();
+    if (screenWakeLockTimer) { clearTimeout(screenWakeLockTimer); screenWakeLockTimer = null; }
+    var lock = screenWakeLock;
+    screenWakeLock = null;
+    if (lock && !lock.released) lock.release().catch(function(e) { console.warn("È­¸é ÄÑÁü ÇØÁ¦ ½ÇÆĞ", e); });
+}
+document.addEventListener("visibilitychange", function() {
+    if (isRecording && Date.now() < screenAwakeUntil && document.visibilityState === "visible") requestScreenAwake();
+});
+function clearAutoRecordingTimer() {
+    if (autoRecordingTimer) { clearTimeout(autoRecordingTimer); autoRecordingTimer = null; }
+}
+function startAutoRecordingTimer() {
+    clearAutoRecordingTimer();
+    autoRecordingTimer = setTimeout(function() {
+        autoRecordingTimer = null;
+        if (!isRecording) return;
+        stopRecording();
+    }, AUTO_RECORDING_MS);
+}
+function stopRecording() {
+    isRecording = false;
+    clearAutoRecordingTimer();
+    releaseScreenAwake();
+    syncRecordingUI();
+    stopTracking();
+    compactPathData();
+    scheduleSave();
+}
+function resetRecordingState() { stopRecording(); }
+function toggleRecording() {
+    if (isRecording) { stopRecording(); return; }
+    isRecording = true;
+    requestScreenAwake();
+    startAutoRecordingTimer();
+    syncRecordingUI();
+    startTracking();
+}
+function dismissAutoRecordingNotice() {
+    var overlay = document.getElementById("auto-recording-notice");
+    if (overlay) overlay.classList.remove("show");
+}
+function showAutoRecordingNotice() {
+    var overlay = document.getElementById("auto-recording-notice");
+    if (!overlay) {
+        overlay = document.createElement("div");
+        overlay.id = "auto-recording-notice";
+        overlay.innerHTML = '<div class="auto-recording-box" role="dialog" aria-modal="true" aria-label="ÀÚµ¿ ³ìÈ­ ¾È³»"><button class="auto-recording-close" type="button" aria-label="´İ±â">¡¿</button><div class="auto-recording-title">ÀÚµ¿ ³ìÈ­°¡ ½ÃÀÛµË´Ï´Ù</div><div class="auto-recording-copy">À§Ä¡°¡ 8½Ã°£ µ¿¾È ³ìÈ­µË´Ï´Ù.<br>²ô°í ½ÍÀ¸½Ã´Ù¸é ¿À¸¥ÂÊ ÇÏ´ÜÀÇ ³ìÈ­ÁßÁö ¹öÆ°À» ´­·¯ÁÖ¼¼¿ä.</div></div>';
+        overlay.addEventListener("click", function(e) { if (e.target === overlay) dismissAutoRecordingNotice(); });
+        document.body.appendChild(overlay);
+        var closeBtn = overlay.querySelector(".auto-recording-close");
+        if (closeBtn) closeBtn.addEventListener("click", dismissAutoRecordingNotice);
+    }
+    overlay.classList.add("show");
+}
+function startAutoRecordingOnLaunch() {
+    showAutoRecordingNotice();
+    if (!isRecording) toggleRecording();
+}
 function toggleFog() { isFogEnabled = !isFogEnabled; localStorage.setItem(FOG_ENABLED_KEY, String(isFogEnabled)); syncFogButton(); scheduleRender(); }
-function startTracking() { if (!navigator.geolocation) { alert("ì´ ë¸Œë¼ìš°ì €ëŠ” ìœ„ì¹˜ ì¶”ì ì„ ì§€ì›í•˜ì§€ ì•ŠìŠµë‹ˆë‹¤."); resetRecordingState(); return; } if (!window.isSecureContext && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") { alert("ìœ„ì¹˜ ì¶”ì ì€ HTTPS ë˜ëŠ” localhostì—ì„œë§Œ ë™ì‘í•©ë‹ˆë‹¤."); resetRecordingState(); return; } watchId = navigator.geolocation.watchPosition(handlePosition, handleLocationError, { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 }); }
+function startTracking() { if (!navigator.geolocation) { alert("ÀÌ ºê¶ó¿ìÀú´Â À§Ä¡ ÃßÀûÀ» Áö¿øÇÏÁö ¾Ê½À´Ï´Ù."); resetRecordingState(); return; } if (!window.isSecureContext && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") { alert("À§Ä¡ ÃßÀûÀº HTTPS ¶Ç´Â localhost¿¡¼­¸¸ µ¿ÀÛÇÕ´Ï´Ù."); resetRecordingState(); return; } watchId = navigator.geolocation.watchPosition(handlePosition, handleLocationError, { enableHighAccuracy: true, maximumAge: 3000, timeout: 15000 }); }
 function stopTracking() { if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; } }
 
 function handlePosition(position) {
@@ -419,9 +584,10 @@ function handlePosition(position) {
     if (!playerMarker) { playerMarker = L.marker(latlng, { pane: "playerPane", icon: L.divIcon({ className: "player-marker", iconSize: [18, 18] }) }).addTo(map); map.setView(latlng, 16); }
     else { playerMarker.setLatLng(latlng); }
     updateVisionCone(latlng);
+    syncImageMissionUI();
     if (!isRecording) return;
-    if (accuracy > 100) { recStatusBox.textContent = "GPS ë„ˆë¬´ ì•½í•¨ (" + Math.round(accuracy) + "m)"; return; }
-    var now = Date.now(); recStatusBox.textContent = accuracy > MAX_ACCURACY_M ? "GPS ì•½í•¨ (" + Math.round(accuracy) + "m)" : "ê¸°ë¡ ì¤‘";
+    if (accuracy > 100) { recStatusBox.textContent = "GPS ³Ê¹« ¾àÇÔ (" + Math.round(accuracy) + "m)"; return; }
+    var now = Date.now(); recStatusBox.textContent = accuracy > MAX_ACCURACY_M ? "GPS ¾àÇÔ (" + Math.round(accuracy) + "m)" : "±â·Ï Áß";
     if (pathCoordinates.length === 0) { pathCoordinates.push(createPathPoint(latlng, now)); checkStayBonus(latlng, now); updateStats(); scheduleSave(); scheduleRender(); return; }
     var last = pathCoordinates[pathCoordinates.length - 1]; var dist = distanceToPoint(latlng, last); var stayThreshold = getDynamicStayThreshold(accuracy);
     if (dist <= stayThreshold) { last.endTime = now; last.visits = (last.visits || 1) + 1; last.lat += (latlng.lat - last.lat) * 0.3; last.lng += (latlng.lng - last.lng) * 0.3; }
@@ -429,7 +595,7 @@ function handlePosition(position) {
     checkStayBonus(latlng, now); updateStats(); scheduleSave(); scheduleRender();
 }
 
-function handleLocationError(err) { var messages = { 1: "ìœ„ì¹˜ ê¶Œí•œì´ ê±°ë¶€ë˜ì—ˆìŠµë‹ˆë‹¤.", 2: "í˜„ì¬ ìœ„ì¹˜ë¥¼ í™•ì¸í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤.", 3: "ìœ„ì¹˜ ìš”ì²­ ì‹œê°„ì´ ì´ˆê³¼ë˜ì—ˆìŠµë‹ˆë‹¤." }; alert(messages[err.code] || "ìœ„ì¹˜ ì •ë³´ë¥¼ ê°€ì ¸ì˜¤ì§€ ëª»í–ˆìŠµë‹ˆë‹¤."); resetRecordingState(); }
+function handleLocationError(err) { var messages = { 1: "À§Ä¡ ±ÇÇÑÀÌ °ÅºÎµÇ¾ú½À´Ï´Ù.", 2: "ÇöÀç À§Ä¡¸¦ È®ÀÎÇÒ ¼ö ¾ø½À´Ï´Ù.", 3: "À§Ä¡ ¿äÃ» ½Ã°£ÀÌ ÃÊ°úµÇ¾ú½À´Ï´Ù." }; alert(messages[err.code] || "À§Ä¡ Á¤º¸¸¦ °¡Á®¿ÀÁö ¸øÇß½À´Ï´Ù."); resetRecordingState(); }
 function createPathPoint(latlng, timestamp) { return { lat: latlng.lat, lng: latlng.lng, startTime: timestamp, endTime: timestamp, visits: 1 }; }
 function distanceToPoint(latlng, point) { return latlng.distanceTo([point.lat, point.lng]); }
 function getDynamicStayThreshold(accuracy) { return Math.max(MIN_MOVE_M, Math.min(MAX_STAY_RADIUS_M, accuracy * STAY_ACCURACY_FACTOR)); }
@@ -439,12 +605,12 @@ function checkStayBonus(latlng, now) {
     if (latlng.distanceTo(stayBonusAnchor) > STAY_BONUS_RADIUS_M) { stayBonusAnchor = latlng; stayBonusStartTime = now; return; }
     if (stayBonusPlaces.some(function(p) { return latlng.distanceTo([p.lat, p.lng]) <= STAY_BONUS_RADIUS_M; })) return;
     var remaining = STAY_BONUS_MS - (now - stayBonusStartTime);
-    if (remaining > 0) { recStatusBox.textContent = "ê¸°ë¡ ì¤‘ Â· ì²´ë¥˜ ë³´ë„ˆìŠ¤ê¹Œì§€ " + Math.ceil(remaining / 60000) + "ë¶„"; return; }
+    if (remaining > 0) { recStatusBox.textContent = "±â·Ï Áß ¡¤ Ã¼·ù º¸³Ê½º±îÁö " + Math.ceil(remaining / 60000) + "ºĞ"; return; }
     stayBonusPlaces.push({ lat: stayBonusAnchor.lat, lng: stayBonusAnchor.lng }); stayBonusLevelBoost += 1; saveBonusState(); updateStats();
-    recStatusBox.textContent = "30ë¶„ ì²´ë¥˜ ë‹¬ì„±! ë ˆë²¨ +1 ë³´ë„ˆìŠ¤!"; setTimeout(function() { if (isRecording) recStatusBox.textContent = "ê¸°ë¡ ì¤‘"; }, 4000);
+    recStatusBox.textContent = "30ºĞ Ã¼·ù ´Ş¼º! ·¹º§ +1 º¸³Ê½º!"; setTimeout(function() { if (isRecording) recStatusBox.textContent = "±â·Ï Áß"; }, 4000);
 }
 function saveBonusState() { localStorage.setItem("giloa-stay-bonus", JSON.stringify({ boost: stayBonusLevelBoost, places: stayBonusPlaces })); }
-function loadBonusState() { try { var raw = localStorage.getItem("giloa-stay-bonus"); if (!raw) return; var data = JSON.parse(raw); stayBonusLevelBoost = isFinite(data.boost) ? data.boost : 0; stayBonusPlaces = Array.isArray(data.places) ? data.places.filter(function(p) { return isFinite(p.lat) && isFinite(p.lng); }) : []; } catch (e) { console.warn("ë³´ë„ˆìŠ¤ ìƒíƒœ ë³µì› ì‹¤íŒ¨", e); } }
+function loadBonusState() { try { var raw = localStorage.getItem("giloa-stay-bonus"); if (!raw) return; var data = JSON.parse(raw); stayBonusLevelBoost = isFinite(data.boost) ? data.boost : 0; stayBonusPlaces = Array.isArray(data.places) ? data.places.filter(function(p) { return isFinite(p.lat) && isFinite(p.lng); }) : []; } catch (e) { console.warn("º¸³Ê½º »óÅÂ º¹¿ø ½ÇÆĞ", e); } }
 function calcTodayDistance() { var todayStartMs = new Date().setHours(0, 0, 0, 0); var dist = 0; for (var i = 1; i < pathCoordinates.length; i++) { if (pathCoordinates[i].startTime >= todayStartMs) { dist += L.latLng(pathCoordinates[i].lat, pathCoordinates[i].lng).distanceTo([pathCoordinates[i - 1].lat, pathCoordinates[i - 1].lng]); } } return dist; }
 
 function compactPathData() {
@@ -454,11 +620,38 @@ function compactPathData() {
 }
 function shrinkOldPoints(points, maxPoints) { if (points.length <= maxPoints) return points; var keepTail = Math.floor(maxPoints * 0.4); var tail = points.slice(-keepTail); var head = points.slice(0, points.length - keepTail); var ratio = Math.ceil(head.length / (maxPoints - keepTail)); var filtered = head.filter(function(_, i) { return i % ratio === 0; }); return filtered.concat(tail).slice(-maxPoints); }
 
-function addMemory() { if (!currentPos) { alert("ìœ„ì¹˜ ì •ë³´ë¥¼ ìˆ˜ì‹  ì¤‘ì…ë‹ˆë‹¤."); return; } var input = prompt("ì´ ì¥ì†Œì˜ ì´ë¦„ì„ ì…ë ¥í•˜ì„¸ìš”:", "ìƒˆë¡œìš´ ë°œê²¬"); if (input === null) return; var now = new Date(); var data = { id: String(now.getTime()), lat: currentPos.lat, lng: currentPos.lng, name: escapeHtml(input.trim() || "ê¸°ì–µì˜ ì§€ì "), time: now.getTime(), dateString: now.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" }), timeString: now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }) }; memories.push(data); createMemoryMarker(data, true); updateMemoryList(); updateStats(); scheduleSave(); }
-function createMemoryMarker(data, openPopup) { var marker = L.marker([data.lat, data.lng], { pane: "memoryPane", icon: L.divIcon({ className: "memory-marker", html: "â˜…", iconSize: [28, 28] }) }).addTo(map); var popupEl = document.createElement("div"); var title = document.createElement("b"); title.textContent = data.name; var info = document.createElement("small"); info.style.display = "block"; info.textContent = data.dateString + " " + (data.timeString || ""); var delBtn = document.createElement("button"); delBtn.className = "popup-delete-btn"; delBtn.textContent = "ì‚­ì œ"; delBtn.addEventListener("click", function() { deleteMemory(data.id); }); popupEl.appendChild(title); popupEl.appendChild(document.createElement("br")); popupEl.appendChild(info); popupEl.appendChild(delBtn); marker.bindPopup(popupEl); memoryMarkers.set(data.id, marker); if (openPopup) marker.openPopup(); }
+function addMemoryAt(lat, lng, defaultName) {
+    if (!isFinite(lat) || !isFinite(lng)) { alert("±â¾ïÀ¸·Î ³²±æ À§Ä¡°¡ ¾ø½À´Ï´Ù."); return; }
+    var input = prompt("ÀÌ Àå¼ÒÀÇ ÀÌ¸§À» ÀÔ·ÂÇÏ¼¼¿ä:", defaultName || "»õ·Î¿î ¹ß°ß");
+    if (input === null) return;
+    var now = new Date();
+    var data = {
+        id: String(now.getTime()),
+        lat: lat,
+        lng: lng,
+        name: escapeHtml(input.trim() || "±â¾ïÀÇ ÁöÁ¡"),
+        time: now.getTime(),
+        dateString: now.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" }),
+        timeString: now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })
+    };
+    memories.push(data);
+    createMemoryMarker(data, true);
+    updateMemoryList();
+    updateStats();
+    scheduleSave();
+}
+function addMemory() {
+    if (!currentPos) { alert("À§Ä¡ Á¤º¸¸¦ ¼ö½Å ÁßÀÔ´Ï´Ù."); return; }
+    addMemoryAt(currentPos.lat, currentPos.lng, "»õ·Î¿î ¹ß°ß");
+}
+function addPhotoMemory(data) {
+    if (!data) return;
+    addMemoryAt(data.lat, data.lng, "»çÁøÀÇ ±â¾ï");
+}
+function createMemoryMarker(data, openPopup) { var marker = L.marker([data.lat, data.lng], { pane: "memoryPane", icon: L.divIcon({ className: "memory-marker", html: "¡Ú", iconSize: [28, 28] }) }).addTo(map); var popupEl = document.createElement("div"); var title = document.createElement("b"); title.textContent = data.name; var info = document.createElement("small"); info.style.display = "block"; info.textContent = data.dateString + " " + (data.timeString || ""); var delBtn = document.createElement("button"); delBtn.className = "popup-delete-btn"; delBtn.textContent = "»èÁ¦"; delBtn.addEventListener("click", function() { deleteMemory(data.id); }); popupEl.appendChild(title); popupEl.appendChild(document.createElement("br")); popupEl.appendChild(info); popupEl.appendChild(delBtn); marker.bindPopup(popupEl); memoryMarkers.set(data.id, marker); if (openPopup) marker.openPopup(); }
 function deleteMemory(id) { memories = memories.filter(function(m) { return m.id !== id; }); var marker = memoryMarkers.get(id); if (marker) { map.removeLayer(marker); memoryMarkers.delete(id); } updateMemoryList(); updateStats(); scheduleSave(); }
-function updateMemoryList() { var container = document.getElementById("memory-list-container"); if (!container) return; if (memories.length === 0) { container.innerHTML = '<p class="empty-message">ì•„ì§ ê¸°ë¡ì´ ì—†ìŠµë‹ˆë‹¤.</p>'; return; } container.innerHTML = ""; memories.slice().reverse().forEach(function(memo) { var item = document.createElement("div"); item.className = "memory-item"; var name = document.createElement("span"); name.className = "item-name"; name.textContent = "â˜… " + memo.name; var date = document.createElement("span"); date.className = "item-date"; date.textContent = memo.dateString + " " + (memo.timeString || ""); var actions = document.createElement("div"); actions.className = "memory-actions"; var moveBtn = document.createElement("button"); moveBtn.className = "memory-action-btn move"; moveBtn.textContent = "ì´ë™"; moveBtn.addEventListener("click", function(e) { e.stopPropagation(); map.flyTo([memo.lat, memo.lng], 17); }); var delBtn = document.createElement("button"); delBtn.className = "memory-action-btn delete"; delBtn.textContent = "ì‚­ì œ"; delBtn.addEventListener("click", function(e) { e.stopPropagation(); deleteMemory(memo.id); }); actions.appendChild(moveBtn); actions.appendChild(delBtn); item.appendChild(name); item.appendChild(date); item.appendChild(actions); item.addEventListener("click", function() { map.flyTo([memo.lat, memo.lng], 17); toggleSidebar(false); }); container.appendChild(item); }); }
-// ëª¨ë“  íƒ­ (ìƒë‹¨6ê°œ) í†µí•© ì „í™˜
+function updateMemoryList() { var container = document.getElementById("memory-list-container"); if (!container) return; if (memories.length === 0) { container.innerHTML = '<p class="empty-message">¾ÆÁ÷ ±â·ÏÀÌ ¾ø½À´Ï´Ù.</p>'; return; } container.innerHTML = ""; memories.slice().reverse().forEach(function(memo) { var item = document.createElement("div"); item.className = "memory-item"; var name = document.createElement("span"); name.className = "item-name"; name.textContent = "¡Ú " + memo.name; var date = document.createElement("span"); date.className = "item-date"; date.textContent = memo.dateString + " " + (memo.timeString || ""); var actions = document.createElement("div"); actions.className = "memory-actions"; var moveBtn = document.createElement("button"); moveBtn.className = "memory-action-btn move"; moveBtn.textContent = "ÀÌµ¿"; moveBtn.addEventListener("click", function(e) { e.stopPropagation(); map.flyTo([memo.lat, memo.lng], 17); }); var delBtn = document.createElement("button"); delBtn.className = "memory-action-btn delete"; delBtn.textContent = "»èÁ¦"; delBtn.addEventListener("click", function(e) { e.stopPropagation(); deleteMemory(memo.id); }); actions.appendChild(moveBtn); actions.appendChild(delBtn); item.appendChild(name); item.appendChild(date); item.appendChild(actions); item.addEventListener("click", function() { map.flyTo([memo.lat, memo.lng], 17); toggleSidebar(false); }); container.appendChild(item); }); }
+// ¸ğµç ÅÇ (»ó´Ü6°³) ÅëÇÕ ÀüÈ¯
 var ALL_TABS = ["memory", "photo", "gpx", "badge", "visit", "item"];
 function switchAllTab(tab) {
     ALL_TABS.forEach(function(t) {
@@ -474,19 +667,19 @@ function switchAllTab(tab) {
 }
 function switchTab(tab) { switchAllTab(tab); }
 function switchCollectionTab(tab) { switchAllTab(tab); }
-function updatePhotoList() { var container = document.getElementById("photo-list-container"); if (!container) return; if (photos.length === 0) { container.innerHTML = '<p class="empty-message" style="grid-column:1/-1">ì•„ì§ ì‚¬ì§„ì´ ì—†ìŠµë‹ˆë‹¤.</p>'; return; } container.innerHTML = ""; photos.slice().reverse().forEach(function(p) { var item = document.createElement("div"); item.className = "photo-list-item"; var img = document.createElement("img"); img.src = p.thumb || p.photo; var date = document.createElement("div"); date.className = "photo-list-date"; date.textContent = p.dateString; var del = document.createElement("div"); del.className = "photo-list-del"; del.textContent = "âœ•"; del.addEventListener("click", function(e) { e.stopPropagation(); deletePhoto(p.id); updatePhotoList(); }); item.addEventListener("click", function() { map.flyTo([p.lat, p.lng], 17); var markerLayer = findPhotoMarker(p.id); if (markerLayer) markerLayer.openPopup(); toggleSidebar(false); }); item.appendChild(img); item.appendChild(date); item.appendChild(del); container.appendChild(item); }); }
+function updatePhotoList() { var container = document.getElementById("photo-list-container"); if (!container) return; if (photos.length === 0) { container.innerHTML = '<p class="empty-message" style="grid-column:1/-1">¾ÆÁ÷ »çÁøÀÌ ¾ø½À´Ï´Ù.</p>'; return; } container.innerHTML = ""; photos.slice().reverse().forEach(function(p) { var item = document.createElement("div"); item.className = "photo-list-item"; var img = document.createElement("img"); img.src = p.thumb || p.photo; var date = document.createElement("div"); date.className = "photo-list-date"; date.textContent = p.dateString; var del = document.createElement("div"); del.className = "photo-list-del"; del.textContent = "?"; del.addEventListener("click", function(e) { e.stopPropagation(); deletePhoto(p.id); updatePhotoList(); }); item.addEventListener("click", function() { if (p.sourceUri || p.sourceWebPath) openPhotoInGallery(p); else focusPhotoOnMap(p); }); item.addEventListener("contextmenu", function(e) { e.preventDefault(); focusPhotoOnMap(p); }); item.title = (p.sourceUri || p.sourceWebPath) ? "¿øº» »çÁø ¿­±â" : "Áöµµ¿¡¼­ º¸±â"; item.appendChild(img); item.appendChild(date); item.appendChild(del); container.appendChild(item); }); }
 function findPhotoMarker(id) { var found = null; photoClusterGroup.eachLayer(function(layer) { if (layer._photoData && layer._photoData.id === id) found = layer; }); return found; }
 function adjustHourDial(dir) { var next = dialHours + dir; if (next < 1 || next > 20) return; dialHours = next; updateDialUI(); }
-function updateDialUI() { var labelEl = document.getElementById("dial-hour-label"); var infoEl = document.getElementById("gpx-range-info"); if (labelEl) labelEl.textContent = dialHours + "ì‹œê°„"; if (infoEl) infoEl.textContent = "ì˜¤ëŠ˜ ê¸°ì¤€ ìµœê·¼ " + dialHours + "ì‹œê°„ ë°œê±¸ìŒ"; }
-function exportGpx() { var sinceMs = Date.now() - dialHours * 60 * 60 * 1000; var filtered = pathCoordinates.filter(function(p) { return p.startTime >= sinceMs; }); if (filtered.length === 0) { alert("í•´ë‹¹ ì‹œê°„ì— ê¸°ë¡ëœ ë°œê±¸ìŒì´ ì—†ìŠµë‹ˆë‹¤."); return; } var nameInput = document.getElementById("gpx-export-name").value.trim(); var name = nameInput || "ë°œê±¸ìŒ ìµœê·¼" + dialHours + "ì‹œê°„"; var trkpts = filtered.map(function(p) { var t = new Date(p.startTime).toISOString(); return '    <trkpt lat="' + p.lat.toFixed(7) + '" lon="' + p.lng.toFixed(7) + '">\n      <time>' + t + '</time>\n    </trkpt>'; }).join("\n"); var gpxContent = '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Giloa - ë‚˜ì˜ ëŒ€ë™ì—¬ì§€ë„"\n     xmlns="http://www.topografix.com/GPX/1/1">\n  <metadata><name>' + name + '</name><time>' + new Date().toISOString() + '</time></metadata>\n  <trk><name>' + name + '</name><trkseg>\n' + trkpts + '\n  </trkseg></trk>\n</gpx>'; var saves = loadGpxSaves(); var id = String(Date.now()); saves.push({ id: id, name: name, createdAt: Date.now(), pointCount: filtered.length, gpxContent: gpxContent }); saveGpxSaves(saves); updateGpxSavedList(); var blob = new Blob([gpxContent], { type: "application/gpx+xml" }); var url = URL.createObjectURL(blob); var a = document.createElement("a"); a.href = url; a.download = "giloa_" + name + ".gpx"; a.click(); URL.revokeObjectURL(url); document.getElementById("gpx-export-name").value = ""; document.getElementById("gpx-import-status").textContent = 'âœ“ "' + name + '" ì €ì¥ ì™„ë£Œ'; }
+function updateDialUI() { var labelEl = document.getElementById("dial-hour-label"); var infoEl = document.getElementById("gpx-range-info"); if (labelEl) labelEl.textContent = dialHours + "½Ã°£"; if (infoEl) infoEl.textContent = "¿À´Ã ±âÁØ ÃÖ±Ù " + dialHours + "½Ã°£ ¹ß°ÉÀ½"; }
+function exportGpx() { var sinceMs = Date.now() - dialHours * 60 * 60 * 1000; var filtered = pathCoordinates.filter(function(p) { return p.startTime >= sinceMs; }); if (filtered.length === 0) { alert("ÇØ´ç ½Ã°£¿¡ ±â·ÏµÈ ¹ß°ÉÀ½ÀÌ ¾ø½À´Ï´Ù."); return; } var nameInput = document.getElementById("gpx-export-name").value.trim(); var name = nameInput || "¹ß°ÉÀ½ ÃÖ±Ù" + dialHours + "½Ã°£"; var trkpts = filtered.map(function(p) { var t = new Date(p.startTime).toISOString(); return '    <trkpt lat="' + p.lat.toFixed(7) + '" lon="' + p.lng.toFixed(7) + '">\n      <time>' + t + '</time>\n    </trkpt>'; }).join("\n"); var gpxContent = '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Giloa - ³ªÀÇ ´ëµ¿¿©Áöµµ"\n     xmlns="http://www.topografix.com/GPX/1/1">\n  <metadata><name>' + name + '</name><time>' + new Date().toISOString() + '</time></metadata>\n  <trk><name>' + name + '</name><trkseg>\n' + trkpts + '\n  </trkseg></trk>\n</gpx>'; var saves = loadGpxSaves(); var id = String(Date.now()); saves.push({ id: id, name: name, createdAt: Date.now(), pointCount: filtered.length, gpxContent: gpxContent }); saveGpxSaves(saves); updateGpxSavedList(); var blob = new Blob([gpxContent], { type: "application/gpx+xml" }); var url = URL.createObjectURL(blob); var a = document.createElement("a"); a.href = url; a.download = "giloa_" + name + ".gpx"; a.click(); URL.revokeObjectURL(url); document.getElementById("gpx-export-name").value = ""; document.getElementById("gpx-import-status").textContent = '? "' + name + '" ÀúÀå ¿Ï·á'; }
 function loadGpxSaves() { try { return JSON.parse(localStorage.getItem(GPX_SAVES_KEY) || "[]"); } catch(e) { return []; } }
 function saveGpxSaves(saves) { localStorage.setItem(GPX_SAVES_KEY, JSON.stringify(saves)); }
-function updateGpxSavedList() { var container = document.getElementById("gpx-saved-list"); if (!container) return; var saves = loadGpxSaves(); if (saves.length === 0) { container.innerHTML = '<p class="empty-message">ì €ì¥ëœ ë°œê±¸ìŒì´ ì—†ìŠµë‹ˆë‹¤.</p>'; return; } container.innerHTML = ""; saves.slice().reverse().forEach(function(s) { var item = document.createElement("div"); item.className = "gpx-saved-item" + (s.id === activeGpxId ? " active-route" : ""); var icon = document.createElement("span"); icon.className = "gpx-saved-icon"; icon.textContent = s.id === activeGpxId ? "ğŸ”µ" : "ğŸ‘£"; var info = document.createElement("div"); info.className = "gpx-saved-info"; var nameEl = document.createElement("div"); nameEl.className = "gpx-saved-name"; nameEl.textContent = s.name; var meta = document.createElement("div"); meta.className = "gpx-saved-meta"; meta.textContent = new Date(s.createdAt).toLocaleDateString("ko-KR") + " Â· " + s.pointCount + "ê°œ í¬ì¸íŠ¸"; info.appendChild(nameEl); info.appendChild(meta); var del = document.createElement("div"); del.className = "gpx-saved-del"; del.textContent = "âœ•"; del.addEventListener("click", function(e) { e.stopPropagation(); deleteGpxSave(s.id); }); item.appendChild(icon); item.appendChild(info); item.appendChild(del); item.addEventListener("click", function() { toggleGpxRoute(s); }); container.appendChild(item); }); }
+function updateGpxSavedList() { var container = document.getElementById("gpx-saved-list"); if (!container) return; var saves = loadGpxSaves(); if (saves.length === 0) { container.innerHTML = '<p class="empty-message">ÀúÀåµÈ ¹ß°ÉÀ½ÀÌ ¾ø½À´Ï´Ù.</p>'; return; } container.innerHTML = ""; saves.slice().reverse().forEach(function(s) { var item = document.createElement("div"); item.className = "gpx-saved-item" + (s.id === activeGpxId ? " active-route" : ""); var icon = document.createElement("span"); icon.className = "gpx-saved-icon"; icon.textContent = s.id === activeGpxId ? "??" : "??"; var info = document.createElement("div"); info.className = "gpx-saved-info"; var nameEl = document.createElement("div"); nameEl.className = "gpx-saved-name"; nameEl.textContent = s.name; var meta = document.createElement("div"); meta.className = "gpx-saved-meta"; meta.textContent = new Date(s.createdAt).toLocaleDateString("ko-KR") + " ¡¤ " + s.pointCount + "°³ Æ÷ÀÎÆ®"; info.appendChild(nameEl); info.appendChild(meta); var del = document.createElement("div"); del.className = "gpx-saved-del"; del.textContent = "?"; del.addEventListener("click", function(e) { e.stopPropagation(); deleteGpxSave(s.id); }); item.appendChild(icon); item.appendChild(info); item.appendChild(del); item.addEventListener("click", function() { toggleGpxRoute(s); }); container.appendChild(item); }); }
 function deleteGpxSave(id) { if (id === activeGpxId) clearActiveGpxRoute(); saveGpxSaves(loadGpxSaves().filter(function(s) { return s.id !== id; })); updateGpxSavedList(); }
 function toggleGpxRoute(save) { if (activeGpxId === save.id) { clearActiveGpxRoute(); updateGpxSavedList(); return; } clearActiveGpxRoute(); drawGpxRoute(save.gpxContent, save.id); updateGpxSavedList(); toggleSidebar(false); }
 function clearActiveGpxRoute() { activeGpxLayers.forEach(function(l) { map.removeLayer(l); }); activeGpxLayers = []; activeGpxId = null; }
-function drawGpxRoute(gpxContent, id) { var parser = new DOMParser(); var xmlDoc = parser.parseFromString(gpxContent, "application/xml"); var trkpts = xmlDoc.querySelectorAll("trkpt"); var latlngs = []; trkpts.forEach(function(pt) { var lat = parseFloat(pt.getAttribute("lat")); var lng = parseFloat(pt.getAttribute("lon")); if (isFinite(lat) && isFinite(lng)) latlngs.push([lat, lng]); }); if (latlngs.length === 0) return; var polyline = L.polyline(latlngs, { color: "#4db8ff", weight: 4, opacity: 0.85, dashArray: "8, 6" }).addTo(map); var startM = L.circleMarker(latlngs[0], { radius: 7, color: "#4db8ff", fillColor: "#fff", fillOpacity: 1, weight: 2.5 }).addTo(map).bindTooltip("ì¶œë°œ"); var endM = L.circleMarker(latlngs[latlngs.length - 1], { radius: 7, color: "#ff6b6b", fillColor: "#fff", fillOpacity: 1, weight: 2.5 }).addTo(map).bindTooltip("ë„ì°©"); activeGpxLayers = [polyline, startM, endM]; activeGpxId = id; map.fitBounds(polyline.getBounds(), { padding: [50, 50] }); }
-function importGpxFile(event) { var file = event.target.files[0]; if (!file) return; var statusEl = document.getElementById("gpx-import-status"); statusEl.textContent = "ì½ëŠ” ì¤‘..."; var reader = new FileReader(); reader.onload = function(e) { try { var name = file.name.replace(".gpx", ""); var gpxContent = e.target.result; var trkpts = new DOMParser().parseFromString(gpxContent, "application/xml").querySelectorAll("trkpt"); if (trkpts.length === 0) { statusEl.textContent = "ê²½ë¡œ ì—†ìŒ"; return; } var saves = loadGpxSaves(); var id = String(Date.now()); saves.push({ id: id, name: name, createdAt: Date.now(), pointCount: trkpts.length, gpxContent: gpxContent }); saveGpxSaves(saves); clearActiveGpxRoute(); drawGpxRoute(gpxContent, id); updateGpxSavedList(); statusEl.textContent = 'âœ“ "' + name + '" ë¶ˆëŸ¬ì˜¤ê¸° ì™„ë£Œ'; toggleSidebar(false); } catch (err) { statusEl.textContent = "íŒŒì¼ì„ ì½ì§€ ëª»í–ˆìŠµë‹ˆë‹¤."; console.error(err); } }; reader.readAsText(file); event.target.value = ""; }
+function drawGpxRoute(gpxContent, id) { var parser = new DOMParser(); var xmlDoc = parser.parseFromString(gpxContent, "application/xml"); var trkpts = xmlDoc.querySelectorAll("trkpt"); var latlngs = []; trkpts.forEach(function(pt) { var lat = parseFloat(pt.getAttribute("lat")); var lng = parseFloat(pt.getAttribute("lon")); if (isFinite(lat) && isFinite(lng)) latlngs.push([lat, lng]); }); if (latlngs.length === 0) return; var polyline = L.polyline(latlngs, { color: "#4db8ff", weight: 4, opacity: 0.85, dashArray: "8, 6" }).addTo(map); var startM = L.circleMarker(latlngs[0], { radius: 7, color: "#4db8ff", fillColor: "#fff", fillOpacity: 1, weight: 2.5 }).addTo(map).bindTooltip("Ãâ¹ß"); var endM = L.circleMarker(latlngs[latlngs.length - 1], { radius: 7, color: "#ff6b6b", fillColor: "#fff", fillOpacity: 1, weight: 2.5 }).addTo(map).bindTooltip("µµÂø"); activeGpxLayers = [polyline, startM, endM]; activeGpxId = id; map.fitBounds(polyline.getBounds(), { padding: [50, 50] }); }
+function importGpxFile(event) { var file = event.target.files[0]; if (!file) return; var statusEl = document.getElementById("gpx-import-status"); statusEl.textContent = "ÀĞ´Â Áß..."; var reader = new FileReader(); reader.onload = function(e) { try { var name = file.name.replace(".gpx", ""); var gpxContent = e.target.result; var trkpts = new DOMParser().parseFromString(gpxContent, "application/xml").querySelectorAll("trkpt"); if (trkpts.length === 0) { statusEl.textContent = "°æ·Î ¾øÀ½"; return; } var saves = loadGpxSaves(); var id = String(Date.now()); saves.push({ id: id, name: name, createdAt: Date.now(), pointCount: trkpts.length, gpxContent: gpxContent }); saveGpxSaves(saves); clearActiveGpxRoute(); drawGpxRoute(gpxContent, id); updateGpxSavedList(); statusEl.textContent = '? "' + name + '" ºÒ·¯¿À±â ¿Ï·á'; toggleSidebar(false); } catch (err) { statusEl.textContent = "ÆÄÀÏÀ» ÀĞÁö ¸øÇß½À´Ï´Ù."; console.error(err); } }; reader.readAsText(file); event.target.value = ""; }
 function toggleSidebar(forceOpen) { var sidebar = document.getElementById("sidebar"); var overlay = document.getElementById("sidebar-overlay"); if (!sidebar || !overlay) return; var willOpen = typeof forceOpen === "boolean" ? forceOpen : !sidebar.classList.contains("open"); sidebar.classList.toggle("open", willOpen); overlay.classList.toggle("show", willOpen); }
 function centerMap() { if (currentPos) map.panTo(currentPos); }
 function scheduleSave() { if (saveTimer !== null) clearTimeout(saveTimer); saveTimer = setTimeout(function() { saveTimer = null; compactPathData(); persistState(); }, SAVE_DELAY_MS); }
@@ -506,14 +699,15 @@ function persistState() {
                     timeString: p.timeString,
                     sourceUri: typeof p.sourceUri === "string" ? p.sourceUri : "",
                     sourceWebPath: typeof p.sourceWebPath === "string" ? p.sourceWebPath : "",
-                    sourceType: typeof p.sourceType === "string" ? p.sourceType : ""
+                    sourceType: typeof p.sourceType === "string" ? p.sourceType : "",
+                    locationSource: typeof p.locationSource === "string" ? p.locationSource : "fallback"
                 };
             }),
             totalDistance: totalDistance
         }));
     } catch (e) {
-        console.error("ì €ì¥ ì‹¤íŒ¨", e);
-        if (e && e.name === "QuotaExceededError") alert("ì €ì¥ ê³µê°„ì´ ë¶€ì¡±í•©ë‹ˆë‹¤.");
+        console.error("ÀúÀå ½ÇÆĞ", e);
+        if (e && e.name === "QuotaExceededError") alert("ÀúÀå °ø°£ÀÌ ºÎÁ·ÇÕ´Ï´Ù.");
     }
 }
 
@@ -540,19 +734,20 @@ function loadState() {
                     timeString: p.timeString,
                     sourceUri: typeof p.sourceUri === "string" ? p.sourceUri : "",
                     sourceWebPath: typeof p.sourceWebPath === "string" ? p.sourceWebPath : "",
-                    sourceType: typeof p.sourceType === "string" ? p.sourceType : ""
+                    sourceType: typeof p.sourceType === "string" ? p.sourceType : "",
+                    locationSource: typeof p.locationSource === "string" ? p.locationSource : "fallback"
                 };
             });
         }
-        var savedFog = localStorage.getItem(FOG_ENABLED_KEY);
-        if (savedFog !== null) isFogEnabled = savedFog === "true";
+        isFogEnabled = true;
+        localStorage.setItem(FOG_ENABLED_KEY, "true");
         compactPathData();
     } catch (e) {
-        console.error("ë³µì› ì‹¤íŒ¨", e);
+        console.error("º¹¿ø ½ÇÆĞ", e);
     }
 }
 
-// â”€â”€ ì‚¬ì§„ ì²˜ë¦¬ â”€â”€
+// ¦¡¦¡ »çÁø Ã³¸® ¦¡¦¡
 function processPhoto(img, now, lat, lng, options) {
     options = options || {};
     var thumb = resizeImage(img, { maxSize: PHOTO_THUMB_SIZE, quality: PHOTO_THUMB_JPEG_QUALITY, minQuality: PHOTO_THUMB_MIN_QUALITY, targetBytes: PHOTO_THUMB_TARGET_BYTES });
@@ -567,10 +762,11 @@ function processPhoto(img, now, lat, lng, options) {
         timeString: now.toLocaleTimeString("ko-KR", { hour:"2-digit", minute:"2-digit" }),
         sourceUri: typeof options.sourceUri === "string" ? options.sourceUri : "",
         sourceWebPath: typeof options.sourceWebPath === "string" ? options.sourceWebPath : "",
-        sourceType: typeof options.sourceType === "string" ? options.sourceType : ""
+        sourceType: typeof options.sourceType === "string" ? options.sourceType : "",
+        locationSource: typeof options.locationSource === "string" ? options.locationSource : "fallback"
     };
     photos.push(data);
-    idbSavePhoto(id, popup, thumb).catch(function(e) { console.warn("IDB ì €ì¥ ì‹¤íŒ¨", e); });
+    idbSavePhoto(id, popup, thumb).catch(function(e) { console.warn("IDB ÀúÀå ½ÇÆĞ", e); });
     createPhotoMarker(data, options.openPopup !== false);
     if (!options.deferUi) {
         updateStats();
@@ -578,11 +774,62 @@ function processPhoto(img, now, lat, lng, options) {
         updatePhotoList();
     }
 }
-// EXIF GPS íŒŒì‹± (ë¼ì´ë¸ŒëŸ¬ë¦¬ ì—†ì´ ì§ì ‘ êµ¬í˜„ - ë” ì•ˆì •ì )
+function parseExifCoord(value, ref) {
+    if (value === null || value === undefined) return null;
+    var result = null;
+    if (typeof value === "number") result = value;
+    else if (Array.isArray(value) && value.length >= 3) {
+        var d = parseExifRational(value[0]);
+        var m = parseExifRational(value[1]);
+        var s = parseExifRational(value[2]);
+        result = d + m / 60 + s / 3600;
+    } else if (typeof value === "string") {
+        var n = parseFloat(value);
+        if (isFinite(n)) result = n;
+    }
+    if (!isFinite(result)) return null;
+    ref = String(ref || "").toUpperCase();
+    return ref === "S" || ref === "W" ? -Math.abs(result) : result;
+}
+function parseExifRational(value) {
+    if (typeof value === "number") return value;
+    if (Array.isArray(value) && value.length >= 2) return Number(value[0]) / Number(value[1] || 1);
+    if (value && typeof value === "object") {
+        if (isFinite(value.numerator) && isFinite(value.denominator)) return Number(value.numerator) / Number(value.denominator || 1);
+        if (isFinite(value.num) && isFinite(value.den)) return Number(value.num) / Number(value.den || 1);
+    }
+    return parseFloat(value) || 0;
+}
+function gpsFromExifObject(exif) {
+    if (!exif || typeof exif !== "object") return null;
+    var lat = parseExifCoord(exif.GPSLatitude || exif.gpsLatitude || exif.latitude, exif.GPSLatitudeRef || exif.gpsLatitudeRef || exif.latitudeRef);
+    var lng = parseExifCoord(exif.GPSLongitude || exif.gpsLongitude || exif.longitude, exif.GPSLongitudeRef || exif.gpsLongitudeRef || exif.longitudeRef);
+    if (!isFinite(lat) || !isFinite(lng)) return null;
+    return { lat: lat, lng: lng };
+}
+async function readUrlAsArrayBuffer(url) {
+    if (!url) return null;
+    var response = await fetch(url);
+    if (!response || !response.ok) return null;
+    return response.arrayBuffer();
+}
+async function getPhotoExifGps(photo) {
+    var fromObject = gpsFromExifObject(photo && photo.exif);
+    if (fromObject) return fromObject;
+    var url = photo && (photo.webPath || photo.path || photo.uri);
+    try {
+        var buffer = await readUrlAsArrayBuffer(url);
+        return buffer ? parseExifGps(buffer) : null;
+    } catch (e) {
+        console.warn("»çÁø EXIF À§Ä¡ ÀĞ±â ½ÇÆĞ", e);
+        return null;
+    }
+}
+// EXIF GPS ÆÄ½Ì (¶óÀÌºê·¯¸® ¾øÀÌ Á÷Á¢ ±¸Çö - ´õ ¾ÈÁ¤Àû)
 function parseExifGps(buffer) {
     try {
         var view = new DataView(buffer);
-        if (view.getUint16(0) !== 0xFFD8) return null; // JPEG ì•„ë‹˜
+        if (view.getUint16(0) !== 0xFFD8) return null; // JPEG ¾Æ´Ô
         var offset = 2;
         while (offset < view.byteLength - 2) {
             var marker = view.getUint16(offset);
@@ -627,10 +874,10 @@ function parseExifGps(buffer) {
                     lng: lngRef === "W" ? -lng : lng
                 };
             }
-            if (marker === 0xFFDA) break; // SOS, EXIF ì—†ìŒ
+            if (marker === 0xFFDA) break; // SOS, EXIF ¾øÀ½
             offset += 2 + view.getUint16(offset + 2);
         }
-    } catch(e) { console.warn("EXIF íŒŒì‹± ì˜¤ë¥˜", e); }
+    } catch(e) { console.warn("EXIF ÆÄ½Ì ¿À·ù", e); }
     return null;
 }
 
@@ -682,7 +929,7 @@ function readFileAsArrayBuffer(file) {
     return new Promise(function(resolve, reject) {
         var reader = new FileReader();
         reader.onload = function(e) { resolve(e.target.result); };
-        reader.onerror = function() { reject(reader.error || new Error("íŒŒì¼ ì½ê¸° ì‹¤íŒ¨")); };
+        reader.onerror = function() { reject(reader.error || new Error("ÆÄÀÏ ÀĞ±â ½ÇÆĞ")); };
         reader.readAsArrayBuffer(file);
     });
 }
@@ -692,7 +939,7 @@ function loadImageFromFile(file) {
         var url = URL.createObjectURL(file);
         var img = new Image();
         img.onload = function() { URL.revokeObjectURL(url); resolve(img); };
-        img.onerror = function(err) { URL.revokeObjectURL(url); reject(err || new Error("ì´ë¯¸ì§€ ë¡œë“œ ì‹¤íŒ¨")); };
+        img.onerror = function(err) { URL.revokeObjectURL(url); reject(err || new Error("ÀÌ¹ÌÁö ·Îµå ½ÇÆĞ")); };
         img.src = url;
     });
 }
@@ -701,7 +948,7 @@ function loadImageFromUrl(url) {
     return new Promise(function(resolve, reject) {
         var img = new Image();
         img.onload = function() { resolve(img); };
-        img.onerror = function(err) { reject(err || new Error("ì´ë¯¸ì§€ ë¡œë“œ ì‹¤íŒ¨")); };
+        img.onerror = function(err) { reject(err || new Error("ÀÌ¹ÌÁö ·Îµå ½ÇÆĞ")); };
         img.src = url;
     });
 }
@@ -715,9 +962,9 @@ function ensureHeic2Any() {
         script.async = true;
         script.onload = function() {
             if (typeof window.heic2any === "function") resolve(window.heic2any);
-            else reject(new Error("heic2any ë¡œë“œ ì‹¤íŒ¨"));
+            else reject(new Error("heic2any ·Îµå ½ÇÆĞ"));
         };
-        script.onerror = function() { reject(new Error("heic2any ìŠ¤í¬ë¦½íŠ¸ ë¡œë“œ ì‹¤íŒ¨")); };
+        script.onerror = function() { reject(new Error("heic2any ½ºÅ©¸³Æ® ·Îµå ½ÇÆĞ")); };
         document.head.appendChild(script);
     }).catch(function(err) {
         heicLoaderPromise = null;
@@ -744,21 +991,21 @@ async function handlePhotos(event) {
     var failedCount = 0;
     for (var i = 0; i < files.length; i++) {
         var file = files[i];
-        if (recStatusBox) recStatusBox.textContent = "ì‚¬ì§„ ì²˜ë¦¬ ì¤‘ " + (i + 1) + "/" + files.length;
+        if (recStatusBox) recStatusBox.textContent = "»çÁø Ã³¸® Áß " + (i + 1) + "/" + files.length;
         try {
             var gps = null;
             if (isJpegFile(file)) {
-                try { gps = parseExifGps(await readFileAsArrayBuffer(file)); } catch (e) { console.warn("EXIF ì½ê¸° ì‹¤íŒ¨:", file.name, e); }
+                try { gps = parseExifGps(await readFileAsArrayBuffer(file)); } catch (e) { console.warn("EXIF ÀĞ±â ½ÇÆĞ:", file.name, e); }
             }
             var lat = gps ? gps.lat : (currentPos ? currentPos.lat : map.getCenter().lat);
             var lng = gps ? gps.lng : (currentPos ? currentPos.lng : map.getCenter().lng);
             var normalizedFile = await convertHeicToJpegFile(file);
             var img = await loadImageFromFile(normalizedFile);
-            processPhoto(img, new Date(), lat, lng, { deferUi: true, openPopup: files.length === 1, sourceType: "file-input" });
+            processPhoto(img, new Date(), lat, lng, { deferUi: true, openPopup: files.length === 1, sourceType: "file-input", locationSource: gps ? "exif" : "fallback", mission: activeImageMission ? { name: activeImageMission.name } : null });
             loadedCount += 1;
         } catch (e) {
             failedCount += 1;
-            console.warn("ì‚¬ì§„ ì²˜ë¦¬ ì‹¤íŒ¨:", file.name, e);
+            console.warn("»çÁø Ã³¸® ½ÇÆĞ:", file.name, e);
         }
     }
     if (loadedCount > 0) {
@@ -768,7 +1015,7 @@ async function handlePhotos(event) {
     }
     event.target.value = "";
     syncRecordingUI();
-    if (failedCount > 0) alert("ì¼ë¶€ ì‚¬ì§„(" + failedCount + "ê°œ)ì€ ì²˜ë¦¬í•˜ì§€ ëª»í–ˆìŠµë‹ˆë‹¤.");
+    if (failedCount > 0) alert("ÀÏºÎ »çÁø(" + failedCount + "°³)Àº Ã³¸®ÇÏÁö ¸øÇß½À´Ï´Ù.");
 }
 function createPhotoMarker(data, openPopup) {
     var size = getPhotoMarkerSize();
@@ -780,28 +1027,41 @@ function createPhotoMarker(data, openPopup) {
     var img = document.createElement("img");
     img.src = data.photo || data.thumb;
     img.style.cssText = "width:72vw;max-width:280px;border-radius:8px;margin-bottom:8px;display:block;cursor:pointer;";
-    img.title = "íƒ­í•´ì„œ ì›ë³¸ ì‚¬ì§„ ë³´ê¸°";
-    img.addEventListener("click", function(e) { e.stopPropagation(); openPhotoInGallery(data); });
+    img.title = "ÇÑ ¹ø ÅÇÇÏ¸é ±â¾ï ÀúÀå, µÎ ¹ø ÅÇÇÏ¸é °¶·¯¸® ¿­±â";
+    img.addEventListener("click", function(e) {
+        e.stopPropagation();
+        if (photoTapTimer) {
+            clearTimeout(photoTapTimer);
+            photoTapTimer = null;
+            openPhotoInGallery(data);
+            return;
+        }
+        photoTapTimer = setTimeout(function() {
+            photoTapTimer = null;
+            addPhotoMemory(data);
+        }, 280);
+    });
     var info = document.createElement("div");
     info.style.cssText = "font-size:12px;color:rgba(255,255,255,0.6);text-align:center;margin:6px 0 8px;";
     info.textContent = data.dateString + " " + data.timeString;
     var delBtn = document.createElement("button");
     delBtn.className = "popup-delete-btn";
-    delBtn.textContent = "ì‚¬ì§„ ì‚­ì œ";
+    delBtn.textContent = "»çÁø »èÁ¦";
     delBtn.addEventListener("click", function() { deletePhoto(data.id); marker.closePopup(); });
     popupEl.appendChild(img);
     popupEl.appendChild(info);
     var hasSource = !!(data.sourceUri || data.sourceWebPath);
     var note = document.createElement("div");
     note.style.cssText = "font-size:11px;color:rgba(255,255,255,0.52);text-align:center;margin:0 0 8px;";
-    note.textContent = hasSource ? "ì´ë¯¸ì§€ë¥¼ íƒ­í•˜ë©´ ì›ë³¸ì„ ì—½ë‹ˆë‹¤" : "ì›ë³¸ ê²½ë¡œê°€ ì—†ëŠ” ì‚¬ì§„ì…ë‹ˆë‹¤";
+    var locationLabel = data.locationSource === "exif" ? "EXIF ÃÔ¿µ À§Ä¡" : "ÇöÀç À§Ä¡ ±âÁØ";
+    note.textContent = locationLabel + " ¡¤ ÇÑ ¹ø ÅÇÇÏ¸é ±â¾ï ÀúÀå, µÎ ¹ø ÅÇÇÏ¸é °¶·¯¸®¿¡¼­ ¿±´Ï´Ù";
     popupEl.appendChild(note);
     popupEl.appendChild(delBtn);
     marker.bindPopup(popupEl);
     photoClusterGroup.addLayer(marker);
     if (openPopup) marker.openPopup();
 }
-function deletePhoto(id) { photos = photos.filter(function(p) { return p.id !== id; }); var marker = findPhotoMarker(id); if (marker) photoClusterGroup.removeLayer(marker); idbDeletePhoto(id).catch(function(e) { console.warn("IDB ì‚­ì œ ì‹¤íŒ¨", e); }); updateStats(); scheduleSave(); }
+function deletePhoto(id) { photos = photos.filter(function(p) { return p.id !== id; }); var marker = findPhotoMarker(id); if (marker) photoClusterGroup.removeLayer(marker); idbDeletePhoto(id).catch(function(e) { console.warn("IDB »èÁ¦ ½ÇÆĞ", e); }); updateStats(); scheduleSave(); }
 function escapeHtml(value) { return String(value).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
 function renderStoredMarkers() { memories.forEach(function(m) { createMemoryMarker(m, false); }); }
 function renderStoredPhotoMarkers() {
@@ -815,7 +1075,7 @@ function renderStoredPhotoMarkers() {
             p.photo = img.photo || p.thumb;
             if (p.thumb) createPhotoMarker(p, false);
         });
-    }).catch(function(e) { console.warn("IDB ë¶ˆëŸ¬ì˜¤ê¸° ì‹¤íŒ¨", e); });
+    }).catch(function(e) { console.warn("IDB ºÒ·¯¿À±â ½ÇÆĞ", e); });
 }
 function initGpxDial() { dialHours = 12; updateDialUI(); }
 function initHudTapTargets() { var distItem = document.querySelector(".hud-prog-item:nth-child(1)"); var memItem = document.querySelector(".hud-prog-item:nth-child(2)"); var photoItem = document.querySelector(".hud-prog-item:nth-child(3)"); if (distItem) { distItem.style.cursor = "pointer"; distItem.addEventListener("click", function() { toggleSidebar(true); switchTab("gpx"); }); } if (memItem) { memItem.style.cursor = "pointer"; memItem.addEventListener("click", function() { toggleSidebar(true); switchTab("memory"); }); } if (photoItem) { photoItem.style.cursor = "pointer"; photoItem.addEventListener("click", function() { toggleSidebar(true); switchTab("photo"); }); } }
@@ -835,11 +1095,11 @@ function init() {
     setTimeout(function() { render(); scheduleRender(); }, 100);
     initGpxDial();
     initHudTapTargets();
-    setTimeout(function() { if (!isRecording) toggleRecording(); }, 5000);
+    setTimeout(startAutoRecordingOnLaunch, 800);
 }
 map.whenReady(function() { setTimeout(init, 0); });
 
-// â”€â”€ TourAPI ê´€ê´‘ì§€ ì¶”ì²œ â”€â”€
+// ¦¡¦¡ TourAPI °ü±¤Áö ÃßÃµ ¦¡¦¡
 var TOUR_API_KEY = "c6995449e23f94083d88f198fe2617a8f957a2063bc6ac0d19816c9f27a0ed6c";
 var TOUR_API_BASES = { ko: "KorService2", en: "EngService2", ja: "JpnService2", zh: "ChsService2" };
 function getTourApiBase(lang) { return "https://apis.data.go.kr/B551011/" + (TOUR_API_BASES[lang || currentLang] || TOUR_API_BASES.ko); }
@@ -848,27 +1108,27 @@ function formatTourCount(count) { var suffix = ((UI_TEXT[currentLang] || UI_TEXT
 var tourItems = []; var festivalItems = []; var tourExpanded = false;
 var tourFetchTimer = null; var tourMarkers = []; var TOUR_VISIBLE_COUNT = 3;
 var TOUR_TYPE_NAMES = {
-    ko: { "12": "ê´€ê´‘ì§€", "14": "ë¬¸í™”ì‹œì„¤", "15": "ì¶•ì œ/í–‰ì‚¬", "25": "ì—¬í–‰ì½”ìŠ¤", "28": "ë ˆí¬ì¸ ", "32": "ìˆ™ë°•", "38": "ì‡¼í•‘", "39": "ìŒì‹ì " },
+    ko: { "12": "°ü±¤Áö", "14": "¹®È­½Ã¼³", "15": "ÃàÁ¦/Çà»ç", "25": "¿©ÇàÄÚ½º", "28": "·¹Æ÷Ã÷", "32": "¼÷¹Ú", "38": "¼îÇÎ", "39": "À½½ÄÁ¡" },
     en: { "12": "Attraction", "14": "Culture", "15": "Festival", "25": "Course", "28": "Leports", "32": "Stay", "38": "Shopping", "39": "Food" },
-    ja: { "12": "è¦³å…‰åœ°", "14": "æ–‡åŒ–æ–½è¨­", "15": "ç¥­ã‚Š", "25": "æ—…è¡Œã‚³ãƒ¼ã‚¹", "28": "ãƒ¬ãƒãƒ¼ãƒ„", "32": "å®¿æ³Š", "38": "ã‚·ãƒ§ãƒƒãƒ”ãƒ³ã‚°", "39": "ã‚°ãƒ«ãƒ¡" },
-    zh: { "12": "æ™¯ç‚¹", "14": "æ–‡åŒ–è®¾æ–½", "15": "åº†å…¸", "25": "æ—…è¡Œè·¯çº¿", "28": "ä¼‘é—²è¿åŠ¨", "32": "ä½å®¿", "38": "è´­ç‰©", "39": "ç¾é£Ÿ" }
+    ja: { "12": "?ÎÃò¢", "14": "Ùşûùã¿àâ", "15": "ğ®ªê", "25": "Õéú¼«³?«¹", "28": "«ì«İ?«Ä", "32": "âÖÚÕ", "38": "«·«ç«Ã«Ô«ó«°", "39": "«°«ë«á" },
+    zh: { "12": "ÌØïÃ", "14": "Ùşûù?ã¿", "15": "?îğ", "25": "Õéú¼ÖØ?", "28": "ıÌ???", "32": "ñ¬âÖ", "38": "?Úª", "39": "Ú¸ãİ" }
 };
 var TOUR_TYPE_LABELS = {
-    ko: { "25": "ì—¬í–‰", "28": "ë ˆí¬ì¸ ", "38": "ì‡¼í•‘", "15": "ì¶•ì œ", "12": "ê´€ê´‘", "14": "ë¬¸í™”", default: "ê´€ê´‘" },
+    ko: { "25": "¿©Çà", "28": "·¹Æ÷Ã÷", "38": "¼îÇÎ", "15": "ÃàÁ¦", "12": "°ü±¤", "14": "¹®È­", default: "°ü±¤" },
     en: { "25": "Course", "28": "Leports", "38": "Shop", "15": "Fest", "12": "Spot", "14": "Culture", default: "Spot" },
-    ja: { "25": "ã‚³ãƒ¼ã‚¹", "28": "ãƒ¬ãƒãƒ¼ãƒ„", "38": "è²·ç‰©", "15": "ç¥­ã‚Š", "12": "è¦³å…‰", "14": "æ–‡åŒ–", default: "è¦³å…‰" },
-    zh: { "25": "è·¯çº¿", "28": "è¿åŠ¨", "38": "è´­ç‰©", "15": "åº†å…¸", "12": "æ™¯ç‚¹", "14": "æ–‡åŒ–", default: "æ™¯ç‚¹" }
+    ja: { "25": "«³?«¹", "28": "«ì«İ?«Ä", "38": "ØâÚª", "15": "ğ®ªê", "12": "?ÎÃ", "14": "Ùşûù", default: "?ÎÃ" },
+    zh: { "25": "ÖØ?", "28": "??", "38": "?Úª", "15": "?îğ", "12": "ÌØïÃ", "14": "Ùşûù", default: "ÌØïÃ" }
 };
 function getTourTypeName(contentTypeId) { var names = TOUR_TYPE_NAMES[currentLang] || TOUR_TYPE_NAMES.ko; return names[String(contentTypeId)] || names["12"]; }
 function getTourTypeLabel(contentTypeId) { var labels = TOUR_TYPE_LABELS[currentLang] || TOUR_TYPE_LABELS.ko; return labels[String(contentTypeId)] || labels.default; }
 var TOUR_TYPE_META = {
-    "25": { label: "ì—¬í–‰", color: "#ef4444", fill: "rgba(239,68,68,0.18)", border: "rgba(239,68,68,0.55)" },
-    "28": { label: "ë ˆí¬ì¸ ", color: "#38bdf8", fill: "rgba(56,189,248,0.18)", border: "rgba(56,189,248,0.55)" },
-    "38": { label: "ì‡¼í•‘", color: "#facc15", fill: "rgba(250,204,21,0.18)", border: "rgba(250,204,21,0.58)" },
-    "15": { label: "ì¶•ì œ", color: "#c084fc", fill: "rgba(192,132,252,0.18)", border: "rgba(192,132,252,0.58)" },
-    "12": { label: "ê´€ê´‘", color: "#78dc8c", fill: "rgba(120,220,140,0.16)", border: "rgba(120,220,140,0.48)" },
-    "14": { label: "ë¬¸í™”", color: "#2dd4bf", fill: "rgba(45,212,191,0.16)", border: "rgba(45,212,191,0.48)" },
-    default: { label: "ê´€ê´‘", color: "#78dc8c", fill: "rgba(120,220,140,0.16)", border: "rgba(120,220,140,0.48)" }
+    "25": { label: "¿©Çà", color: "#ef4444", fill: "rgba(239,68,68,0.18)", border: "rgba(239,68,68,0.55)" },
+    "28": { label: "·¹Æ÷Ã÷", color: "#38bdf8", fill: "rgba(56,189,248,0.18)", border: "rgba(56,189,248,0.55)" },
+    "38": { label: "¼îÇÎ", color: "#facc15", fill: "rgba(250,204,21,0.18)", border: "rgba(250,204,21,0.58)" },
+    "15": { label: "ÃàÁ¦", color: "#c084fc", fill: "rgba(192,132,252,0.18)", border: "rgba(192,132,252,0.58)" },
+    "12": { label: "°ü±¤", color: "#fb923c", fill: "rgba(251,146,60,0.18)", border: "rgba(251,146,60,0.58)" },
+    "14": { label: "¹®È­", color: "#a78bfa", fill: "rgba(167,139,250,0.18)", border: "rgba(167,139,250,0.58)" },
+    default: { label: "°ü±¤", color: "#fb923c", fill: "rgba(251,146,60,0.18)", border: "rgba(251,146,60,0.58)" }
 };
 function getTourTypeMeta(contentTypeId) { var meta = TOUR_TYPE_META[String(contentTypeId)] || TOUR_TYPE_META.default; return Object.assign({}, meta, { label: getTourTypeLabel(contentTypeId) }); }
 function applyTourTypeVars(el, meta) { el.style.setProperty("--tour-color", meta.color); el.style.setProperty("--tour-fill", meta.fill); el.style.setProperty("--tour-border", meta.border); }
@@ -889,10 +1149,10 @@ function fetchFestivals() {
         var body = data && data.response && data.response.body;
         var items = [];
         if (body && body.items && body.items.item) { items = Array.isArray(body.items.item) ? body.items.item : [body.items.item]; }
-        festivalItems = items;
+        festivalItems = items; markTourItemsSource(festivalItems, data._giloaSourceLang || requestLang); translateTourItemsForLang(currentLang, festivalItems);
         updateFestivalBadge();
         if (tourExpanded) renderFestivalStrip();
-    }).catch(function(err) { console.warn("ì¶•ì œ API ì—ëŸ¬", err); });
+    }).catch(function(err) { console.warn("ÃàÁ¦ API ¿¡·¯", err); });
 }
 
 function updateFestivalBadge() {
@@ -912,7 +1172,7 @@ function renderFestivalStrip() {
     festivalItems.forEach(function(item) {
         var card = document.createElement("div"); card.className = "festival-card"; applyTourTypeVars(card, getTourTypeMeta("15"));
         var typeEl = document.createElement("div"); typeEl.className = "tour-card-type"; typeEl.textContent = getTourTypeName("15");
-        var nameEl = document.createElement("div"); nameEl.className = "festival-card-name"; nameEl.textContent = item.title || "ì¶•ì œ";
+        var nameEl = document.createElement("div"); nameEl.className = "festival-card-name"; nameEl.textContent = getTourDisplayTitle(item) || "ÃàÁ¦";
         var dateEl = document.createElement("div"); dateEl.className = "festival-card-date";
         var start = item.eventstartdate || ""; var end = item.eventenddate || "";
         if (start.length === 8) start = start.slice(0,4) + "." + start.slice(4,6) + "." + start.slice(6,8);
@@ -924,9 +1184,9 @@ function renderFestivalStrip() {
         card.appendChild(typeEl); card.appendChild(nameEl); card.appendChild(dateEl); card.appendChild(distEl);
         card.addEventListener("click", function() {
             map.flyTo([parseFloat(item.mapy), parseFloat(item.mapx)], 15);
-            var addr = item.addr1 || "";
-            var tel = item.tel ? "<br><a href='tel:" + item.tel + "' style='color:#4db8ff;font-size:12px;'>ğŸ“ " + escapeHtml(item.tel) + "</a>" : "";
-            L.popup({ className: "tour-popup" }).setLatLng([parseFloat(item.mapy), parseFloat(item.mapx)]).setContent("<b>" + escapeHtml(item.title || "") + "</b><br><span class='tour-popup-tag' style='color:" + getTourTypeMeta("15").color + ";border-color:" + getTourTypeMeta("15").border + ";background:" + getTourTypeMeta("15").fill + ";'>" + escapeHtml(getTourTypeName("15")) + "</span><br><small>" + escapeHtml(addr) + "</small>" + tel).openOn(map);
+            var addr = getTourDisplayAddr(item);
+            var tel = item.tel ? "<br><a href='tel:" + item.tel + "' style='color:#4db8ff;font-size:12px;'>?? " + escapeHtml(item.tel) + "</a>" : "";
+            L.popup({ className: "tour-popup" }).setLatLng([parseFloat(item.mapy), parseFloat(item.mapx)]).setContent("<b>" + escapeHtml(getTourDisplayTitle(item) || "") + "</b><br><span class='tour-popup-tag' style='color:" + getTourTypeMeta("15").color + ";border-color:" + getTourTypeMeta("15").border + ";background:" + getTourTypeMeta("15").fill + ";'>" + escapeHtml(getTourTypeName("15")) + "</span><br><small>" + escapeHtml(addr) + "</small>" + tel).openOn(map);
             addVisitStamp(item.title, getTourTypeName("15"), parseFloat(item.mapy), parseFloat(item.mapx));
         });
         strip.appendChild(card);
@@ -946,10 +1206,10 @@ function fetchTourSpots() {
     fetchTourJsonWithFallback(buildUrl, requestLang).then(function(data) {
         loadingEl.style.display = "none"; var body = data && data.response && data.response.body; var items = [];
         if (body && body.items && body.items.item) { items = Array.isArray(body.items.item) ? body.items.item : [body.items.item]; items = items.filter(function(item) { return item.contenttypeid !== "39" && item.contenttypeid !== "32"; }); }
-        clearTourMarkers(); tourItems = items;
+        clearTourMarkers(); tourItems = items; markTourItemsSource(tourItems, data._giloaSourceLang || requestLang);
         if (items.length === 0) { emptyEl.style.display = tourExpanded ? "" : "none"; countEl.textContent = ""; return; }
-        countEl.textContent = formatTourCount(items.length); renderTourCards();
-    }).catch(function(err) { loadingEl.style.display = "none"; emptyEl.style.display = tourExpanded ? "" : "none"; emptyEl.textContent = (UI_TEXT[currentLang] || UI_TEXT.ko).empty_tour; countEl.textContent = ""; console.warn("TourAPI ì—ëŸ¬", err); });
+        countEl.textContent = formatTourCount(items.length); renderTourCards(); translateTourItemsForLang(currentLang, tourItems);
+    }).catch(function(err) { loadingEl.style.display = "none"; emptyEl.style.display = tourExpanded ? "" : "none"; emptyEl.textContent = (UI_TEXT[currentLang] || UI_TEXT.ko).empty_tour; countEl.textContent = ""; console.warn("TourAPI ¿¡·¯", err); });
 }
 
 function tourResponseHasItems(data) {
@@ -960,10 +1220,10 @@ function tourResponseHasItems(data) {
 function fetchTourJsonWithFallback(buildUrl, lang) {
     return fetch(buildUrl(lang)).then(function(res) { return res.json(); }).then(function(data) {
         if (lang === "ko" || tourResponseHasItems(data)) return data;
-        return fetch(buildUrl("ko")).then(function(res) { return res.json(); }).catch(function() { return data; });
+        return fetch(buildUrl("ko")).then(function(res) { return res.json(); }).then(function(fallbackData) { fallbackData._giloaSourceLang = "ko"; return fallbackData; }).catch(function() { return data; });
     }).catch(function(err) {
         if (lang === "ko") throw err;
-        return fetch(buildUrl("ko")).then(function(res) { return res.json(); });
+        return fetch(buildUrl("ko")).then(function(res) { return res.json(); }).then(function(fallbackData) { fallbackData._giloaSourceLang = "ko"; return fallbackData; });
     });
 }
 function hideFestivalStrip() {
@@ -986,7 +1246,7 @@ function renderTourCards() {
         (function(item) {
             var meta = getTourTypeMeta(item.contenttypeid);
             var card = document.createElement("div"); card.className = "tour-card"; applyTourTypeVars(card, meta);
-            var nameEl = document.createElement("div"); nameEl.className = "tour-card-name"; nameEl.textContent = item.title || "ì´ë¦„ ì—†ìŒ";
+            var nameEl = document.createElement("div"); nameEl.className = "tour-card-name"; nameEl.textContent = getTourDisplayTitle(item) || "ÀÌ¸§ ¾øÀ½";
             var typeEl = document.createElement("div"); typeEl.className = "tour-card-type"; typeEl.textContent = getTourTypeName(item.contenttypeid) || meta.label;
             var distEl = document.createElement("div"); distEl.className = "tour-card-dist";
             var distM = center.distanceTo([parseFloat(item.mapy), parseFloat(item.mapx)]);
@@ -1032,40 +1292,164 @@ function showTourPopup(item) {
     var meta = getTourTypeMeta(item.contenttypeid);
     var title = getTourDisplayTitle(item);
     var addr = getTourDisplayAddr(item);
-    var tel = item.tel ? "<br><a href='tel:" + item.tel + "' style='color:#4db8ff;font-size:12px;'>ğŸ“ " + escapeHtml(item.tel) + "</a>" : "";
+    var tel = item.tel ? "<br><a href='tel:" + item.tel + "' style='color:#4db8ff;font-size:12px;'>?? " + escapeHtml(item.tel) + "</a>" : "";
     var tag = "<span class='tour-popup-tag' style='color:" + meta.color + ";border-color:" + meta.border + ";background:" + meta.fill + ";'>" + escapeHtml(typeName) + "</span>";
     addVisitStamp(item.title, typeName, lat, lng);
     L.popup({ className: "tour-popup" }).setLatLng([lat, lng]).setContent("<b>" + escapeHtml(title) + "</b><br>" + tag + "<br><small>" + escapeHtml(addr) + "</small>" + tel).openOn(map);
 }
 
 function clearTourMarkers() { tourMarkers.forEach(function(m) { map.removeLayer(m); }); tourMarkers = []; }
-function addTourMarkers() { clearTourMarkers(); tourItems.forEach(function(item) { var lat = parseFloat(item.mapy); var lng = parseFloat(item.mapx); if (!isFinite(lat) || !isFinite(lng)) return; var meta = getTourTypeMeta(item.contenttypeid); var icon = L.divIcon({ className: "tour-map-marker-wrap", html: "<div class='tour-map-marker' style='--tour-color:" + meta.color + ";--tour-fill:" + meta.fill + ";--tour-border:" + meta.border + ";'><span class='tour-map-dot'></span><span class='tour-map-label'>" + escapeHtml(meta.label) + "</span></div>", iconSize: [76, 28], iconAnchor: [10, 14] }); var marker = L.marker([lat, lng], { pane: "tourPane", icon: icon, title: (getTourTypeName(item.contenttypeid) || meta.label) + " - " + (item.title || "") }).addTo(map); marker.on("click", function() { showTourPopup(item); }); tourMarkers.push(marker); }); }
+function addTourMarkers() { clearTourMarkers(); tourItems.forEach(function(item) { var lat = parseFloat(item.mapy); var lng = parseFloat(item.mapx); if (!isFinite(lat) || !isFinite(lng)) return; var meta = getTourTypeMeta(item.contenttypeid); var icon = L.divIcon({ className: "tour-map-marker-wrap", html: "<div class='tour-map-marker' style='--tour-color:" + meta.color + ";--tour-fill:" + meta.fill + ";--tour-border:" + meta.border + ";'><span class='tour-map-dot'></span><span class='tour-map-label'>" + escapeHtml(meta.label) + "</span></div>", iconSize: [76, 28], iconAnchor: [10, 14] }); var marker = L.marker([lat, lng], { pane: "tourPane", icon: icon, title: (getTourTypeName(item.contenttypeid) || meta.label) + " - " + (getTourDisplayTitle(item) || "") }).addTo(map); marker.on("click", function() { showTourPopup(item); }); tourMarkers.push(marker); }); }
 
+
+// ¦¡¦¡ ¼­¿ï °ø°øµµ¼­°ü À§Ä¡Á¤º¸ ¦¡¦¡
+var SEOUL_LIBRARY_API_KEY = "756b506d69646f7439356a526f5a47";
+var SEOUL_LIBRARY_API_URL = "http://openapi.seoul.go.kr:8088/" + SEOUL_LIBRARY_API_KEY + "/json/SeoulPublicLibraryInfo/1/300/";
+var libraryItems = [];
+var libraryMarkers = [];
+var LIBRARY_MARKER_COLOR = "#2563eb";
+
+function getLibraryLabel() {
+    var labels = { ko: "µµ¼­°ü", en: "Library", ja: "?ßöÎ½", zh: "???" };
+    return labels[currentLang] || labels.ko;
+}
+
+function getLibraryDisplayName(item) { return (item && item._nameByLang && item._nameByLang[currentLang]) || (item && item.LBRRY_NAME) || ""; }
+function getLibraryDisplayAddr(item) { return (item && item._addrByLang && item._addrByLang[currentLang]) || (item && item.ADRES) || ""; }
+
+function clearLibraryMarkers() { libraryMarkers.forEach(function(marker) { map.removeLayer(marker); }); libraryMarkers = []; }
+
+function renderLibraryMarkers() {
+    clearLibraryMarkers();
+    libraryItems.forEach(function(item) {
+        var lat = parseFloat(item.XCNTS); var lng = parseFloat(item.YDNTS);
+        if (!isFinite(lat) || !isFinite(lng)) return;
+        var label = getLibraryLabel();
+        var icon = L.divIcon({
+            className: "library-map-marker-wrap",
+            html: "<div class='library-map-marker'><span class='library-map-dot'></span><span class='library-map-label'>" + escapeHtml(label) + "</span></div>",
+            iconSize: [92, 28], iconAnchor: [10, 14]
+        });
+        var marker = L.marker([lat, lng], { pane: "libraryPane", icon: icon, title: label + " - " + getLibraryDisplayName(item) }).addTo(map);
+        marker.on("click", function() { showLibraryPopup(item); });
+        libraryMarkers.push(marker);
+    });
+}
+
+function showLibraryPopup(item) {
+    var lat = parseFloat(item.XCNTS); var lng = parseFloat(item.YDNTS);
+    var name = getLibraryDisplayName(item);
+    var addr = getLibraryDisplayAddr(item);
+    var label = getLibraryLabel();
+    var tel = item.TEL_NO ? "<br><a href='tel:" + item.TEL_NO + "' style='color:#4ade80;font-size:12px;'>?? " + escapeHtml(item.TEL_NO) + "</a>" : "";
+    var time = item.OP_TIME ? "<br><small>" + escapeHtml(item.OP_TIME) + "</small>" : "";
+    var tag = "<span class='tour-popup-tag' style='color:#60a5fa;border-color:rgba(37,99,235,0.75);background:rgba(37,99,235,0.22);'>" + escapeHtml(label) + "</span>";
+    L.popup({ className: "tour-popup" }).setLatLng([lat, lng]).setContent("<b>" + escapeHtml(name) + "</b><br>" + tag + "<br><small>" + escapeHtml(addr) + "</small>" + time + tel).openOn(map);
+}
+
+function translateLibraryItemsForLang(lang) {
+    if (lang === "ko") return Promise.resolve();
+    var targetLang = getVarcoLang(lang);
+    var tasks = [];
+    libraryItems.forEach(function(item) {
+        item._nameByLang = item._nameByLang || {};
+        item._addrByLang = item._addrByLang || {};
+        if (item.LBRRY_NAME && !item._nameByLang[lang] && hasHangul(item.LBRRY_NAME)) {
+            tasks.push(varcoTranslate(item.LBRRY_NAME, "ko", targetLang).then(function(translated) { item._nameByLang[lang] = translated; }));
+        }
+        if (item.ADRES && !item._addrByLang[lang] && hasHangul(item.ADRES)) {
+            tasks.push(varcoTranslate(item.ADRES, "ko", targetLang).then(function(translated) { item._addrByLang[lang] = translated; }));
+        }
+    });
+    if (tasks.length === 0) return Promise.resolve();
+    return Promise.all(tasks).then(renderLibraryMarkers);
+}
+
+function fetchLibraryJson() {
+    return fetch(SEOUL_LIBRARY_API_URL).then(function(res) { return res.json(); }).catch(function(err) {
+        var plugins = window.Capacitor && window.Capacitor.Plugins;
+        var http = plugins && plugins.CapacitorHttp;
+        if (!http || !http.get) throw err;
+        return http.get({ url: SEOUL_LIBRARY_API_URL }).then(function(result) {
+            return typeof result.data === "string" ? JSON.parse(result.data) : result.data;
+        });
+    });
+}
+
+function fetchLibraries() {
+    fetchLibraryJson().then(function(data) {
+        var body = data && data.SeoulPublicLibraryInfo;
+        libraryItems = body && Array.isArray(body.row) ? body.row : [];
+        renderLibraryMarkers();
+        translateLibraryItemsForLang(currentLang);
+    }).catch(function(err) { console.warn("¼­¿ï µµ¼­°ü API ¿¡·¯", err); });
+}
 function scheduleTourFetch() { if (tourFetchTimer) clearTimeout(tourFetchTimer); tourFetchTimer = setTimeout(function() { tourFetchTimer = null; tourExpanded = false; fetchTourSpots(); fetchFestivals(); }, 1200); }
 map.on("moveend", scheduleTourFetch);
 map.on("click", function() { collapseTourPanel(); });
 scheduleTourFetch();
+fetchLibraries();
 
-// â”€â”€ VARCO ë²ˆì—­ â”€â”€
+// ¦¡¦¡ VARCO ¹ø¿ª ¦¡¦¡
 var VARCO_API_KEY = "9yUWJoapaQfdiYdq9Hd1knN4IMbOFO0w";
 var VARCO_TRANSLATE_URL = "https://api.varco.ai/mt/chat-content/v1/translate";
 var currentLang = "ko";
+
+function getVarcoLang(lang) { return ({ ko: "ko", en: "en", ja: "ja", zh: "zh" })[lang] || "en"; }
+function getGoogleLang(lang) { return ({ ko: "ko", en: "en", ja: "ja", zh: "zh-CN" })[lang] || "en"; }
+
+function googleTranslate(text, sourceLang, targetLang) {
+    var url = "https://translate.googleapis.com/translate_a/single?client=gtx&dt=t&sl=" + encodeURIComponent(sourceLang || "ko") + "&tl=" + encodeURIComponent(getGoogleLang(targetLang)) + "&q=" + encodeURIComponent(text);
+    return fetch(url).then(function(res) { return res.json(); }).then(function(data) {
+        if (Array.isArray(data) && Array.isArray(data[0])) return data[0].map(function(part) { return part && part[0] ? part[0] : ""; }).join("") || text;
+        return text;
+    });
+}
 
 function varcoTranslate(text, sourceLang, targetLang) {
     return fetch(VARCO_TRANSLATE_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", "openapi_key": VARCO_API_KEY },
         body: JSON.stringify({ TID: "giloa-" + Date.now(), svc: "varco-translation", provider: "content", source_lang: sourceLang, source_text: text, target_lang: targetLang })
-    }).then(function(res) { return res.json(); }).then(function(data) { return data.target_text || text; }).catch(function() { return text; });
+    }).then(function(res) { return res.text(); }).then(function(raw) {
+        if (/^\s*</.test(raw)) throw new Error("VARCO returned HTML");
+        var data = JSON.parse(raw);
+        return data.target_text || (data.result && data.result.target_text) || (data.data && data.data.target_text) || (data.output && data.output.text) || text;
+    }).catch(function() { return googleTranslate(text, sourceLang, targetLang).catch(function() { return text; }); });
 }
 
 var UI_TEXT = {
-    ko: { sidebar_title: "ë‚˜ì˜ ê¸°ë¡ë“¤", fog_label: "ì–´ë‘  íš¨ê³¼", fog_on: "ì¼œì§", fog_off: "êº¼ì§", tab_memory: "ê¸°ì–µ", tab_photo: "ì‚¬ì§„", tab_gpx: "ë°œê±¸ìŒ", tab_badge: "ë±ƒì§€", tab_visit: "ë°©ë¬¸", tab_item: "ì•„ì´í…œ", rec_idle: "ëŒ€ê¸° ì¤‘", rec_active: "ê¸°ë¡ ì¤‘", empty_memory: "ì•„ì§ ê¸°ë¡ì´ ì—†ìŠµë‹ˆë‹¤.", empty_photo: "ì•„ì§ ì‚¬ì§„ì´ ì—†ìŠµë‹ˆë‹¤.", tour_title: "ğŸ“ ì£¼ë³€ ê´€ê´‘ì§€", festival_label: "ğŸª ì£¼ë³€ ì¶•ì œ", festival_badge: "ğŸª ì¶•ì œ", loading: "ê²€ìƒ‰ ì¤‘...", empty_tour: "ì´ ì§€ë„ì— ê´€ê´‘ì§€ê°€ ì—†ì–´ìš”", close: "ë‹«ê¸°", count_suffix: "ê³³" },
-    en: { sidebar_title: "My Records", fog_label: "Fog Effect", fog_on: "On", fog_off: "Off", tab_memory: "Memory", tab_photo: "Photo", tab_gpx: "Steps", tab_badge: "Badges", tab_visit: "Visits", tab_item: "Items", rec_idle: "Standby", rec_active: "Recording", empty_memory: "No records yet.", empty_photo: "No photos yet.", tour_title: "ğŸ“ Nearby Places", festival_label: "ğŸª Nearby Festivals", festival_badge: "ğŸª Festivals", loading: "Searching...", empty_tour: "No nearby places", close: "Close", count_suffix: "places" },
-    ja: { sidebar_title: "è¨˜éŒ²", fog_label: "éœ§åŠ¹æœ", fog_on: "ã‚ªãƒ³", fog_off: "ã‚ªãƒ•", tab_memory: "è¨˜æ†¶", tab_photo: "å†™çœŸ", tab_gpx: "è¶³è·¡", tab_badge: "ãƒãƒƒã‚¸", tab_visit: "è¨ªå•", tab_item: "ã‚¢ã‚¤ãƒ†ãƒ ", rec_idle: "å¾…æ©Ÿä¸­", rec_active: "è¨˜éŒ²ä¸­", empty_memory: "è¨˜éŒ²ã¯ã¾ã ã‚ã‚Šã¾ã›ã‚“ã€‚", empty_photo: "å†™çœŸã¯ã¾ã ã‚ã‚Šã¾ã›ã‚“ã€‚", tour_title: "ğŸ“ å‘¨è¾ºã‚¹ãƒãƒƒãƒˆ", festival_label: "ğŸª å‘¨è¾ºã®ç¥­ã‚Š", festival_badge: "ğŸª ç¥­ã‚Š", loading: "æ¤œç´¢ä¸­...", empty_tour: "å‘¨è¾ºã‚¹ãƒãƒƒãƒˆãŒã‚ã‚Šã¾ã›ã‚“", close: "é–‰ã˜ã‚‹", count_suffix: "ä»¶" },
-    zh: { sidebar_title: "æˆ‘çš„è®°å½•", fog_label: "é›¾æ•ˆ", fog_on: "å¼€", fog_off: "å…³", tab_memory: "è®°å¿†", tab_photo: "ç…§ç‰‡", tab_gpx: "è¶³è¿¹", tab_badge: "å¾½ç« ", tab_visit: "è®¿é—®", tab_item: "ç‰©å“", rec_idle: "å¾…æœºä¸­", rec_active: "è®°å½•ä¸­", empty_memory: "è¿˜æ²¡æœ‰è®°å½•ã€‚", empty_photo: "è¿˜æ²¡æœ‰ç…§ç‰‡ã€‚", tour_title: "ğŸ“ é™„è¿‘æ™¯ç‚¹", festival_label: "ğŸª é™„è¿‘åº†å…¸", festival_badge: "ğŸª åº†å…¸", loading: "æœç´¢ä¸­...", empty_tour: "é™„è¿‘æ²¡æœ‰æ™¯ç‚¹", close: "å…³é—­", count_suffix: "å¤„" }
+    ko: { sidebar_title: "³ªÀÇ ±â·Ïµé", fog_label: "¾îµÒ È¿°ú", fog_on: "ÄÑÁü", fog_off: "²¨Áü", tab_memory: "±â¾ï", tab_photo: "»çÁø", tab_gpx: "¹ß°ÉÀ½", tab_badge: "¹îÁö", tab_visit: "¹æ¹®", tab_item: "¾ÆÀÌÅÛ", rec_idle: "´ë±â Áß", rec_active: "±â·Ï Áß", empty_memory: "¾ÆÁ÷ ±â·ÏÀÌ ¾ø½À´Ï´Ù.", empty_photo: "¾ÆÁ÷ »çÁøÀÌ ¾ø½À´Ï´Ù.", tour_title: "?? ÁÖº¯ °ü±¤Áö", festival_label: "?? ÁÖº¯ ÃàÁ¦", festival_badge: "?? ÃàÁ¦", loading: "°Ë»ö Áß...", empty_tour: "ÀÌ Áöµµ¿¡ °ü±¤Áö°¡ ¾ø¾î¿ä", close: "´İ±â", count_suffix: "°÷", unit_count: " °³", hud_title_label: "ÇöÀç ÄªÈ£", hud_level_label: "LV", hud_dist_label: "ÀÌµ¿ °Å¸®", hud_memory_label: "±â¾ï °³¼ö", hud_photo_label: "»çÁø °³¼ö", hud_next: "´ÙÀ½±îÁö", hud_condition_met: "Á¶°Ç ÃæÁ·!", hud_no_condition: "Á¶°Ç ¾øÀ½", hud_max: "ÃÖ°í!", hud_max_level: "ÃÖ°í ·¹º§ ´Ş¼º!", help_tab_ask: "? ¹®ÀÇÇÏ±â", help_tab_info: "! ¼³¸íº¸±â", help_ask_copy: "»ç¿ë Áß ºÒÆíÇÑ Á¡ÀÌ³ª °ÇÀÇ»çÇ×Àº<br>Ä«Ä«¿ÀÅå ¿ÀÇÂÃ¤ÆÃÀ¸·Î µé·ÁÁÖ¼¼¿ä", help_notice: "ÇöÀç ÀúÀåµÈ GPX µ¥ÀÌÅÍ´Â ¼­¹ö·Î Àü¼ÛµÇÁö ¾Ê¾Æ¿ä.<br>¸ğµç ±â·ÏÀº <b>¿ÀÁ÷ ÀÌ ±â±â ¾È¿¡¼­¸¸</b> ÀúÀåµÇ°í º¸¿©Á®¿ä.", help_link: "?? Ä«Ä«¿ÀÅå ¿ÀÇÂÃ¤ÆÃ ¹®ÀÇ", help_record_title: "³ìÈ­ ¹öÆ°", help_record_desc: "´©¸£¸é GPS °æ·Î ±â·Ï ½ÃÀÛ. ´Ù½Ã ´©¸£¸é ÁßÁö.", help_photo_title: "»çÁø ¹öÆ°", help_photo_desc: "°¶·¯¸®¿¡¼­ »çÁøÀ» ºÒ·¯¿Í ÀúÀåÇØ¿ä. ÀÇ¹Ì ÀÖ´Â Àå¼Ò¸¦ ¾²·Á¸é Áöµµ¿¡ ÂïÈù »çÁøÀ» µÎ ¹ø ´­·¯ ÀÔ·ÂÇØ ÁÖ¼¼¿ä.", help_memory_title: "º°Ç¥ ¹öÆ°", help_memory_desc: "ÇöÀç À§Ä¡¿¡ ÀÌ¸§À» ºÙ¿© ±â¾ïÀ¸·Î ³²°Ü¿ä.", help_location_title: "ÇöÀç À§Ä¡ ¹öÆ°", help_location_desc: "Á¶ÁØÁ¡ ¾ÆÀÌÄÜÀÌ¿¡¿ä. Áöµµ¸¦ ³» ÇöÀç À§Ä¡·Î ´Ù½Ã ÀÌµ¿½ÃÄÑ¿ä.", help_status_title: "»óÅÂ ¹öÆ°", help_status_desc: "»ç¶÷ ¾ÆÀÌÄÜÀÌ¿¡¿ä. ³» ÇöÀç ÄªÈ£, ·¹º§, ÁøÇà »óÅÂ¸¦ È®ÀÎÇÒ ¼ö ÀÖ¾î¿ä.", help_menu_title: "¸Ş´º ¹öÆ° (»ó´Ü ¿ŞÂÊ)", help_menu_desc: "ÇÜ¹ö°Å ¾ÆÀÌÄÜÀÌ¿¡¿ä. ±â¾ï, »çÁø, ¹ß°ÉÀ½, ¹îÁö, ¹æ¹®, ¾ÆÀÌÅÛ ¸ñ·ÏÀ» ¿­¾îº¼ ¼ö ÀÖ¾î¿ä." },
+    en: { sidebar_title: "My Records", fog_label: "Fog Effect", fog_on: "On", fog_off: "Off", tab_memory: "Memory", tab_photo: "Photo", tab_gpx: "Steps", tab_badge: "Badges", tab_visit: "Visits", tab_item: "Items", rec_idle: "Standby", rec_active: "Recording", empty_memory: "No records yet.", empty_photo: "No photos yet.", tour_title: "?? Nearby Places", festival_label: "?? Nearby Festivals", festival_badge: "?? Festivals", loading: "Searching...", empty_tour: "No nearby places", close: "Close", count_suffix: "places", unit_count: "", hud_title_label: "Current Title", hud_level_label: "LV", hud_dist_label: "Distance", hud_memory_label: "Memories", hud_photo_label: "Photos", hud_next: "Next", hud_condition_met: "Met!", hud_no_condition: "No condition", hud_max: "Max!", hud_max_level: "Max level reached!", help_tab_ask: "? Contact", help_tab_info: "! Guide", help_ask_copy: "Tell us about issues or suggestions<br>through KakaoTalk open chat.", help_notice: "Saved GPX data is not sent to the server.<br>All records are stored and shown <b>only on this device</b>.", help_link: "?? KakaoTalk Open Chat", help_record_title: "Record Button", help_record_desc: "Tap to start GPS route recording. Tap again to stop.", help_photo_title: "Photo Button", help_photo_desc: "Take a photo now or import one from your gallery.", help_memory_title: "Star Button", help_memory_desc: "Name your current location and save it as a memory.", help_location_title: "Current Location Button", help_location_desc: "Move the map back to your current location.", help_status_title: "Status Button (Bottom Center)", help_status_desc: "Check your current title and progress.", help_menu_title: "Menu Button (Top Left)", help_menu_desc: "View your memories, photos, and step records." },
+    ja: { sidebar_title: "ÑÀ?", fog_label: "Ùö?Íı", fog_on: "«ª«ó", fog_off: "«ª«Õ", tab_memory: "ÑÀåã", tab_photo: "??", tab_gpx: "ğëîæ", tab_badge: "«Ğ«Ã«¸", tab_visit: "Û¾Ùı", tab_item: "«¢«¤«Æ«à", rec_idle: "ÓâÑ¦ñé", rec_active: "ÑÀ?ñé", empty_memory: "ÑÀ?ªÏªŞªÀª¢ªêªŞª»ªó¡£", empty_photo: "??ªÏªŞªÀª¢ªêªŞª»ªó¡£", tour_title: "?? ñ²?«¹«İ«Ã«È", festival_label: "?? ñ²?ªÎğ®ªê", festival_badge: "?? ğ®ªê", loading: "?ßãñé...", empty_tour: "ñ²?«¹«İ«Ã«Èª¬ª¢ªêªŞª»ªó", close: "øÍª¸ªë", count_suffix: "Ëì", unit_count: "Ëì", hud_title_label: "úŞî¤ªÎ??", hud_level_label: "LV", hud_dist_label: "ì¹ÔÑËå×î", hud_memory_label: "ÑÀåã?", hud_photo_label: "???", hud_next: "ó­ªŞªÇ", hud_condition_met: "?ËìÓ¹à÷!", hud_no_condition: "?ËìªÊª·", hud_max: "õÌÍÔ!", hud_max_level: "õÌÍÔ«ì«Ù«ëÓ¹à÷!", help_tab_ask: "? ªªÙıª¤ùêªïª»", help_tab_info: "! «¬«¤«É", help_ask_copy: "ª´××éÄñéªÎÜôøµªÊïÃªäª´ëòÌ¸ªò<br>KakaoTalk«ª?«×«ó«Á«ã«Ã«ÈªÇªªÚ¤ª«ª»ª¯ªÀªµª¤¡£", help_notice: "ÜÁğíªµªìª¿GPX«Ç?«¿ªÏ«µ?«Ğ?ªØáêãáªµªìªŞª»ªó¡£<br>ª¹ªÙªÆªÎÑÀ?ªÏ<b>ª³ªÎÓ®ØÇ?ªÀª±</b>ªËÜÁğí?øúãÆªµªìªŞª¹¡£", help_link: "?? KakaoTalk«ª?«×«ó«Á«ã«Ã«È", help_record_title: "??«Ü«¿«ó", help_record_desc: "«¿«Ã«×ª¹ªëªÈGPS?ÖØÑÀ?ªòËÒã·¡£ªâª¦ìéÓø«¿«Ã«×ª¹ªëªÈïÎò­ª·ªŞª¹¡£", help_photo_title: "??«Ü«¿«ó", help_photo_desc: "ĞÑõÉç¯ª¹ªëª«¡¢«®«ã«é«ê?ª«ªé??ªò?ªß?ªóªÇÜÁğíª·ªŞª¹¡£", help_memory_title: "àø«Ü«¿«ó", help_memory_desc: "úŞî¤ò¢ªËÙ£îñªòÜõª±ªÆÑÀåãªÈª·ªÆ?ª·ªŞª¹¡£", help_location_title: "úŞî¤ò¢«Ü«¿«ó", help_location_desc: "ò¢?ªòúŞî¤ò¢ªØ?ª·ªŞª¹¡£", help_status_title: "«¹«Æ?«¿«¹«Ü«¿«ó£¨ù»İ»ñéäç£©", help_status_desc: "úŞî¤ªÎ??ªÈòäú¼?üÏªòü¬ìãªÇª­ªŞª¹¡£", help_menu_title: "«á«Ë«å?«Ü«¿«ó£¨ñ§ß¾£©", help_menu_desc: "ÑÀåã¡¢??¡¢ğëîæªÎìé?ªòÌ¸ªéªìªŞª¹¡£" },
+    zh: { sidebar_title: "ä²îÜ??", fog_label: "?üù", fog_on: "?", fog_off: "?", tab_memory: "??", tab_photo: "ğÎø¸", tab_gpx: "ğëîé", tab_badge: "ıÅíñ", tab_visit: "??", tab_item: "Úªù¡", rec_idle: "ÓâÏõñé", rec_active: "??ñé", empty_memory: "??êó??¡£", empty_photo: "??êóğÎø¸¡£", tour_title: "?? İ¾ĞÎÌØïÃ", festival_label: "?? İ¾ĞÎ?îğ", festival_badge: "?? ?îğ", loading: "â¤ßãñé...", empty_tour: "İ¾ĞÎ?êóÌØïÃ", close: "??", count_suffix: "?", unit_count: "?", hud_title_label: "?îñ??", hud_level_label: "LV", hud_dist_label: "ì¹?Ëå?", hud_memory_label: "???Õá", hud_photo_label: "ğÎø¸?Õá", hud_next: "Ëå?ù»ìéÜÆ", hud_condition_met: "?Ëìì«?à÷!", hud_no_condition: "Ùé?Ëì", hud_max: "õÌÍÔ!", hud_max_level: "ì«?õÌÍÔÔõ?!", help_tab_ask: "? íª?", help_tab_info: "! ò¦Ñõ", help_ask_copy: "ŞÅéÄñééçÓğÜôøµûäêóËï??<br>?÷×? KakaoTalk ?Û¯Öıô¸Í±?ä²?¡£", help_notice: "ì«ÜÁğíîÜ GPX ?ËßÜô??áêÓğÜ×?Ğï¡£<br>á¶êó??<b>ñş?ÜÁğíî¤Üâ??ñé</b>??ãÆ¡£", help_link: "?? KakaoTalk ?Û¯Öıô¸", help_record_title: "??äÎ?", help_record_desc: "ïÃ??ã· GPS ÖØ???£¬î¢ó­ïÃ?ïÎò­¡£", help_photo_title: "ğÎø¸äÎ?", help_photo_desc: "Ø¡?ÚĞğÎûä?ßÓ??ìığÎø¸?ÜÁğí¡£", help_memory_title: "àø?äÎ?", help_memory_desc: "??îñêÈöÇÙ¤Ù£?ÜÁğí???¡£", help_location_title: "?îñêÈöÇäÎ?", help_location_desc: "?ò¢?ì¹üŞ?îñêÈöÇ¡£", help_status_title: "??äÎ?£¨î¼İ»ñéäç£©", help_status_desc: "?Ê×?îñ??ûú?Óø¡£", help_menu_title: "óø?äÎ?£¨ñ§ß¾ÊÇ£©", help_menu_desc: "?Ê×??¡¢ğÎø¸ûúğëîéÖªøú¡£" }
 };
 
+function setText(id, value) { var el = document.getElementById(id); if (el) el.textContent = value; }
+function setHtml(id, value) { var el = document.getElementById(id); if (el) el.innerHTML = value; }
+function applyHelpLang(t) {
+    setText("htab-ask", t.help_tab_ask);
+    setText("htab-info", t.help_tab_info);
+    setHtml("help-ask-copy", t.help_ask_copy);
+    setHtml("help-notice", t.help_notice);
+    setText("help-link", t.help_link);
+    var titles = [t.help_record_title, t.help_photo_title, t.help_location_title, t.help_status_title, t.help_menu_title];
+    var descs = [t.help_record_desc, t.help_photo_desc, t.help_location_desc, t.help_status_desc, t.help_menu_desc];
+    document.querySelectorAll(".help-guide-text").forEach(function(box, idx) {
+        var title = box.querySelector("b"); var desc = box.querySelector("span");
+        if (title && titles[idx]) title.textContent = titles[idx];
+        if (desc && descs[idx]) desc.textContent = descs[idx];
+    });
+}
+function applyHudLang(t) {
+    setText("hud-title-label", t.hud_title_label);
+    setText("hud-level-label", t.hud_level_label);
+    var labels = document.querySelectorAll(".hud-prog-label");
+    if (labels[0]) labels[0].textContent = t.hud_dist_label;
+    if (labels[1]) labels[1].textContent = t.hud_memory_label;
+    if (labels[2]) labels[2].textContent = t.hud_photo_label;
+    updateHud();
+}
 function applyUILang(lang) {
     currentLang = lang;
     var t = UI_TEXT[lang] || UI_TEXT["ko"];
@@ -1093,8 +1477,14 @@ function applyUILang(lang) {
     syncFogButton();
     if (!isRecording) { if (el("rec-status-box")) el("rec-status-box").textContent = t.rec_idle; }
     document.querySelectorAll(".lang-btn").forEach(function(btn) { btn.classList.toggle("active", btn.dataset.lang === lang); });
+    applyHelpLang(t);
+    applyHudLang(t);
     renderTourCards();
     renderFestivalStrip();
+    translateTourItemsForLang(lang, tourItems);
+    translateTourItemsForLang(lang, festivalItems);
+    renderLibraryMarkers();
+    translateLibraryItemsForLang(lang);
 }
 
 function toggleLang(lang) {
@@ -1108,31 +1498,51 @@ function toggleLang(lang) {
     fetchFestivals();
 }
 
-function translateTourItems() {
-    tourItems.forEach(function(item) {
-        if (item._titleEn) return;
-        varcoTranslate(item.title, "ko", "en").then(function(translated) { item._titleEn = translated; });
-        if (item.addr1) { varcoTranslate(item.addr1, "ko", "en").then(function(translated) { item._addrEn = translated; }); }
-    });
+function markTourItemsSource(items, sourceLang) {
+    (items || []).forEach(function(item) { item._sourceLang = sourceLang || currentLang; });
 }
 
-function getTourDisplayTitle(item) { return item.title || ""; }
-function getTourDisplayAddr(item) { return item.addr1 || ""; }
+function hasHangul(text) {
+    return /[¤¡-¤¾¤¿-¤Ó°¡-ÆR]/.test(String(text || ""));
+}
 
-// â”€â”€ ìˆ˜ì§‘í•¨ â”€â”€
+function translateTourItemsForLang(lang, items) {
+    items = items || tourItems;
+    if (lang === "ko") return Promise.resolve();
+    var targetLang = getVarcoLang(lang);
+    var tasks = [];
+    items.forEach(function(item) {
+        if (!item) return;
+        item._titleByLang = item._titleByLang || {};
+        item._addrByLang = item._addrByLang || {};
+        if (item.title && !item._titleByLang[lang] && (item._sourceLang === "ko" || hasHangul(item.title))) {
+            tasks.push(varcoTranslate(item.title, "ko", targetLang).then(function(translated) { item._titleByLang[lang] = translated; }));
+        }
+        if (item.addr1 && !item._addrByLang[lang] && (item._sourceLang === "ko" || hasHangul(item.addr1))) {
+            tasks.push(varcoTranslate(item.addr1, "ko", targetLang).then(function(translated) { item._addrByLang[lang] = translated; }));
+        }
+    });
+    if (tasks.length === 0) return Promise.resolve();
+    return Promise.all(tasks).then(function() { renderTourCards(); if (tourExpanded) renderFestivalStrip(); });
+}
+
+function getTourDisplayTitle(item) { return (item && item._titleByLang && item._titleByLang[currentLang]) || (item && item.title) || ""; }
+function getTourDisplayAddr(item) { return (item && item._addrByLang && item._addrByLang[currentLang]) || (item && item.addr1) || ""; }
+
+// ¦¡¦¡ ¼öÁıÇÔ ¦¡¦¡
 var COLLECTION_KEY = "giloa-collection";
 var badges = []; var visitStamps = []; var items = [];
 
 var BADGE_DEFS = [
-    { id: "first_memory", icon: "â˜…", name: "ì²« ê¸°ì–µ", desc: "ì²« ë²ˆì§¸ ê¸°ì–µì„ ë‚¨ê²¼ì–´ìš”" },
-    { id: "first_photo", icon: "ğŸ“¸", name: "ì²« ì‚¬ì§„", desc: "ì²« ë²ˆì§¸ ì‚¬ì§„ì„ ì°ì—ˆì–´ìš”" },
-    { id: "first_10km", icon: "ğŸƒ", name: "10km ë‹¬ì„±", desc: "ëˆ„ì  10kmë¥¼ ê±¸ì—ˆì–´ìš”" },
-    { id: "first_50km", icon: "ğŸš¶", name: "50km ë‹¬ì„±", desc: "ëˆ„ì  50kmë¥¼ ê±¸ì—ˆì–´ìš”" },
-    { id: "early_bird", icon: "ğŸŒ…", name: "ìƒˆë²½ íƒí—˜ê°€", desc: "ìƒˆë²½ 5ì‹œ ì´ì „ì— ê¸°ë¡í–ˆì–´ìš”" },
-    { id: "memory_5", icon: "ğŸ—º", name: "ê¸°ì–µ ìˆ˜ì§‘ê°€", desc: "ê¸°ì–µì„ 5ê°œ ë‚¨ê²¼ì–´ìš”" },
-    { id: "photo_10", icon: "ğŸ", name: "ì‚¬ì§„ì‘ê°€", desc: "ì‚¬ì§„ì„ 10ì¥ ì°ì—ˆì–´ìš”" },
-    { id: "tour_visit", icon: "ğŸ›", name: "ê´€ê´‘ íƒí—˜ê°€", desc: "ê´€ê´‘ì§€ë¥¼ ì²˜ìŒ ë°©ë¬¸í–ˆì–´ìš”" },
-    { id: "festival_visit", icon: "ğŸª", name: "ì¶•ì œ ë§ˆë‹ˆì•„", desc: "ì¶•ì œë¥¼ ì²˜ìŒ ë°©ë¬¸í–ˆì–´ìš”" },
+    { id: "first_memory", icon: "¡Ú", name: "Ã¹ ±â¾ï", desc: "Ã¹ ¹øÂ° ±â¾ïÀ» ³²°å¾î¿ä" },
+    { id: "first_photo", icon: "??", name: "Ã¹ »çÁø", desc: "Ã¹ ¹øÂ° »çÁøÀ» Âï¾ú¾î¿ä" },
+    { id: "first_10km", icon: "??", name: "10km ´Ş¼º", desc: "´©Àû 10km¸¦ °É¾ú¾î¿ä" },
+    { id: "first_50km", icon: "??", name: "50km ´Ş¼º", desc: "´©Àû 50km¸¦ °É¾ú¾î¿ä" },
+    { id: "early_bird", icon: "??", name: "»õº® Å½Çè°¡", desc: "»õº® 5½Ã ÀÌÀü¿¡ ±â·ÏÇß¾î¿ä" },
+    { id: "memory_5", icon: "??", name: "±â¾ï ¼öÁı°¡", desc: "±â¾ïÀ» 5°³ ³²°å¾î¿ä" },
+    { id: "photo_10", icon: "??", name: "»çÁøÀÛ°¡", desc: "»çÁøÀ» 10Àå Âï¾ú¾î¿ä" },
+    { id: "tour_visit", icon: "??", name: "°ü±¤ Å½Çè°¡", desc: "°ü±¤Áö¸¦ Ã³À½ ¹æ¹®Çß¾î¿ä" },
+    { id: "festival_visit", icon: "??", name: "ÃàÁ¦ ¸¶´Ï¾Æ", desc: "ÃàÁ¦¸¦ Ã³À½ ¹æ¹®Çß¾î¿ä" },
 ];
 
 function loadCollection() {
@@ -1145,7 +1555,7 @@ function loadCollection() {
         items = Array.isArray(data.items) ? data.items : [];
         updateBadgeList();
         updateVisitList();
-    } catch(e) { console.warn("ìˆ˜ì§‘í•¨ ë³µì› ì‹¤íŒ¨", e); }
+    } catch(e) { console.warn("¼öÁıÇÔ º¹¿ø ½ÇÆĞ", e); }
 }
 
 function saveCollection() {
@@ -1160,7 +1570,7 @@ function earnBadge(badgeId) {
     badges.push({ id: badgeId, earnedAt: now.getTime(), dateString: now.toLocaleDateString("ko-KR") });
     saveCollection();
     updateBadgeList();
-    showCollectionToast(def.icon + " ë±ƒì§€ íšë“! " + def.name);
+    showCollectionToast(def.icon + " ¹îÁö È¹µæ! " + def.name);
 }
 
 function addVisitStamp(name, type, lat, lng) {
@@ -1168,9 +1578,9 @@ function addVisitStamp(name, type, lat, lng) {
     visitStamps.push({ name: name, type: type, lat: lat, lng: lng, visitedAt: now.getTime(), dateString: now.toLocaleDateString("ko-KR") });
     saveCollection();
     updateVisitList();
-    if (type === "ê´€ê´‘ì§€" || type === "ë¬¸í™”ì‹œì„¤") earnBadge("tour_visit");
-    if (type === "ì¶•ì œ") earnBadge("festival_visit");
-    showCollectionToast("ğŸ“ " + name + " ë°©ë¬¸ ê¸°ë¡!");
+    if (type === "°ü±¤Áö" || type === "¹®È­½Ã¼³") earnBadge("tour_visit");
+    if (type === "ÃàÁ¦") earnBadge("festival_visit");
+    showCollectionToast("?? " + name + " ¹æ¹® ±â·Ï!");
 }
 
 function checkBadges() {
@@ -1188,7 +1598,7 @@ function checkBadges() {
 function updateBadgeList() {
     var container = document.getElementById("badge-list");
     if (!container) return;
-    if (badges.length === 0) { container.innerHTML = '<p class="empty-message">ì•„ì§ íšë“í•œ ë±ƒì§€ê°€ ì—†ìŠµë‹ˆë‹¤.</p>'; return; }
+    if (badges.length === 0) { container.innerHTML = '<p class="empty-message">¾ÆÁ÷ È¹µæÇÑ ¹îÁö°¡ ¾ø½À´Ï´Ù.</p>'; return; }
     container.innerHTML = "";
     badges.slice().reverse().forEach(function(b) {
         var def = BADGE_DEFS.find(function(d) { return d.id === b.id; });
@@ -1203,11 +1613,11 @@ function updateBadgeList() {
 function updateVisitList() {
     var container = document.getElementById("visit-list");
     if (!container) return;
-    if (visitStamps.length === 0) { container.innerHTML = '<p class="empty-message">ì•„ì§ ë°©ë¬¸í•œ ì¥ì†Œê°€ ì—†ìŠµë‹ˆë‹¤.</p>'; return; }
+    if (visitStamps.length === 0) { container.innerHTML = '<p class="empty-message">¾ÆÁ÷ ¹æ¹®ÇÑ Àå¼Ò°¡ ¾ø½À´Ï´Ù.</p>'; return; }
     container.innerHTML = "";
     visitStamps.slice().sort(function(a,b){ return b.visitedAt - a.visitedAt; }).forEach(function(v) {
-        var typeIcons = { "ê´€ê´‘ì§€": "ğŸ›", "ë¬¸í™”ì‹œì„¤": "ğŸ¨", "ì¶•ì œ": "ğŸª", "ë ˆí¬ì¸ ": "â›¹", "ì—¬í–‰ì½”ìŠ¤": "ğŸ—º" };
-        var icon = typeIcons[v.type] || "ğŸ“";
+        var typeIcons = { "°ü±¤Áö": "??", "¹®È­½Ã¼³": "??", "ÃàÁ¦": "??", "·¹Æ÷Ã÷": "?", "¿©ÇàÄÚ½º": "??" };
+        var icon = typeIcons[v.type] || "??";
         var el = document.createElement("div");
         el.className = "visit-item";
         el.innerHTML = '<div class="visit-icon">' + icon + '</div><div class="visit-info"><div class="visit-name">' + escapeHtml(v.name) + '</div><div class="visit-date">' + v.dateString + '</div></div>';
@@ -1231,20 +1641,13 @@ function showCollectionToast(msg) {
     setTimeout(function() { toast.remove(); }, 2500);
 }
 
-// â”€â”€ ì‹œì•¼ê° ë¶€ì±„ê¼´ â”€â”€
+// ¦¡¦¡ ½Ã¾ß°¢ ºÎÃ¤²Ã ¦¡¦¡
 var visionCone = null;
 var visionLine = null;
 function updateVisionCone(latlng) {
     if (visionCone) { map.removeLayer(visionCone); visionCone = null; }
     if (visionLine) { map.removeLayer(visionLine); visionLine = null; }
-    if (playerHeading === null) return;
-    var center = [latlng.lat, latlng.lng]; var radiusM = 70; var spreadDeg = 70;
-    var startAngle = playerHeading - spreadDeg / 2; var endAngle = playerHeading + spreadDeg / 2;
-    var points = [center];
-    for (var a = startAngle; a <= endAngle; a += 3) { points.push(destPoint(center, a, radiusM)); }
-    points.push(destPoint(center, endAngle, radiusM)); points.push(center);
-    visionCone = L.polygon(points, { color: "rgba(77, 184, 255, 0.95)", fillColor: "rgba(77, 184, 255, 0.28)", fillOpacity: 1, weight: 2, opacity: 0.95, pane: "playerPane", interactive: false }).addTo(map);
-    visionLine = L.polyline([center, destPoint(center, playerHeading, radiusM * 1.05)], { color: "#ffffff", weight: 2, opacity: 0.9, pane: "playerPane", interactive: false }).addTo(map);
+    scheduleRender();
 }
 function bearingBetween(from, to) {
     var lat1 = from.lat * Math.PI / 180; var lat2 = to.lat * Math.PI / 180;
@@ -1259,3 +1662,11 @@ function destPoint(center, angleDeg, distanceM) {
     var lng2 = lng1 + Math.atan2(Math.sin(brng) * Math.sin(d) * Math.cos(lat1), Math.cos(d) - Math.sin(lat1) * Math.sin(lat2));
     return [lat2 * 180 / Math.PI, lng2 * 180 / Math.PI];
 }
+
+
+
+
+
+
+
+
