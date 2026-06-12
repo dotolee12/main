@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>³ªÀÇ ´ëµ¿¿©Áöµµ - Project Giloa</title>
+<title>ê¸¸ë¡œì•„ - ë‚˜ì˜ ê¸°ë¡ë“¤</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0d0d18">
 <meta name="mobile-web-app-capable" content="yes">
@@ -15,181 +15,141 @@
 </head>
 <body>
 <div id="sidebar">
-
-<!-- Çì´õ -->
 <div class="sidebar-header">
-  <h2 id="sidebar-title">³ªÀÇ ±â·Ïµé</h2>
-  <span onclick="toggleSidebar(false)" class="close-btn">?</span>
+  <h2 id="sidebar-title">ë‚˜ì˜ ê¸°ë¡ë“¤</h2>
+  <span onclick="toggleSidebar(false)" class="close-btn">x</span>
 </div>
-
-<!-- ¾îµÒ È¿°ú Åä±Û -->
 <div id="fog-toggle-wrap">
   <div class="fog-toggle-row" onclick="toggleFog()">
-    <span class="fog-toggle-label" id="fog-toggle-label-el">¾îµÒ È¿°ú</span>
+    <span class="fog-toggle-label" id="fog-toggle-label-el">ì–´ë‘  íš¨ê³¼</span>
     <div style="display:flex;align-items:center;gap:8px;">
-      <span id="fog-toggle-state" class="fog-toggle-state on">ÄÑÁü</span>
+      <span id="fog-toggle-state" class="fog-toggle-state on">ì¼œì§</span>
       <div id="fog-toggle-btn" class="toggle-switch on"><div class="toggle-knob"></div></div>
     </div>
   </div>
   <div class="sidebar-divider"></div>
 </div>
-
-<!-- »ó´Ü ÅÇ: ±â¾ï / »çÁø / ¹ß°ÉÀ½ -->
 <div class="sidebar-tabs" id="top-tabs">
-  <div class="sidebar-tab active" id="tab-memory" onclick="switchAllTab('memory')"><span class="sidebar-tab-icon">¡Ú</span><span class="sidebar-tab-text">±â¾ï</span></div>
-  <div class="sidebar-tab" id="tab-photo" onclick="switchAllTab('photo')"><span class="sidebar-tab-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8" cy="9" r="1.8"/><path d="M3 17l5.2-5.2a1.8 1.8 0 0 1 2.6 0l2.1 2.1 4.1-5a1.8 1.8 0 0 1 2.8 0L21 10.4"/></svg></span><span class="sidebar-tab-text">»çÁø</span></div>
-  <div class="sidebar-tab" id="tab-gpx" onclick="switchAllTab('gpx')"><span class="sidebar-tab-icon">??</span><span class="sidebar-tab-text">¹ß°ÉÀ½</span></div>
+  <div class="sidebar-tab active" id="tab-photo" onclick="switchAllTab('photo')"><span class="sidebar-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8" cy="9" r="1.8"/><path d="M3 17l5.2-5.2a1.8 1.8 0 0 1 2.6 0l2.1 2.1 4.1-5a1.8 1.8 0 0 1 2.8 0L21 10.4"/></svg></span><span class="sidebar-tab-text">ì‚¬ì§„</span></div>
+  <div class="sidebar-tab" id="tab-gpx" onclick="switchAllTab('gpx')"><span class="sidebar-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c4-7 10-7 14-14"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="5" r="2"/><path d="M9 15l3 3 3-6"/></svg></span><span class="sidebar-tab-text">ë°œê±¸ìŒ</span></div>
 </div>
-
-<!-- °¡¿îµ¥ ÄÜÅÙÃ÷ ¿µ¿ª (½ºÅ©·Ñ) -->
 <div id="sidebar-content">
-
-  <div id="panel-memory" class="tab-panel">
-    <div id="memory-list-container"><p class="empty-message">¾ÆÁ÷ ±â·ÏÀÌ ¾ø½À´Ï´Ù.</p></div>
-  </div>
-
-  <div id="panel-photo" class="tab-panel" style="display:none;">
-    <div id="photo-list-container"><p class="empty-message">¾ÆÁ÷ »çÁøÀÌ ¾ø½À´Ï´Ù.</p></div>
-  </div>
-
+  <div id="panel-photo" class="tab-panel"><div id="photo-list-container"><p class="empty-message">ì•„ì§ ì‚¬ì§„ì´ ì—†ìŠµë‹ˆë‹¤.</p></div></div>
   <div id="panel-gpx" class="tab-panel" style="display:none;">
-    <div class="gpx-section-label">?? ¹ß°ÉÀ½ ÃßÃâ</div>
+    <div class="gpx-section-label">ë°œê±¸ìŒ ì¶”ì¶œ</div>
     <div class="gpx-dial-wrap">
-      <div class="gpx-dial-row"><span class="gpx-dial-icon">?</span><span class="gpx-dial-title">ÃÖ±Ù</span>
-        <div class="gpx-dial-controls"><button class="dial-btn" onclick="adjustHourDial(-1)">?</button><span class="dial-value" id="dial-hour-label">12½Ã°£</span><button class="dial-btn" onclick="adjustHourDial(1)">?</button></div>
+      <div class="gpx-dial-row"><span class="gpx-dial-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c4-7 10-7 14-14"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="5" r="2"/><path d="M9 15l3 3 3-6"/></svg></span><span class="gpx-dial-title">ìµœê·¼</span>
+        <div class="gpx-dial-controls"><button class="dial-btn" onclick="adjustHourDial(-1)">&lt;</button><span class="dial-value" id="dial-hour-label">12ì‹œê°„</span><button class="dial-btn" onclick="adjustHourDial(1)">&gt;</button></div>
       </div>
-      <div class="gpx-dial-range-info" id="gpx-range-info">¿À´Ã ±âÁØ ÃÖ±Ù 12½Ã°£ ¹ß°ÉÀ½</div>
+      <div class="gpx-dial-range-info" id="gpx-range-info">ì˜¤ëŠ˜ ê¸°ì¤€ ìµœê·¼ 12ì‹œê°„ ë°œê±¸ìŒ</div>
     </div>
-    <div class="gpx-name-row"><input type="text" id="gpx-export-name" class="gpx-name-input" placeholder="¹ß°ÉÀ½ ÀÌ¸§ (¿¹: ÇÑ°­ »êÃ¥)"></div>
-    <button class="gpx-action-btn export" onclick="exportGpx()">?? ÀÌ ¹ß°ÉÀ½ ÀúÀåÇÏ±â</button>
+    <div class="gpx-name-row"><input type="text" id="gpx-export-name" class="gpx-name-input" placeholder="ë°œê±¸ìŒ ì´ë¦„ (ì˜ˆ: í•œê°• ì‚°ì±…)"></div>
+    <button class="gpx-action-btn export" onclick="exportGpx()">ì´ ë°œê±¸ìŒ ì €ìž¥í•˜ê¸°</button>
     <div class="sidebar-divider" style="margin-top:18px;"></div>
-    <div class="gpx-section-label">?? ÀúÀåµÈ ¹ß°ÉÀ½ ¿­±â</div>
-    <div id="gpx-saved-list"><p class="empty-message">ÀúÀåµÈ ¹ß°ÉÀ½ÀÌ ¾ø½À´Ï´Ù.</p></div>
-    <button class="gpx-action-btn import" onclick="document.getElementById('gpx-file-input').click()" style="margin-top:10px;">?? ÆÄÀÏ¿¡¼­ ºÒ·¯¿À±â</button>
+    <div class="gpx-section-label">ì €ìž¥ëœ ë°œê±¸ìŒ ì—´ê¸°</div>
+    <div id="gpx-saved-list"><p class="empty-message">ì €ìž¥ëœ ë°œê±¸ìŒì´ ì—†ìŠµë‹ˆë‹¤.</p></div>
+    <button class="gpx-action-btn import" onclick="document.getElementById('gpx-file-input').click()" style="margin-top:10px;">íŒŒì¼ì—ì„œ ë¶ˆëŸ¬ì˜¤ê¸°</button>
     <input type="file" id="gpx-file-input" accept=".gpx" style="display:none" onchange="importGpxFile(event)">
     <div id="gpx-import-status" class="gpx-status"></div>
   </div>
-
-  <div id="panel-badge" class="tab-panel" style="display:none;">
-    <div id="badge-list"><p class="empty-message">¾ÆÁ÷ È¹µæÇÑ ¹îÁö°¡ ¾ø½À´Ï´Ù.</p></div>
-  </div>
-
-  <div id="panel-visit" class="tab-panel" style="display:none;">
-    <div id="visit-list"><p class="empty-message">¾ÆÁ÷ ¹æ¹®ÇÑ Àå¼Ò°¡ ¾ø½À´Ï´Ù.</p></div>
-  </div>
-
-  <div id="panel-item" class="tab-panel" style="display:none;">
-    <div id="item-list"><p class="empty-message">¾ÆÁ÷ È¹µæÇÑ ¾ÆÀÌÅÛÀÌ ¾ø½À´Ï´Ù.</p></div>
-  </div>
-
+  <div id="panel-badge" class="tab-panel" style="display:none;"><div id="badge-list"><p class="empty-message">ì•„ì§ íšë“í•œ ë±ƒì§€ê°€ ì—†ìŠµë‹ˆë‹¤.</p></div></div>
+  <div id="panel-visit" class="tab-panel" style="display:none;"><div id="visit-list"><p class="empty-message">ì•„ì§ ë°©ë¬¸í•œ ìž¥ì†Œê°€ ì—†ìŠµë‹ˆë‹¤.</p></div></div>
+  <div id="panel-item" class="tab-panel" style="display:none;"><div id="item-list"><p class="empty-message">ì•„ì§ íšë“í•œ ì•„ì´í…œì´ ì—†ìŠµë‹ˆë‹¤.</p></div></div>
 </div>
-
-<!-- ÇÏ´Ü ÅÇ: ¹îÁö / ¹æ¹® / ¾ÆÀÌÅÛ (°íÁ¤) -->
 <div id="bottom-tabs">
-  <div class="sidebar-tab" id="tab-badge" onclick="switchAllTab('badge')"><span class="sidebar-tab-icon">??</span><span class="sidebar-tab-text">¹îÁö</span></div>
-  <div class="sidebar-tab" id="tab-visit" onclick="switchAllTab('visit')"><span class="sidebar-tab-icon">??</span><span class="sidebar-tab-text">¹æ¹®</span></div>
-  <div class="sidebar-tab" id="tab-item" onclick="switchAllTab('item')"><span class="sidebar-tab-icon">??</span><span class="sidebar-tab-text">¾ÆÀÌÅÛ</span></div>
+  <div class="sidebar-tab" id="tab-badge" onclick="switchAllTab('badge')"><span class="sidebar-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M8.6 12.2 7 22l5-3 5 3-1.6-9.8"/></svg></span><span class="sidebar-tab-text">ë±ƒì§€</span></div>
+  <div class="sidebar-tab" id="tab-visit" onclick="switchAllTab('visit')"><span class="sidebar-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-5.3 7-12a7 7 0 0 0-14 0c0 6.7 7 12 7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg></span><span class="sidebar-tab-text">ë°©ë¬¸</span></div>
+  <div class="sidebar-tab" id="tab-item" onclick="switchAllTab('item')"><span class="sidebar-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="m4 7.5 8 4.5 8-4.5"/><path d="M12 12v9"/></svg></span><span class="sidebar-tab-text">ì•„ì´í…œ</span></div>
 </div>
-
 </div>
 <div id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
-
-<div id="map-wrap">
-<div id="map"></div>
-<canvas id="fog-canvas"></canvas>
-<canvas id="age-canvas"></canvas>
-<canvas id="stay-canvas"></canvas>
-</div>
-
+<div id="map-wrap"><div id="map"></div><canvas id="fog-canvas"></canvas><canvas id="age-canvas"></canvas><canvas id="stay-canvas"></canvas></div>
 <div id="top-bar">
 <div id="ham-btn" onclick="toggleSidebar()"><div class="hline"></div><div class="hline"></div><div class="hline"></div></div>
-<div id="rec-status-box">´ë±â Áß</div>
-<div id="lang-toggle" aria-label="¾ð¾î ¼±ÅÃ">
-    <button id="lang-btn-ko" class="lang-btn active" data-lang="ko" onclick="toggleLang('ko')">ÇÑ</button>
+<div id="rec-status-box">ëŒ€ê¸° ì¤‘</div>
+<div id="lang-toggle" aria-label="ì–¸ì–´ ì„ íƒ">
+    <button id="lang-btn-ko" class="lang-btn active" data-lang="ko" onclick="toggleLang('ko')">í•œ</button>
     <button id="lang-btn-en" class="lang-btn" data-lang="en" onclick="toggleLang('en')">EN</button>
-    <button id="lang-btn-ja" class="lang-btn" data-lang="ja" onclick="toggleLang('ja')">ª¢</button>
-    <button id="lang-btn-zh" class="lang-btn" data-lang="zh" onclick="toggleLang('zh')">ñé</button>
+    <button id="lang-btn-ja" class="lang-btn" data-lang="ja" onclick="toggleLang('ja')">ã‚</button>
+    <button id="lang-btn-zh" class="lang-btn" data-lang="zh" onclick="toggleLang('zh')">ä¸­</button>
 </div>
 </div>
-
 <div id="tour-panel">
   <div id="tour-header" onclick="toggleTourExpand()">
-    <span id="tour-title">?? ÁÖº¯ °ü±¤Áö</span>
-    <div id="tour-header-right">
-      <span id="tour-count"></span>
-      <span id="tour-festival-badge"></span>
-      <button id="tour-close-btn" onclick="closeTourPanel(event)" aria-label="´Ý±â">?</button>
-    </div>
+    <span id="tour-title">ì£¼ë³€ ê´€ê´‘ì§€</span>
+    <div id="tour-header-right"><span id="tour-count"></span><span id="tour-festival-badge"></span><button id="tour-close-btn" onclick="closeTourPanel(event)" aria-label="ë‹«ê¸°">x</button></div>
   </div>
-  <div id="festival-strip-label">?? ÁÖº¯ ÃàÁ¦</div>
+  <div id="festival-strip-label">ì£¼ë³€ ì¶•ì œ</div>
   <div id="festival-strip"></div>
   <div id="tour-list"></div>
-  <div id="tour-expand-btn" onclick="toggleTourExpand()"><span id="tour-expand-icon">¡å</span> <span id="tour-expand-text">´õº¸±â</span></div>
-  <div id="tour-loading" style="display:none;">°Ë»ö Áß...</div>
-  <div id="tour-empty" style="display:none;">ÀÌ Áö¿ª¿¡ °ü±¤Áö°¡ ¾ø¾î¿ä</div>
+  <div id="tour-expand-btn" onclick="toggleTourExpand()"><span id="tour-expand-icon">â–¼</span> <span id="tour-expand-text">ë”ë³´ê¸°</span></div>
+  <div id="tour-loading" style="display:none;">ê²€ìƒ‰ ì¤‘...</div>
+  <div id="tour-empty" style="display:none;">ì´ ì§€ë„ì— ê´€ê´‘ì§€ê°€ ì—†ì–´ìš”</div>
 </div>
-
 <div id="controls">
 <div id="rec-btn" class="btn" onclick="toggleRecording()"><div class="icon-rec"></div><div class="icon-stop"></div></div>
 <div id="photo-btn" class="btn" onclick="togglePhotoMenu()"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8" cy="9" r="1.8"/><path d="M3 17l5.2-5.2a1.8 1.8 0 0 1 2.6 0l2.1 2.1 4.1-5a1.8 1.8 0 0 1 2.8 0L21 10.4"/></svg></div>
 <div id="loc-btn" class="btn" onclick="centerMap()"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="7" stroke="#4db8ff" stroke-width="1.5" opacity="0.8"/><circle cx="11" cy="11" r="3" fill="#4db8ff"/><line x1="11" y1="1" x2="11" y2="6" stroke="#4db8ff" stroke-width="1.5" stroke-linecap="round"/><line x1="11" y1="16" x2="11" y2="21" stroke="#4db8ff" stroke-width="1.5" stroke-linecap="round"/><line x1="1" y1="11" x2="6" y2="11" stroke="#4db8ff" stroke-width="1.5" stroke-linecap="round"/><line x1="16" y1="11" x2="21" y2="11" stroke="#4db8ff" stroke-width="1.5" stroke-linecap="round"/></svg></div>
 </div>
-
-<div id="photo-menu" class="photo-menu">
-<div class="photo-menu-item" onclick="triggerGallery()"><span class="photo-menu-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8" cy="9" r="1.8"/><path d="M3 17l5.2-5.2a1.8 1.8 0 0 1 2.6 0l2.1 2.1 4.1-5a1.8 1.8 0 0 1 2.8 0L21 10.4"/></svg></span><span class="photo-menu-label">°¶·¯¸®¿¡¼­ ºÒ·¯¿À±â</span></div>
-</div>
+<div id="photo-menu" class="photo-menu"><div class="photo-menu-item" onclick="triggerGallery()"><span class="photo-menu-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8" cy="9" r="1.8"/><path d="M3 17l5.2-5.2a1.8 1.8 0 0 1 2.6 0l2.1 2.1 4.1-5a1.8 1.8 0 0 1 2.8 0L21 10.4"/></svg></span><span class="photo-menu-label">ê°¤ëŸ¬ë¦¬ì—ì„œ ë¶ˆëŸ¬ì˜¤ê¸°</span></div></div>
 <div id="photo-menu-overlay" onclick="closePhotoMenu()"></div>
 <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotos(event)">
 <input type="file" id="gallery-input" accept="image/*" multiple style="display:none" onchange="handlePhotos(event)">
-
 <div id="help-btn" class="btn" onclick="toggleHelp()">?</div>
 <div id="help-popup" onclick="handleHelpOverlayClick(event)">
 <div class="help-content" id="help-content-box">
-<div class="help-tab-row">
-<div class="help-tab active" id="htab-ask" onclick="switchHelpTab('ask')">? ¹®ÀÇÇÏ±â</div>
-<div class="help-tab" id="htab-info" onclick="switchHelpTab('info')">! ¼³¸íº¸±â</div>
-<span onclick="toggleHelp()" class="help-close">?</span>
-</div>
-<div id="hpanel-ask" class="help-panel">
-<p id="help-ask-copy" style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.7;margin-bottom:14px;">»ç¿ë Áß ºÒÆíÇÑ Á¡ÀÌ³ª °ÇÀÇ»çÇ×Àº<br>Ä«Ä«¿ÀÅå ¿ÀÇÂÃ¤ÆÃÀ¸·Î µé·ÁÁÖ¼¼¿ä</p>
-<div class="help-notice" id="help-notice">ÇöÀç ÀúÀåµÈ GPX µ¥ÀÌÅÍ´Â ¼­¹ö·Î Àü¼ÛµÇÁö ¾Ê¾Æ¿ä.<br>¸ðµç ±â·ÏÀº <b>¿ÀÁ÷ ÀÌ ±â±â ¾È¿¡¼­¸¸</b> ÀúÀåµÇ°í º¸¿©Á®¿ä.</div>
-<a href="https://open.kakao.com/o/gwg21Cni" target="_blank" class="help-link" id="help-link">?? Ä«Ä«¿ÀÅå ¿ÀÇÂÃ¤ÆÃ ¹®ÀÇ</a>
-</div>
-<div id="hpanel-info" class="help-panel" style="display:none;">
-<div class="help-guide-list">
-<div class="help-guide-item"><div class="help-guide-icon red-dot"></div><div class="help-guide-text"><b>³ìÈ­ ¹öÆ°</b><br><span>´©¸£¸é GPS °æ·Î ±â·Ï ½ÃÀÛ. ´Ù½Ã ´©¸£¸é ÁßÁö.</span></div></div>
-<div class="help-guide-item"><div class="help-guide-icon photo-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8" cy="9" r="1.8"/><path d="M3 17l5.2-5.2a1.8 1.8 0 0 1 2.6 0l2.1 2.1 4.1-5a1.8 1.8 0 0 1 2.8 0L21 10.4"/></svg></div><div class="help-guide-text"><b>»çÁø ¹öÆ°</b><br><span>°¶·¯¸®¿¡¼­ »çÁøÀ» ºÒ·¯¿Í ÀúÀåÇØ¿ä. ÀÇ¹Ì ÀÖ´Â Àå¼Ò¸¦ ¾²·Á¸é Áöµµ¿¡ ÂïÈù »çÁøÀ» µÎ ¹ø ´­·¯ ÀÔ·ÂÇØ ÁÖ¼¼¿ä.</span></div></div>
-<div class="help-guide-item"><div class="help-guide-icon blue-dot"></div><div class="help-guide-text"><b>ÇöÀç À§Ä¡ ¹öÆ°</b><br><span>Á¶ÁØÁ¡ ¾ÆÀÌÄÜÀÌ¿¡¿ä. Áöµµ¸¦ ³» ÇöÀç À§Ä¡·Î ´Ù½Ã ÀÌµ¿½ÃÄÑ¿ä.</span></div></div>
-<div class="help-guide-item"><div class="help-guide-icon person-icon"><svg width="16" height="16" viewBox="0 0 26 26" fill="none"><circle cx="13" cy="9" r="4.5" stroke="white" stroke-width="1.6"/><path d="M3.5 23c0-5.247 4.253-8.5 9.5-8.5s9.5 3.253 9.5 8.5" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg></div><div class="help-guide-text"><b>»óÅÂ ¹öÆ°</b><br><span>»ç¶÷ ¾ÆÀÌÄÜÀÌ¿¡¿ä. ³» ÇöÀç ÄªÈ£, ·¹º§, ÁøÇà »óÅÂ¸¦ È®ÀÎÇÒ ¼ö ÀÖ¾î¿ä.</span></div></div>
-<div class="help-guide-item"><div class="help-guide-icon menu-icon">?</div><div class="help-guide-text"><b>¸Þ´º ¹öÆ° (»ó´Ü ¿ÞÂÊ)</b><br><span>ÇÜ¹ö°Å ¾ÆÀÌÄÜÀÌ¿¡¿ä. ±â¾ï, »çÁø, ¹ß°ÉÀ½, ¹îÁö, ¹æ¹®, ¾ÆÀÌÅÛ ¸ñ·ÏÀ» ¿­¾îº¼ ¼ö ÀÖ¾î¿ä.</span></div></div>
+<div class="help-tab-row"><div class="help-tab active" id="htab-ask" onclick="switchHelpTab('ask')">? ë¬¸ì˜í•˜ê¸°</div><div class="help-tab" id="htab-info" onclick="switchHelpTab('info')">! ì„¤ëª…ë³´ê¸°</div><span onclick="toggleHelp()" class="help-close">x</span></div>
+<div id="hpanel-ask" class="help-panel"><p id="help-ask-copy" style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.7;margin-bottom:14px;">ì‚¬ìš© ì¤‘ ë¶ˆíŽ¸í•œ ì ì´ë‚˜ ê±´ì˜ì‚¬í•­ì€<br>ì¹´ì¹´ì˜¤í†¡ ì˜¤í”ˆì±„íŒ…ìœ¼ë¡œ ë“¤ë ¤ì£¼ì„¸ìš”</p><div class="help-notice" id="help-notice">í˜„ìž¬ ì €ìž¥ëœ GPX ë°ì´í„°ëŠ” ì„œë²„ë¡œ ì „ì†¡ë˜ì§€ ì•Šì•„ìš”.<br>ëª¨ë“  ê¸°ë¡ì€ <b>ì˜¤ì§ ì´ ê¸°ê¸° ì•ˆì—ì„œë§Œ</b> ì €ìž¥ë˜ê³  ë³´ì—¬ì ¸ìš”.</div><a href="https://open.kakao.com/o/gwg21Cni" target="_blank" class="help-link" id="help-link">ì¹´ì¹´ì˜¤í†¡ ì˜¤í”ˆì±„íŒ… ë¬¸ì˜</a></div>
+<div id="hpanel-info" class="help-panel" style="display:none;"><div class="help-guide-list">
+<div class="help-guide-item"><div class="help-guide-icon red-dot"></div><div class="help-guide-text"><b>ë…¹í™” ë²„íŠ¼</b><br><span>ëˆ„ë¥´ë©´ GPS ê²½ë¡œ ê¸°ë¡ ì‹œìž‘. ë‹¤ì‹œ ëˆ„ë¥´ë©´ ì¤‘ì§€.</span></div></div>
+<div class="help-guide-item"><div class="help-guide-icon photo-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8" cy="9" r="1.8"/><path d="M3 17l5.2-5.2a1.8 1.8 0 0 1 2.6 0l2.1 2.1 4.1-5a1.8 1.8 0 0 1 2.8 0L21 10.4"/></svg></div><div class="help-guide-text"><b>ì‚¬ì§„ ë²„íŠ¼</b><br><span>ê°¤ëŸ¬ë¦¬ì—ì„œ ì‚¬ì§„ì„ ë¶ˆëŸ¬ì™€ ì €ìž¥í•´ìš”. ì˜ë¯¸ ìžˆëŠ” ìž¥ì†Œë¥¼ ì“°ë ¤ë©´ ì§€ë„ì— ì°ížŒ ì‚¬ì§„ì„ ë‘ ë²ˆ ëˆŒëŸ¬ ìž…ë ¥í•´ ì£¼ì„¸ìš”.</span></div></div>
+<div class="help-guide-item"><div class="help-guide-icon blue-dot"></div><div class="help-guide-text"><b>í˜„ìž¬ ìœ„ì¹˜ ë²„íŠ¼</b><br><span>ì¡°ì¤€ì  ì•„ì´ì½˜ì´ì—ìš”. ì§€ë„ë¥¼ ë‚´ í˜„ìž¬ ìœ„ì¹˜ë¡œ ë‹¤ì‹œ ì´ë™ì‹œì¼œìš”.</span></div></div>
+<div class="help-guide-item"><div class="help-guide-icon person-icon"><svg width="16" height="16" viewBox="0 0 26 26" fill="none"><circle cx="13" cy="9" r="4.5" stroke="white" stroke-width="1.6"/><path d="M3.5 23c0-5.247 4.253-8.5 9.5-8.5s9.5 3.253 9.5 8.5" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg></div><div class="help-guide-text"><b>?? ??</b><br><span>?? ??????. ? ?? ??, ??, ?? ??? ??? ? ???.</span></div></div>
+<div class="help-guide-item"><div class="help-guide-icon menu-icon">â˜°</div><div class="help-guide-text"><b>ë©”ë‰´ ë²„íŠ¼ (ìƒë‹¨ ì™¼ìª½)</b><br><span>í–„ë²„ê±° ì•„ì´ì½˜ì´ì—ìš”. ê¸°ì–µ, ì‚¬ì§„, ë°œê±¸ìŒ, ë±ƒì§€, ë°©ë¬¸, ì•„ì´í…œ ëª©ë¡ì„ ì—´ì–´ë³¼ ìˆ˜ ìžˆì–´ìš”.</span></div></div>
+</div></div>
 </div>
 </div>
+<div id="photo-detail-modal" aria-hidden="true">
+  <div class="photo-detail-backdrop" onclick="closePhotoDetail()"></div>
+  <div class="photo-detail-sheet" role="dialog" aria-modal="true" aria-labelledby="photo-detail-title">
+    <div class="photo-detail-head">
+      <div>
+        <div class="photo-detail-kicker">ì‚¬ì§„ ê¸°ë¡</div>
+        <h3 id="photo-detail-title">ì‚¬ì§„ í™•ì¸</h3>
+      </div>
+      <button class="photo-detail-close" type="button" onclick="closePhotoDetail()">x</button>
+    </div>
+    <div class="photo-detail-preview"><img id="photo-detail-img" alt=""></div>
+    <div id="photo-detail-meta" class="photo-detail-meta"></div>
+    <label class="photo-detail-field"><span>ì œëª©</span><input id="photo-detail-name" type="text" maxlength="40" placeholder="ì‚¬ì§„ ì œëª©"></label>
+    <label class="photo-detail-field"><span>ë‚´ìš©</span><textarea id="photo-detail-note" maxlength="240" placeholder="ì´ ì‚¬ì§„ì— ë‚¨ê¸¸ ë‚´ìš©"></textarea></label>
+    <div class="photo-detail-actions">
+      <button type="button" class="photo-detail-btn ghost" onclick="focusActivePhotoOnMap()">ì§€ë„</button>
+      <button type="button" class="photo-detail-btn ghost" onclick="openActivePhotoOriginal()">ì›ë³¸</button>
+      <button type="button" class="photo-detail-btn primary" onclick="savePhotoDetail()">ì €ìž¥</button>
+    </div>
+  </div>
 </div>
-</div>
-
-<div id="hud">
-<div id="hud-handle" onclick="toggleHud()"><svg class="handle-bar" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="13" cy="9" r="4.5" stroke="white" stroke-width="1.6"/><path d="M3.5 23c0-5.247 4.253-8.5 9.5-8.5s9.5 3.253 9.5 8.5" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg></div>
-<div id="hud-basic">
-<div id="hud-title-row"><div id="hud-title-wrap"><div id="hud-title-label">ÇöÀç ÄªÈ£</div><div id="hud-title-text">±æ ¾ø´Â ÀÚ</div></div><div id="hud-level-wrap"><div id="hud-level-label">LV</div><div id="hud-level-num">1</div></div></div>
-<div id="hud-progress-row">
-<div class="hud-prog-item"><div class="hud-prog-label">ÀÌµ¿ °Å¸®</div><div class="hud-prog-current" id="prog-dist-cur">0.00 km</div><div class="hud-prog-bar-wrap"><div class="hud-prog-bar" id="prog-dist-bar" style="width:0%;background:#4db8ff;"></div></div><div class="hud-prog-next" id="prog-dist-next">´ÙÀ½±îÁö 0km</div></div>
-<div class="hud-prog-item"><div class="hud-prog-label">±â¾ï °³¼ö</div><div class="hud-prog-current" id="prog-mem-cur">0 °³</div><div class="hud-prog-bar-wrap"><div class="hud-prog-bar" id="prog-mem-bar" style="width:0%;background:#ffd84d;"></div></div><div class="hud-prog-next" id="prog-mem-next">´ÙÀ½±îÁö 0°³</div></div>
-<div class="hud-prog-item"><div class="hud-prog-label">»çÁø °³¼ö</div><div class="hud-prog-current" id="prog-photo-cur">0 °³</div><div class="hud-prog-bar-wrap"><div class="hud-prog-bar" id="prog-photo-bar" style="width:0%;background:#a78bfa;"></div></div><div class="hud-prog-next" id="prog-photo-next">´ÙÀ½±îÁö 0°³</div></div>
-</div>
-</div>
-</div>
-
+<div id="hud"><div id="hud-handle" onclick="toggleHud()"><svg class="handle-bar" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="13" cy="9" r="4.5" stroke="white" stroke-width="1.6"/><path d="M3.5 23c0-5.247 4.253-8.5 9.5-8.5s9.5 3.253 9.5 8.5" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg></div><div id="hud-basic">
+  <div id="hud-title-row">
+    <div id="hud-title-wrap"><div id="hud-title-label">í˜„ìž¬ ì¹­í˜¸</div><div id="hud-title-text">ê¸¸ ì—†ëŠ” ìž</div><div id="hud-subtitle-text">ì˜¤ëŠ˜ 0.00km</div></div>
+    <div id="hud-level-wrap"><div id="hud-level-label">LV</div><div id="hud-level-num">1</div></div>
+  </div>
+  <div id="hud-summary-row">
+    <div class="hud-mini-stat hud-photo-link" id="hud-photo-link"><span>ì‚¬ì§„</span><b id="hud-photo-total">0ê°œ</b></div>
+    <div class="hud-mini-stat hud-visit-link" id="hud-visit-link"><span>ë°©ë¬¸</span><b id="hud-visit-total">0ê³³</b></div>
+  </div>
+  <div id="hud-level-progress">
+    <div class="hud-level-progress-head"><span id="hud-level-progress-label">ë‹¤ìŒ ë ˆë²¨</span><b id="hud-level-progress-value">0%</b></div>
+    <div class="hud-level-bar-wrap"><div id="hud-level-bar"></div></div>
+    <div id="hud-level-progress-next">ê¸¸ë¡œì•„ í¬ì¸íŠ¸ë¥¼ ì±„ìš°ëŠ” ì¤‘</div>
+  </div>
+</div></div>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="./script.js"></script>
 <script>
-if ("serviceWorker" in navigator) { window.addEventListener("load", function() { navigator.serviceWorker.register("./sw.js").then(function() { console.log("SW µî·Ï ¿Ï·á"); }).catch(function(e) { console.warn("SW µî·Ï ½ÇÆÐ", e); }); }); }
+if ("serviceWorker" in navigator) { window.addEventListener("load", function() { navigator.serviceWorker.register("./sw.js").then(function() { console.log("SW ë“±ë¡ ì™„ë£Œ"); }).catch(function(e) { console.warn("SW ë“±ë¡ ì‹¤íŒ¨", e); }); }); }
 </script>
 </body>
 </html>
-
-
-
-
-
-
