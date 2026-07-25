@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>나의 대동여지도 - Project Giloa</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0d0d18">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="./vendor/leaflet.css?v=app-local-9">
+<link rel="stylesheet" href="./vendor/MarkerCluster.css?v=app-local-9">
+<link rel="stylesheet" href="./vendor/MarkerCluster.Default.css?v=app-local-9">
+<link rel="stylesheet" href="./style.css?v=app-local-9">
+</head>
+<body>
+<div id="user-id-modal" class="user-id-modal">
+  <div class="user-id-box">
+    <div class="user-id-title">길로아 로그인</div>
+    <div class="user-id-copy">앱과 웹에서 같은 아이디와 비밀번호를 입력하면 같은 길 기록을 볼 수 있어요.</div>
+    <input id="user-id-input" class="user-id-input" type="text" inputmode="text" autocomplete="username" placeholder="예: a">
+    <input id="user-password-input" class="user-id-input" type="password" autocomplete="current-password" placeholder="비밀번호">
+    <div id="user-id-error" class="user-id-error"></div>
+    <button id="user-id-submit" class="user-id-submit" type="button">로그인 / 가입</button>
+  </div>
+</div>
+<div id="sidebar">
+
+<!-- 헤더 -->
+<div class="sidebar-header">
+  <h2 id="sidebar-title">나의 기록들</h2>
+  <span onclick="toggleSidebar(false)" class="close-btn">&times;</span>
+</div>
+
+<!-- 어둠 효과 토글 -->
+<div id="fog-toggle-wrap">
+  <div class="fog-toggle-row" onclick="toggleFog()">
+    <span class="fog-toggle-label" id="fog-toggle-label-el">어둠 효과</span>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span id="fog-toggle-state" class="fog-toggle-state on">켜짐</span>
+      <div id="fog-toggle-btn" class="toggle-switch on"><div class="toggle-knob"></div></div>
+    </div>
+  </div>
+  <div class="sidebar-divider"></div>
+</div>
+
+<!-- 지도 표시 레이어 토글 -->
+<div id="map-layer-wrap">
+  <div class="fog-toggle-row" id="map-layer-header" onclick="toggleMapLayerPanel()">
+    <span class="fog-toggle-label" id="map-layer-title">지도 표시</span>
+    <span id="map-layer-caret" class="map-layer-caret">▾</span>
+  </div>
+  <div id="map-layer-panel" class="map-layer-panel">
+    <div class="map-layer-item" onclick="toggleMapLayer('library')">
+      <span class="map-layer-dot" style="--layer-color:#60a5fa;"></span>
+      <span class="map-layer-name" id="map-layer-name-library">도서관</span>
+      <div id="layer-toggle-library" class="toggle-switch small"><div class="toggle-knob"></div></div>
+    </div>
+    <div class="map-layer-item" onclick="toggleMapLayer('restaurant')">
+      <span class="map-layer-dot" style="--layer-color:#f472b6;"></span>
+      <span class="map-layer-name" id="map-layer-name-restaurant">음식점</span>
+      <div id="layer-toggle-restaurant" class="toggle-switch small"><div class="toggle-knob"></div></div>
+    </div>
+    <div class="map-layer-item" onclick="toggleMapLayer('lodging')">
+      <span class="map-layer-dot" style="--layer-color:#2dd4bf;"></span>
+      <span class="map-layer-name" id="map-layer-name-lodging">숙박</span>
+      <div id="layer-toggle-lodging" class="toggle-switch small"><div class="toggle-knob"></div></div>
+    </div>
+    <div class="map-layer-item" onclick="toggleMapLayer('restroom')">
+      <span class="map-layer-dot" style="--layer-color:#a3e635;"></span>
+      <span class="map-layer-name" id="map-layer-name-restroom">화장실</span>
+      <div id="layer-toggle-restroom" class="toggle-switch small"><div class="toggle-knob"></div></div>
+    </div>
+    <div class="map-layer-item unavailable" onclick="toggleMapLayer('community')">
+      <span class="map-layer-dot" style="--layer-color:#94a3b8;"></span>
+      <span class="map-layer-name"><span id="map-layer-name-community">주민회관</span> <em id="map-layer-coming-soon">준비중</em></span>
+      <div id="layer-toggle-community" class="toggle-switch small"><div class="toggle-knob"></div></div>
+    </div>
+  </div>
+  <div class="sidebar-divider"></div>
+</div>
+
+
+<!-- 상단 탭: 기억 / 사진 / 발걸음 -->
+<div class="sidebar-tabs" id="top-tabs">
+  <div class="sidebar-tab active" id="tab-memory" onclick="switchAllTab('memory')"><span class="sidebar-tab-icon">★</span><span class="sidebar-tab-text">기억</span></div>
+  <div class="sidebar-tab" id="tab-photo" onclick="switchAllTab('photo')"><span class="sidebar-tab-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8" cy="9" r="1.8"/><path d="M3 17l5.2-5.2a1.8 1.8 0 0 1 2.6 0l2.1 2.1 4.1-5a1.8 1.8 0 0 1 2.8 0L21 10.4"/></svg></span><span class="sidebar-tab-text">사진</span></div>
+  <div class="sidebar-tab" id="tab-gpx" onclick="switchAllTab('gpx')"><span class="sidebar-tab-icon text-icon">GPX</span><span class="sidebar-tab-text">발걸음</span></div>
+</div>
+
+<!-- 가운데 콘텐츠 영역 (스크롤) -->
+<div id="sidebar-content">
+
+  <div id="panel-memory" class="tab-panel">
+    <div id="memory-list-container"><p class="empty-message">아직 기록이 없습니다.</p></div>
+  </div>
+
+  <div id="panel-photo" class="tab-panel" style="display:none;">
+    <div id="photo-list-container"><p class="empty-message">아직 사진이 없습니다.</p></div>
+  </div>
+
+  <div id="panel-gpx" class="tab-panel" style="display:none;">
+    <div class="gpx-section-label">발걸음 추출</div>
+    <div class="gpx-dial-wrap">
+      <div class="gpx-dial-row"><span class="gpx-dial-icon">시간</span><span class="gpx-dial-title">최근</span>
+        <div class="gpx-dial-controls"><button class="dial-btn" onclick="adjustHourDial(-1)">-</button><span class="dial-value" id="dial-hour-label">8시간</span><button class="dial-btn" onclick="adjustHourDial(1)">+</button></div>
+      </div>
+      <div class="gpx-dial-range-info" id="gpx-range-info">오늘 기준 최근 8시간 발걸음</div>
+    </div>
+    <div class="gpx-name-row"><input type="text" id="gpx-export-name" class="gpx-name-input" placeholder="발걸음 이름 (예: 한강 산책)"></div>
+    <button class="gpx-action-btn export" onclick="exportGpx()">이 발걸음 저장하기</button>
+    <div class="sidebar-divider" style="margin-top:18px;"></div>
+    <div class="gpx-section-label">저장된 발걸음 열기</div>
+    <div id="gpx-saved-list"><p class="empty-message">저장된 발걸음이 없습니다.</p></div>
+    <button class="gpx-action-btn import" onclick="document.getElementById('gpx-file-input').click()" style="margin-top:10px;">파일에서 불러오기</button>
+    <input type="file" id="gpx-file-input" accept=".gpx" style="display:none" onchange="importGpxFile(event)">
+    <div id="gpx-import-status" class="gpx-status"></div>
+  </div>
+
+  <div id="panel-badge" class="tab-panel" style="display:none;">
+    <div id="badge-list"><p class="empty-message">아직 획득한 뱃지가 없습니다.</p></div>
+  </div>
+
+  <div id="panel-visit" class="tab-panel" style="display:none;">
+    <div id="visit-list"><p class="empty-message">아직 방문한 장소가 없습니다.</p></div>
+  </div>
+
+  <div id="panel-item" class="tab-panel" style="display:none;">
+    <div id="item-list"><p class="empty-message">아직 획득한 아이템이 없습니다.</p></div>
+  </div>
+
+</div>
+
+<!-- 하단 탭: 뱃지 / 방문 / 아이템 (고정) -->
+<div id="bottom-tabs">
+  <div class="sidebar-tab" id="tab-badge" onclick="switchAllTab('badge')"><span class="sidebar-tab-icon text-icon">B</span><span class="sidebar-tab-text">뱃지</span></div>
+  <div class="sidebar-tab" id="tab-visit" onclick="switchAllTab('visit')"><span class="sidebar-tab-icon text-icon">V</span><span class="sidebar-tab-text">방문</span></div>
+  <div class="sidebar-tab" id="tab-item" onclick="switchAllTab('item')"><span class="sidebar-tab-icon text-icon">I</span><span class="sidebar-tab-text">아이템</span></div>
+</div>
+
+</div>
+<div id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
+
+<div id="map-wrap">
+<div id="map"></div>
+<canvas id="fog-canvas"></canvas>
+<canvas id="age-canvas"></canvas>
+<canvas id="stay-canvas"></canvas>
+</div>
+
+<div id="kakao-traffic-wrap" aria-hidden="true">
+<div id="kakao-traffic-map"></div>
+<button id="kakao-traffic-close" type="button" onclick="toggleKakaoTraffic(false)">닫기</button>
+</div>
+
+<div id="top-bar">
+<div id="ham-btn" onclick="toggleSidebar()"><div class="hline"></div><div class="hline"></div><div class="hline"></div></div>
+<div id="rec-status-box">대기 중</div>
+<div id="lang-toggle" aria-label="언어 선택">
+    <button id="lang-btn-ko" class="lang-btn active" data-lang="ko" onclick="toggleLang('ko')">한</button>
+    <button id="lang-btn-en" class="lang-btn" data-lang="en" onclick="toggleLang('en')">EN</button>
+    <button id="lang-btn-ja" class="lang-btn" data-lang="ja" onclick="toggleLang('ja')">あ</button>
+    <button id="lang-btn-zh" class="lang-btn" data-lang="zh" onclick="toggleLang('zh')">中</button>
+</div>
+</div>
+
+<div id="tour-panel">
+  <div id="tour-header" onclick="toggleTourExpand()">
+    <span id="tour-title">주변 관광지</span>
+    <div id="tour-header-right">
+      <span id="tour-count"></span>
+      <span id="tour-festival-badge"></span>
+      <button id="tour-close-btn" onclick="closeTourPanel(event)" aria-label="닫기">&times;</button>
+    </div>
+  </div>
+  <div id="festival-strip-label">주변 축제</div>
+  <div id="festival-strip"></div>
+  <div id="tour-list"></div>
+  <div id="tour-expand-btn" onclick="toggleTourMore(event)"><span id="tour-expand-icon">▼</span> <span id="tour-expand-text">더보기</span></div>
+  <div id="tour-loading" style="display:none;">검색 중...</div>
+  <div id="tour-empty" style="display:none;">이 지역에 관광지가 없어요</div>
+</div>
+
+<div id="controls">
+<div id="photo-btn" class="btn" onclick="togglePhotoMenu()"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8" cy="9" r="1.8"/><path d="M3 17l5.2-5.2a1.8 1.8 0 0 1 2.6 0l2.1 2.1 4.1-5a1.8 1.8 0 0 1 2.8 0L21 10.4"/></svg></div>
+<div id="traffic-btn" class="btn" onclick="openKakaoDirections()" title="카카오맵 길찾기" aria-label="카카오맵 길찾기"><svg class="route-icon" viewBox="-2 -2 36 36" fill="none" aria-hidden="true"><path d="M7 9.5h13.2c3.2 0 5.8 2.2 5.8 5s-2.6 5-5.8 5H11.8c-2.9 0-5.2 1.8-5.2 4s2.3 4 5.2 4H24" stroke="currentColor" stroke-width="3.3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.6" cy="9.5" r="3.8" stroke="currentColor" stroke-width="3.1"/><circle cx="24.2" cy="27.5" r="4.2" stroke="currentColor" stroke-width="3.1"/><circle cx="24.2" cy="27.5" r="1.25" fill="currentColor"/><circle cx="18" cy="19.5" r="2.2" fill="currentColor"/></svg></div>
+<div id="loc-btn" class="btn record-loc-btn" onclick="toggleRecording()" title="기록 시작/중단"><span class="loc-crosshair"><span class="loc-record-icon"></span></span></div>
+</div>
+
+<div id="photo-menu" class="photo-menu">
+<div class="photo-menu-item" onclick="triggerGallery()"><span class="photo-menu-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8" cy="9" r="1.8"/><path d="M3 17l5.2-5.2a1.8 1.8 0 0 1 2.6 0l2.1 2.1 4.1-5a1.8 1.8 0 0 1 2.8 0L21 10.4"/></svg></span><span class="photo-menu-label">갤러리에서 불러오기</span></div>
+</div>
+<div id="photo-menu-overlay" onclick="closePhotoMenu()"></div>
+<input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotos(event)">
+<input type="file" id="gallery-input" accept="image/*" multiple style="display:none" onchange="handlePhotos(event)">
+
+<div id="help-btn" class="btn" onclick="toggleHelp()">?</div>
+<div id="help-popup" onclick="handleHelpOverlayClick(event)">
+<div class="help-content" id="help-content-box">
+<div class="help-tab-row">
+<div class="help-tab active" id="htab-ask" onclick="switchHelpTab('ask')">문의하기</div>
+<div class="help-tab" id="htab-info" onclick="switchHelpTab('info')">! 설명보기</div>
+<span onclick="toggleHelp()" class="help-close">&times;</span>
+</div>
+<div id="hpanel-ask" class="help-panel">
+<p id="help-ask-copy" style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.7;margin-bottom:14px;">사용 중 불편한 점이나 건의사항은<br>카카오톡 오픈채팅으로 들려주세요</p>
+<div class="help-notice" id="help-notice">현재 저장된 GPX 데이터는 서버로 전송되지 않아요.<br>모든 기록은 <b>오직 이 기기 안에서만</b> 저장되고 보여져요.</div>
+<a href="https://open.kakao.com/o/gwg21Cni" target="_blank" class="help-link" id="help-link">카카오톡 오픈채팅 문의</a>
+</div>
+<button id="help-tutorial-replay" type="button" class="help-link help-tutorial-link" onclick="replayGiloaTutorial()">튜토리얼 다시 보기</button>
+<div id="hpanel-info" class="help-panel" style="display:none;">
+<div class="help-guide-list">
+<div class="help-guide-item"><div class="help-guide-icon red-dot"></div><div class="help-guide-text"><b>녹화 버튼</b><br><span>누르면 GPS 경로 기록 시작. 다시 누르면 중지.</span></div></div>
+<div class="help-guide-item"><div class="help-guide-icon photo-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8" cy="9" r="1.8"/><path d="M3 17l5.2-5.2a1.8 1.8 0 0 1 2.6 0l2.1 2.1 4.1-5a1.8 1.8 0 0 1 2.8 0L21 10.4"/></svg></div><div class="help-guide-text"><b>사진 버튼</b><br><span>갤러리에서 사진을 불러와 저장해요. 의미 있는 장소를 쓰려면 지도에 찍힌 사진을 두 번 눌러 입력해 주세요.</span></div></div>
+<div class="help-guide-item"><div class="help-guide-icon blue-dot"></div><div class="help-guide-text"><b>현재 위치 버튼</b><br><span>조준점 아이콘이에요. 지도를 내 현재 위치로 다시 이동시켜요.</span></div></div>
+<div class="help-guide-item"><div class="help-guide-icon person-icon"><svg width="16" height="16" viewBox="0 0 26 26" fill="none"><circle cx="13" cy="9" r="4.5" stroke="white" stroke-width="1.6"/><path d="M3.5 23c0-5.247 4.253-8.5 9.5-8.5s9.5 3.253 9.5 8.5" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg></div><div class="help-guide-text"><b>상태 버튼</b><br><span>사람 아이콘이에요. 내 현재 칭호, 레벨, 진행 상태를 확인할 수 있어요.</span></div></div>
+<div class="help-guide-item"><div class="help-guide-icon menu-icon">≡</div><div class="help-guide-text"><b>메뉴 버튼 (상단 왼쪽)</b><br><span>햄버거 아이콘이에요. 기억, 사진, 발걸음, 뱃지, 방문, 아이템 목록을 열어볼 수 있어요.</span></div></div>
+</div>
+</div>
+</div>
+</div>
+
+<div id="giloa-tutorial" class="giloa-tutorial" aria-hidden="true">
+  <div class="giloa-tutorial-dim"></div>
+  <div class="giloa-tutorial-card" role="dialog" aria-modal="true" aria-labelledby="giloa-tutorial-title">
+    <button id="giloa-tutorial-skip" class="giloa-tutorial-skip" type="button" aria-label="튜토리얼 닫기">&times;</button>
+    <div class="giloa-guide-stage" aria-hidden="true">
+      <img id="giloa-guide-image" class="giloa-guide-image" src="./images/giloa-guide-character-transparent.png" alt="">
+      <div class="giloa-guide-glow"></div>
+    </div>
+    <div class="giloa-guide-bubble">
+      <div id="giloa-tutorial-kicker" class="giloa-tutorial-kicker">GILOA GUIDE</div>
+      <div id="giloa-tutorial-title" class="giloa-tutorial-title">너만의 대동여지도를 시작해볼까?</div>
+      <div id="giloa-tutorial-copy" class="giloa-tutorial-copy">나는 네 길의 조각을 모아주는 길로아 안내자야.</div>
+      <div class="giloa-tutorial-progress" id="giloa-tutorial-progress"></div>
+      <div class="giloa-tutorial-actions">
+        <button id="giloa-tutorial-prev" class="giloa-tutorial-btn ghost" type="button">이전</button>
+        <button id="giloa-tutorial-next" class="giloa-tutorial-btn primary" type="button">다음</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="hud" onclick="event.stopPropagation()">
+<div id="hud-handle" onclick="event.preventDefault(); event.stopPropagation(); toggleHud();" role="button" aria-label="HUD 열기">
+<div id="hud-mini-avatar" aria-hidden="true">♙</div>
+<div id="hud-mini-main"><div id="hud-mini-line">중단됨 · LV 1 · 다음 0%</div><div id="hud-mini-xp-track"><div class="hud-mini-xp-fill mini-dist" id="hud-mini-dist"></div><div class="hud-mini-xp-fill mini-memory" id="hud-mini-memory"></div><div class="hud-mini-xp-fill mini-photo" id="hud-mini-photo"></div></div></div>
+</div>
+<div id="hud-basic">
+<div id="hud-user-row"><div id="hud-avatar" aria-hidden="true">♙</div><div id="hud-user-main"><div id="hud-user-label">길로아 아이디</div><div id="hud-user-id">-</div></div><div id="hud-game-line">중단됨 · LV 1 · 다음 0%</div><button id="hud-user-change-btn" type="button" onclick="changeUserId()">변경</button></div>
+<div id="hud-title-row"><div id="hud-title-wrap"><div id="hud-title-label">현재 칭호</div><div id="hud-title-text">길 없는 자</div></div><div id="hud-level-wrap"><div id="hud-level-label">LV</div><div id="hud-level-num">1</div></div></div>
+<div id="hud-xp-row"><div id="hud-xp-label">다음 레벨 목표</div><div id="hud-xp-track"><div class="hud-xp-fill xp-dist" id="hud-xp-dist"></div><div class="hud-xp-fill xp-memory" id="hud-xp-memory"></div><div class="hud-xp-fill xp-photo" id="hud-xp-photo"></div></div></div>
+<div id="hud-progress-row">
+<div class="hud-prog-item"><div class="hud-prog-label">이동 거리</div><div class="hud-prog-current" id="prog-dist-cur">0.00 km</div><div class="hud-prog-bar-wrap"><div class="hud-prog-bar" id="prog-dist-bar" style="width:0%;background:#4db8ff;"></div></div><div class="hud-prog-next" id="prog-dist-next">다음까지 0km</div></div>
+<div class="hud-prog-item"><div class="hud-prog-label">기억 개수</div><div class="hud-prog-current" id="prog-mem-cur">0 개</div><div class="hud-prog-bar-wrap"><div class="hud-prog-bar" id="prog-mem-bar" style="width:0%;background:#ffd84d;"></div></div><div class="hud-prog-next" id="prog-mem-next">다음까지 0개</div></div>
+<div class="hud-prog-item"><div class="hud-prog-label">사진 개수</div><div class="hud-prog-current" id="prog-photo-cur">0 개</div><div class="hud-prog-bar-wrap"><div class="hud-prog-bar" id="prog-photo-bar" style="width:0%;background:#a78bfa;"></div></div><div class="hud-prog-next" id="prog-photo-next">다음까지 0개</div></div>
+</div>
+</div>
+</div>
+
+<script src="./vendor/leaflet.js?v=app-local-9"></script>
+<script src="./vendor/leaflet.markercluster.js?v=app-local-9"></script>
+<script src="./config.js?v=app-local-9"></script>
+<script src="./vendor/tf.min.js?v=app-local-9"></script>
+<script src="./script.js?v=app-local-9"></script>
+<script>
+if ("serviceWorker" in navigator && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
+    window.addEventListener("load", function() {
+        navigator.serviceWorker.register("./sw.js?v=app-local-9")
+            .then(function() { console.log("SW 등록 완료"); })
+            .catch(function(e) { console.warn("SW 등록 실패", e); });
+    });
+}
+</script>
+</body>
+</html>
+
+
+
+
+
