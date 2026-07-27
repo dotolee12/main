@@ -1174,3 +1174,60 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #111; font
 .pose-cheer .giloa-guide-image {
     transform: translateY(-5px) scale(1.05);
 }
+
+
+/* Giloa consolidated menu */
+.sidebar-tabs.two-tabs,
+#bottom-tabs.two-tabs { grid-template-columns: repeat(2, 1fr); }
+
+.sidebar-service-menu {
+    flex-shrink: 0;
+    padding: 10px 20px 8px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    background: rgba(18,18,30,0.98);
+}
+.sidebar-service-link {
+    min-height: 40px;
+    padding: 0 8px;
+    display: grid;
+    grid-template-columns: 26px 1fr 18px;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255,255,255,0.72);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 9px;
+}
+.sidebar-service-link:hover, .sidebar-service-link:active {
+    color: #4fc3f7;
+    background: rgba(79,195,247,0.08);
+}
+.sidebar-service-icon { color: #4fc3f7; text-align:center; }
+.sidebar-service-arrow { color: rgba(255,255,255,0.30); font-size:18px; text-align:right; }
+
+.photo-list-item { aspect-ratio: auto; min-height: 176px; display:flex; flex-direction:column; }
+.photo-list-item img { aspect-ratio: 1; flex:0 0 auto; }
+.photo-list-note {
+    padding: 8px 9px 10px;
+    font-size: 11px;
+    line-height: 1.45;
+    color: rgba(255,255,255,0.78);
+    background: rgba(13,13,24,0.94);
+    min-height: 42px;
+    word-break: keep-all;
+}
+.photo-list-date { position: static; background: rgba(13,13,24,0.94); padding: 0 9px 8px; }
+.photo-note-editor { margin-top:8px; }
+.photo-note-label { display:block; font-size:11px; font-weight:800; color:#4fc3f7; margin-bottom:5px; }
+.photo-note-input {
+    width:100%; min-height:72px; resize:vertical; padding:9px 10px;
+    border-radius:8px; border:1px solid rgba(79,195,247,0.35);
+    background:rgba(255,255,255,0.08); color:#fff; font:inherit; font-size:12px; line-height:1.5; outline:none;
+}
+.photo-note-save {
+    width:100%; margin-top:7px; padding:8px 10px; border:0; border-radius:8px;
+    background:#4fc3f7; color:#07111d; font-size:12px; font-weight:900; cursor:pointer;
+}
+#item-list { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.collection-section-title { grid-column:1/-1; margin:6px 0 2px; font-size:12px; font-weight:900; color:#4fc3f7; }

@@ -1003,7 +1003,7 @@ function createMemoryMarker(data, openPopup) { var marker = L.marker([data.lat, 
 function deleteMemory(id) { memories = memories.filter(function(m) { return m.id !== id; }); var marker = memoryMarkers.get(id); if (marker) { map.removeLayer(marker); memoryMarkers.delete(id); } updateMemoryList(); updateStats(); scheduleSave(); }
 function updateMemoryList() { var container = document.getElementById("memory-list-container"); if (!container) return; if (memories.length === 0) { container.innerHTML = '<p class="empty-message">?占쎌쭅 湲곕줉???占쎌뒿?占쎈떎.</p>'; return; } container.innerHTML = ""; memories.slice().reverse().forEach(function(memo) { var item = document.createElement("div"); item.className = "memory-item"; var name = document.createElement("span"); name.className = "item-name"; name.textContent = memo.name; var date = document.createElement("span"); date.className = "item-date"; date.textContent = memo.dateString + " " + (memo.timeString || ""); var actions = document.createElement("div"); actions.className = "memory-actions"; var moveBtn = document.createElement("button"); moveBtn.className = "memory-action-btn move"; moveBtn.textContent = "?占쎈룞"; moveBtn.addEventListener("click", function(e) { e.stopPropagation(); setSelectedDestination(memo.lat, memo.lng, memo.name || "湲곗뼲???μ냼"); map.flyTo([memo.lat, memo.lng], 17); }); var delBtn = document.createElement("button"); delBtn.className = "memory-action-btn delete"; delBtn.textContent = "??占쏙옙"; delBtn.addEventListener("click", function(e) { e.stopPropagation(); deleteMemory(memo.id); }); actions.appendChild(moveBtn); actions.appendChild(delBtn); item.appendChild(name); item.appendChild(date); item.appendChild(actions); item.addEventListener("click", function() { setSelectedDestination(memo.lat, memo.lng, memo.name || "湲곗뼲???μ냼"); map.flyTo([memo.lat, memo.lng], 17); toggleSidebar(false); }); container.appendChild(item); }); }
 // 紐⑤뱺 ???占쏀솚
-var ALL_TABS = ["memory", "photo", "gpx", "badge", "visit", "item"];
+var ALL_TABS = ["photo", "gpx", "visit", "item"];
 function switchAllTab(tab) {
     ALL_TABS.forEach(function(t) {
         var tabEl = document.getElementById("tab-" + t);
@@ -1013,12 +1013,49 @@ function switchAllTab(tab) {
     });
     if (tab === "photo") updatePhotoList();
     if (tab === "gpx") updateGpxSavedList();
-    if (tab === "badge") updateBadgeList();
     if (tab === "visit") updateVisitList();
+    if (tab === "item") updateItemList();
 }
 function switchTab(tab) { switchAllTab(tab); }
 function switchCollectionTab(tab) { switchAllTab(tab); }
-function updatePhotoList() { var container = document.getElementById("photo-list-container"); if (!container) return; if (photos.length === 0) { container.innerHTML = '<p class="empty-message" style="grid-column:1/-1">아직 저장된 사진이 없습니다.</p>'; return; } container.innerHTML = ""; photos.slice().reverse().forEach(function(p) { var item = document.createElement("div"); item.className = "photo-list-item"; var img = document.createElement("img"); img.src = p.thumb || p.photo || p.remoteThumbUrl || p.remotePhotoUrl; var date = document.createElement("div"); date.className = "photo-list-date"; date.textContent = p.dateString; var del = document.createElement("div"); del.className = "photo-list-del"; del.textContent = "×"; del.addEventListener("click", function(e) { e.stopPropagation(); deletePhoto(p.id); updatePhotoList(); }); item.addEventListener("click", function() { focusPhotoOnMap(p); }); item.addEventListener("dblclick", function(e) { e.preventDefault(); openPhotoInGallery(p); }); item.addEventListener("contextmenu", function(e) { e.preventDefault(); focusPhotoOnMap(p); }); item.title = "지도에서 보기"; item.appendChild(img); item.appendChild(date); item.appendChild(del); container.appendChild(item); }); }
+function updatePhotoList() {
+    var container = document.getElementById("photo-list-container");
+    if (!container) return;
+    if (photos.length === 0) {
+        container.innerHTML = '<p class="empty-message" style="grid-column:1/-1">아직 저장된 사진이 없습니다.</p>';
+        return;
+    }
+    container.innerHTML = "";
+    photos.slice().reverse().forEach(function(p) {
+        var item = document.createElement("div");
+        item.className = "photo-list-item";
+        var img = document.createElement("img");
+        img.src = p.thumb || p.photo || p.remoteThumbUrl || p.remotePhotoUrl;
+        var note = document.createElement("div");
+        note.className = "photo-list-note";
+        note.textContent = (p.note || "").trim() || "이 사진을 남긴 이유를 입력해 주세요.";
+        var date = document.createElement("div");
+        date.className = "photo-list-date";
+        date.textContent = p.dateString;
+        var del = document.createElement("div");
+        del.className = "photo-list-del";
+        del.textContent = "×";
+        del.addEventListener("click", function(e) {
+            e.stopPropagation();
+            deletePhoto(p.id);
+            updatePhotoList();
+        });
+        item.addEventListener("click", function() { focusPhotoOnMap(p); });
+        item.addEventListener("dblclick", function(e) { e.preventDefault(); openPhotoInGallery(p); });
+        item.addEventListener("contextmenu", function(e) { e.preventDefault(); focusPhotoOnMap(p); });
+        item.title = "지도에서 보기";
+        item.appendChild(img);
+        item.appendChild(note);
+        item.appendChild(date);
+        item.appendChild(del);
+        container.appendChild(item);
+    });
+}
 function findPhotoMarker(id) { var found = null; photoClusterGroup.eachLayer(function(layer) { if (layer._photoData && layer._photoData.id === id) found = layer; }); return found; }
 function adjustHourDial(dir) { var next = dialHours + dir; if (next < 1 || next > 8) return; dialHours = next; updateDialUI(); }
 function updateDialUI() { var labelEl = document.getElementById("dial-hour-label"); var infoEl = document.getElementById("gpx-range-info"); if (labelEl) labelEl.textContent = dialHours + "h"; if (infoEl) infoEl.textContent = "Recent " + dialHours + " hour route"; }
@@ -1201,6 +1238,7 @@ function buildStatePayload() {
                 remoteThumbUrl: typeof p.remoteThumbUrl === "string" ? p.remoteThumbUrl : "",
                 storagePath: typeof p.storagePath === "string" ? p.storagePath : "",
                 thumbStoragePath: typeof p.thumbStoragePath === "string" ? p.thumbStoragePath : "",
+                note: typeof p.note === "string" ? p.note : "",
                 imagePrediction: p.imagePrediction && typeof p.imagePrediction === "object" ? {
                     label: typeof p.imagePrediction.label === "string" ? p.imagePrediction.label : "",
                     probability: isFinite(p.imagePrediction.probability) ? p.imagePrediction.probability : 0,
@@ -1239,6 +1277,7 @@ function applyStatePayload(saved) {
                 remoteThumbUrl: typeof p.remoteThumbUrl === "string" ? p.remoteThumbUrl : "",
                 storagePath: typeof p.storagePath === "string" ? p.storagePath : "",
                 thumbStoragePath: typeof p.thumbStoragePath === "string" ? p.thumbStoragePath : "",
+                note: typeof p.note === "string" ? p.note : "",
                 imagePrediction: p.imagePrediction && typeof p.imagePrediction === "object" ? {
                     label: typeof p.imagePrediction.label === "string" ? p.imagePrediction.label : "",
                     probability: isFinite(p.imagePrediction.probability) ? p.imagePrediction.probability : 0,
@@ -1371,7 +1410,8 @@ function processPhoto(img, now, lat, lng, options) {
         remoteThumbUrl: "",
         storagePath: "",
         thumbStoragePath: "",
-        imagePrediction: options.imagePrediction || null
+        imagePrediction: options.imagePrediction || null,
+        note: typeof options.note === "string" ? options.note : (options.mission && options.mission.name ? options.mission.name : "")
     };
     if (data.imagePrediction) awardImagePredictionBadge(data.imagePrediction);
     photos.push(data);
@@ -1569,6 +1609,12 @@ async function handlePhotos(event) {
     syncRecordingUI();
     if (failedCount > 0) alert("?占쏙옙? ?占쎌쭊(" + failedCount + "占???泥섎━?占쏙옙? 紐삵뻽?占쎈땲??");
 }
+function savePhotoNote(data, value) {
+    if (!data) return;
+    data.note = String(value || "").trim();
+    scheduleSave();
+    updatePhotoList();
+}
 function createPhotoMarker(data, openPopup) {
     var size = getPhotoMarkerSize();
     lastPhotoMarkerSize = size;
@@ -1579,45 +1625,52 @@ function createPhotoMarker(data, openPopup) {
     var img = document.createElement("img");
     img.src = data.photo || data.thumb || data.remotePhotoUrl || data.remoteThumbUrl;
     img.style.cssText = "width:72vw;max-width:280px;border-radius:8px;margin-bottom:8px;display:block;cursor:pointer;";
-    img.title = "한 번 누르면 기억으로 저장, 두 번 누르면 원본 보기";
-    img.addEventListener("click", function(e) {
-        e.stopPropagation();
-        if (photoTapTimer) {
-            clearTimeout(photoTapTimer);
-            photoTapTimer = null;
-            openPhotoInGallery(data);
-            return;
-        }
-        photoTapTimer = setTimeout(function() {
-            photoTapTimer = null;
-            addPhotoMemory(data);
-        }, 280);
-    });
+    img.title = "두 번 누르면 원본 보기";
+    img.addEventListener("dblclick", function(e) { e.stopPropagation(); openPhotoInGallery(data); });
+
     var info = document.createElement("div");
     info.style.cssText = "font-size:12px;color:rgba(255,255,255,0.6);text-align:center;margin:6px 0 8px;";
     info.textContent = data.dateString + " " + data.timeString;
-    var predictionInfo = null;
-    if (false && data.imagePrediction && data.imagePrediction.label) {
-        var predictionLabel = getReadableImagePredictionLabel(data.imagePrediction.label);
-        predictionInfo = document.createElement("div");
-        predictionInfo.className = data.imagePrediction.accepted ? "photo-ai-result accepted" : "photo-ai-result";
-        predictionInfo.textContent = predictionLabel + " " + (data.imagePrediction.percent || 0) + "%";
-    }
+
+    var editor = document.createElement("div");
+    editor.className = "photo-note-editor";
+    var label = document.createElement("label");
+    label.className = "photo-note-label";
+    label.textContent = "이 사진을 남긴 이유";
+    var textarea = document.createElement("textarea");
+    textarea.className = "photo-note-input";
+    textarea.placeholder = "예: 처음 방문한 장소, 다시 오고 싶은 풍경, 특별했던 순간";
+    textarea.value = data.note || "";
+    textarea.addEventListener("click", function(e) { e.stopPropagation(); });
+    var saveBtn = document.createElement("button");
+    saveBtn.className = "photo-note-save";
+    saveBtn.textContent = "기록 저장";
+    saveBtn.addEventListener("click", function(e) {
+        e.stopPropagation();
+        savePhotoNote(data, textarea.value);
+        saveBtn.textContent = "저장됨";
+        setTimeout(function() { saveBtn.textContent = "기록 저장"; }, 900);
+    });
+    editor.appendChild(label);
+    editor.appendChild(textarea);
+    editor.appendChild(saveBtn);
+
+    var note = document.createElement("div");
+    note.style.cssText = "font-size:11px;color:rgba(255,255,255,0.52);text-align:center;margin:8px 0;";
+    note.textContent = (data.locationSource === "exif" ? "사진 촬영 위치" : "현재 위치 기준") + "에 표시됩니다.";
+
     var delBtn = document.createElement("button");
     delBtn.className = "popup-delete-btn";
     delBtn.textContent = "사진 삭제";
     delBtn.addEventListener("click", function() { deletePhoto(data.id); marker.closePopup(); });
+
     popupEl.appendChild(img);
     popupEl.appendChild(info);
-    if (predictionInfo) popupEl.appendChild(predictionInfo);
-    var hasSource = !!(data.remotePhotoUrl || data.sourceUri || data.sourceWebPath);
-    var note = document.createElement("div");
-    note.style.cssText = "font-size:11px;color:rgba(255,255,255,0.52);text-align:center;margin:0 0 8px;";
-    var locationLabel = data.locationSource === "exif" ? "사진 촬영 위치" : "현재 위치 기준";
-    note.textContent = locationLabel + " · 한 번 누르면 기억으로 저장, 두 번 누르면 원본을 엽니다.";
+    popupEl.appendChild(editor);
     popupEl.appendChild(note);
     popupEl.appendChild(delBtn);
     marker.bindPopup(popupEl);
+    marker.on("click", function() { setSelectedDestination(data.lat, data.lng, data.note || "사진 기록"); });
     photoClusterGroup.addLayer(marker);
     if (openPopup) marker.openPopup();
 }
@@ -1647,7 +1700,7 @@ function renderStoredPhotoMarkers() {
     }).catch(function(e) { console.warn("IDB 遺덈윭?占쎄린 ?占쏀뙣", e); });
 }
 function initGpxDial() { dialHours = 8; updateDialUI(); }
-function initHudTapTargets() { var hud = document.getElementById("hud"); var handle = document.getElementById("hud-handle"); var distItem = document.querySelector(".hud-prog-item:nth-child(1)"); var memItem = document.querySelector(".hud-prog-item:nth-child(2)"); var photoItem = document.querySelector(".hud-prog-item:nth-child(3)"); if (hud && !hud.dataset.stopBound) { hud.dataset.stopBound = "1"; ["click", "pointerdown"].forEach(function(type) { hud.addEventListener(type, function(e) { e.stopPropagation(); }, { passive: true }); }); } if (handle) { handle.style.cursor = "pointer"; } if (distItem) { distItem.style.cursor = "pointer"; distItem.addEventListener("click", function() { toggleSidebar(true); switchTab("gpx"); }); } if (memItem) { memItem.style.cursor = "pointer"; memItem.addEventListener("click", function() { toggleSidebar(true); switchTab("memory"); }); } if (photoItem) { photoItem.style.cursor = "pointer"; photoItem.addEventListener("click", function() { toggleSidebar(true); switchTab("photo"); }); } }
+function initHudTapTargets() { var hud = document.getElementById("hud"); var handle = document.getElementById("hud-handle"); var distItem = document.querySelector(".hud-prog-item:nth-child(1)"); var memItem = document.querySelector(".hud-prog-item:nth-child(2)"); var photoItem = document.querySelector(".hud-prog-item:nth-child(3)"); if (hud && !hud.dataset.stopBound) { hud.dataset.stopBound = "1"; ["click", "pointerdown"].forEach(function(type) { hud.addEventListener(type, function(e) { e.stopPropagation(); }, { passive: true }); }); } if (handle) { handle.style.cursor = "pointer"; } if (distItem) { distItem.style.cursor = "pointer"; distItem.addEventListener("click", function() { toggleSidebar(true); switchTab("gpx"); }); } if (memItem) { memItem.style.cursor = "pointer"; memItem.addEventListener("click", function() { toggleSidebar(true); switchTab("photo"); }); } if (photoItem) { photoItem.style.cursor = "pointer"; photoItem.addEventListener("click", function() { toggleSidebar(true); switchTab("photo"); }); } }
 
 var tutorialStepIndex = 0;
 var tutorialStepsByLang = {
@@ -2591,7 +2644,7 @@ function varcoTranslate(text, sourceLang, targetLang) {
 }
 
 var UI_TEXT = {
-    ko: { sidebar_title: "나의 기록", fog_label: "안개 효과", fog_on: "켜짐", fog_off: "꺼짐", tab_memory: "기억", tab_photo: "사진", tab_gpx: "경로", tab_badge: "뱃지", tab_visit: "방문", tab_item: "아이템", rec_idle: "중단됨", rec_active: "기록중", gps_weak: "GPS 약함 ({value}m)", gps_very_weak: "GPS 매우 약함 ({value}m)", stay_bonus_wait: "기록중 - 체류 보너스까지 {value}분", stay_bonus_done: "30분 체류 완료! 레벨 +1 보너스!", empty_memory: "아직 기록이 없습니다.", empty_photo: "아직 사진이 없습니다.", tour_title: "주변 관광지", tour_place_fallback: "관광지", festival_label: "주변 축제", festival_badge: "축제", loading: "검색 중...", empty_tour: "주변 장소가 없습니다", close: "닫기", more: "더보기", next: "다음", start: "시작", previous: "이전", count_suffix: "곳", unit_count: "개", hud_title_label: "현재 칭호", hud_level_label: "LV", hud_dist_label: "이동 거리", hud_memory_label: "기억", hud_photo_label: "사진", hud_next: "다음까지", hud_condition_met: "달성!", hud_no_condition: "조건 없음", hud_max: "최고!", hud_max_level: "최고 레벨!", help_tab_ask: "문의하기", help_tab_info: "설명보기", help_tutorial_replay: "튜토리얼 다시 보기", help_ask_copy: "사용 중 불편한 점이나 건의사항은<br>카카오톡 오픈채팅으로 알려주세요.", help_notice: "저장된 GPX 데이터는 서버로 전송되지 않습니다.<br>모든 기록은 <b>이 기기 안에만</b> 저장되고 보여집니다.", help_link: "카카오톡 오픈채팅", help_record_title: "기록 버튼", help_record_desc: "누르면 GPS 경로 기록을 시작하고 다시 누르면 중단합니다.", help_photo_title: "사진 버튼", help_photo_desc: "갤러리에서 사진을 불러옵니다.", help_memory_title: "기억 버튼", help_memory_desc: "현재 위치에 이름을 붙여 기억으로 저장합니다.", help_location_title: "현재 위치 버튼", help_location_desc: "지도를 현재 위치로 이동합니다.", help_status_title: "상태 버튼", help_status_desc: "칭호와 진행 상태를 확인합니다.", help_menu_title: "메뉴 버튼", help_menu_desc: "기억, 사진, 경로 기록을 확인합니다." },
+    ko: { sidebar_title: "나의 기록", fog_label: "안개 효과", fog_on: "켜짐", fog_off: "꺼짐", tab_memory: "기억", tab_photo: "사진 기록", tab_gpx: "경로", tab_badge: "아이템", tab_visit: "방문", tab_item: "아이템", rec_idle: "중단됨", rec_active: "기록중", gps_weak: "GPS 약함 ({value}m)", gps_very_weak: "GPS 매우 약함 ({value}m)", stay_bonus_wait: "기록중 - 체류 보너스까지 {value}분", stay_bonus_done: "30분 체류 완료! 레벨 +1 보너스!", empty_memory: "아직 기록이 없습니다.", empty_photo: "아직 사진이 없습니다.", tour_title: "주변 관광지", tour_place_fallback: "관광지", festival_label: "주변 축제", festival_badge: "축제", loading: "검색 중...", empty_tour: "주변 장소가 없습니다", close: "닫기", more: "더보기", next: "다음", start: "시작", previous: "이전", count_suffix: "곳", unit_count: "개", hud_title_label: "현재 칭호", hud_level_label: "LV", hud_dist_label: "이동 거리", hud_memory_label: "기억", hud_photo_label: "사진", hud_next: "다음까지", hud_condition_met: "달성!", hud_no_condition: "조건 없음", hud_max: "최고!", hud_max_level: "최고 레벨!", help_tab_ask: "문의하기", help_tab_info: "설명보기", help_tutorial_replay: "튜토리얼 다시 보기", help_ask_copy: "사용 중 불편한 점이나 건의사항은<br>카카오톡 오픈채팅으로 알려주세요.", help_notice: "저장된 GPX 데이터는 서버로 전송되지 않습니다.<br>모든 기록은 <b>이 기기 안에만</b> 저장되고 보여집니다.", help_link: "카카오톡 오픈채팅", help_record_title: "기록 버튼", help_record_desc: "누르면 GPS 경로 기록을 시작하고 다시 누르면 중단합니다.", help_photo_title: "사진 버튼", help_photo_desc: "갤러리에서 사진을 불러옵니다.", help_memory_title: "기억 버튼", help_memory_desc: "현재 위치에 이름을 붙여 기억으로 저장합니다.", help_location_title: "현재 위치 버튼", help_location_desc: "지도를 현재 위치로 이동합니다.", help_status_title: "상태 버튼", help_status_desc: "칭호와 진행 상태를 확인합니다.", help_menu_title: "메뉴 버튼", help_menu_desc: "기억, 사진, 경로 기록을 확인합니다." },
     en: { sidebar_title: "My Records", fog_label: "Fog Effect", fog_on: "On", fog_off: "Off", tab_memory: "Memory", tab_photo: "Photo", tab_gpx: "Route", tab_badge: "Badges", tab_visit: "Visits", tab_item: "Items", rec_idle: "Stopped", rec_active: "Recording", gps_weak: "Weak GPS ({value}m)", gps_very_weak: "Very weak GPS ({value}m)", stay_bonus_wait: "Recording - stay bonus in {value} min", stay_bonus_done: "30 min stay complete! Level +1 bonus!", empty_memory: "No records yet.", empty_photo: "No photos yet.", tour_title: "Nearby Places", tour_place_fallback: "Place", festival_label: "Nearby Festivals", festival_badge: "Festivals", loading: "Searching...", empty_tour: "No nearby places", close: "Close", more: "More", next: "Next", start: "Start", previous: "Back", count_suffix: "places", unit_count: "", hud_title_label: "Current Title", hud_level_label: "LV", hud_dist_label: "Distance", hud_memory_label: "Memories", hud_photo_label: "Photos", hud_next: "Next", hud_condition_met: "Met!", hud_no_condition: "No condition", hud_max: "Max!", hud_max_level: "Max level reached!", help_tab_ask: "Contact", help_tab_info: "Guide", help_tutorial_replay: "Replay Tutorial", help_ask_copy: "Tell us about issues or suggestions<br>through KakaoTalk open chat.", help_notice: "Saved GPX data is not sent to the server.<br>All records are stored and shown <b>only on this device</b>.", help_link: "KakaoTalk Open Chat", help_record_title: "Record Button", help_record_desc: "Tap to start GPS route recording. Tap again to stop.", help_photo_title: "Photo Button", help_photo_desc: "Import photos from your gallery.", help_memory_title: "Memory Button", help_memory_desc: "Name your current location and save it as a memory.", help_location_title: "Current Location Button", help_location_desc: "Move the map back to your current location.", help_status_title: "Status Button", help_status_desc: "Check your title and progress.", help_menu_title: "Menu Button", help_menu_desc: "View memories, photos, and route records." },
     ja: {},
     zh: {}
@@ -2870,7 +2923,7 @@ function loadCollection() {
         badges = Array.isArray(data.badges) ? data.badges : [];
         visitStamps = Array.isArray(data.visitStamps) ? data.visitStamps : [];
         items = Array.isArray(data.items) ? data.items : [];
-        updateBadgeList();
+        updateItemList();
         updateVisitList();
     } catch(e) { console.warn("?占쎌쭛 ?占쎈낫 蹂듭썝 ?占쏀뙣", e); }
 }
@@ -2886,7 +2939,7 @@ function earnBadge(badgeId) {
     var now = new Date();
     badges.push({ id: badgeId, earnedAt: now.getTime(), dateString: now.toLocaleDateString("ko-KR") });
     saveCollection();
-    updateBadgeList();
+    updateItemList();
     showCollectionToast(def.icon + " 諭껓옙? ?占쎈뱷! " + def.name);
 }
 
@@ -2925,6 +2978,54 @@ function updateBadgeList() {
         item.innerHTML = '<div class="badge-icon">' + def.icon + '</div><div class="badge-name">' + def.name + '</div><div class="badge-date">' + b.dateString + '</div>';
         item.title = def.desc || def.name;
         container.appendChild(item);
+    });
+}
+
+function updateItemList() {
+    var container = document.getElementById("item-list");
+    if (!container) return;
+    container.innerHTML = "";
+
+    var merged = [];
+    badges.slice().reverse().forEach(function(b) {
+        var def = BADGE_DEFS.find(function(d) { return d.id === b.id; });
+        if (!def) return;
+        merged.push({ type: "badge", icon: def.icon, name: def.name, date: b.dateString, desc: def.desc || "" });
+    });
+    items.slice().reverse().forEach(function(item) {
+        merged.push({ type: "item", icon: item.icon || "I", name: item.name || "아이템", date: item.dateString || "", desc: item.desc || "" });
+    });
+
+    if (merged.length === 0) {
+        container.innerHTML = '<p class="empty-message" style="grid-column:1/-1">아직 획득한 아이템이 없습니다.</p>';
+        return;
+    }
+
+    var title = document.createElement("div");
+    title.className = "collection-section-title";
+    title.textContent = "수집한 아이템";
+    container.appendChild(title);
+
+    merged.forEach(function(entry) {
+        var card = document.createElement("div");
+        card.className = entry.type === "badge" ? "badge-item item-card" : "item-card";
+        var icon = document.createElement("div");
+        icon.className = entry.type === "badge" ? "badge-icon" : "item-icon";
+        if (entry.type === "badge") icon.innerHTML = entry.icon;
+        else icon.textContent = entry.icon;
+        var name = document.createElement("div");
+        name.className = "item-name";
+        name.textContent = entry.name;
+        card.appendChild(icon);
+        card.appendChild(name);
+        if (entry.date) {
+            var date = document.createElement("div");
+            date.className = "badge-date";
+            date.textContent = entry.date;
+            card.appendChild(date);
+        }
+        card.title = entry.desc || entry.name;
+        container.appendChild(card);
     });
 }
 

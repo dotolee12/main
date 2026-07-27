@@ -82,20 +82,15 @@
 
 
 <!-- 상단 탭: 기억 / 사진 / 발걸음 -->
-<div class="sidebar-tabs" id="top-tabs">
-  <div class="sidebar-tab active" id="tab-memory" onclick="switchAllTab('memory')"><span class="sidebar-tab-icon">★</span><span class="sidebar-tab-text">기억</span></div>
-  <div class="sidebar-tab" id="tab-photo" onclick="switchAllTab('photo')"><span class="sidebar-tab-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8" cy="9" r="1.8"/><path d="M3 17l5.2-5.2a1.8 1.8 0 0 1 2.6 0l2.1 2.1 4.1-5a1.8 1.8 0 0 1 2.8 0L21 10.4"/></svg></span><span class="sidebar-tab-text">사진</span></div>
+<div class="sidebar-tabs two-tabs" id="top-tabs">
+  <div class="sidebar-tab active" id="tab-photo" onclick="switchAllTab('photo')"><span class="sidebar-tab-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8" cy="9" r="1.8"/><path d="M3 17l5.2-5.2a1.8 1.8 0 0 1 2.6 0l2.1 2.1 4.1-5a1.8 1.8 0 0 1 2.8 0L21 10.4"/></svg></span><span class="sidebar-tab-text">사진 기록</span></div>
   <div class="sidebar-tab" id="tab-gpx" onclick="switchAllTab('gpx')"><span class="sidebar-tab-icon text-icon">GPX</span><span class="sidebar-tab-text">발걸음</span></div>
 </div>
 
 <!-- 가운데 콘텐츠 영역 (스크롤) -->
 <div id="sidebar-content">
 
-  <div id="panel-memory" class="tab-panel">
-    <div id="memory-list-container"><p class="empty-message">아직 기록이 없습니다.</p></div>
-  </div>
-
-  <div id="panel-photo" class="tab-panel" style="display:none;">
+  <div id="panel-photo" class="tab-panel">
     <div id="photo-list-container"><p class="empty-message">아직 사진이 없습니다.</p></div>
   </div>
 
@@ -117,10 +112,6 @@
     <div id="gpx-import-status" class="gpx-status"></div>
   </div>
 
-  <div id="panel-badge" class="tab-panel" style="display:none;">
-    <div id="badge-list"><p class="empty-message">아직 획득한 뱃지가 없습니다.</p></div>
-  </div>
-
   <div id="panel-visit" class="tab-panel" style="display:none;">
     <div id="visit-list"><p class="empty-message">아직 방문한 장소가 없습니다.</p></div>
   </div>
@@ -132,8 +123,13 @@
 </div>
 
 <!-- 하단 탭: 뱃지 / 방문 / 아이템 (고정) -->
-<div id="bottom-tabs">
-  <div class="sidebar-tab" id="tab-badge" onclick="switchAllTab('badge')"><span class="sidebar-tab-icon text-icon">B</span><span class="sidebar-tab-text">뱃지</span></div>
+<div class="sidebar-service-menu">
+  <a href="../privacy/" class="sidebar-service-link"><span class="sidebar-service-icon">⌾</span><span>개인정보처리방침</span><span class="sidebar-service-arrow">›</span></a>
+  <a href="../terms/" class="sidebar-service-link"><span class="sidebar-service-icon">▤</span><span>이용약관</span><span class="sidebar-service-arrow">›</span></a>
+  <a href="../support/" class="sidebar-service-link"><span class="sidebar-service-icon">?</span><span>고객지원</span><span class="sidebar-service-arrow">›</span></a>
+</div>
+
+<div id="bottom-tabs" class="two-tabs">
   <div class="sidebar-tab" id="tab-visit" onclick="switchAllTab('visit')"><span class="sidebar-tab-icon text-icon">V</span><span class="sidebar-tab-text">방문</span></div>
   <div class="sidebar-tab" id="tab-item" onclick="switchAllTab('item')"><span class="sidebar-tab-icon text-icon">I</span><span class="sidebar-tab-text">아이템</span></div>
 </div>
