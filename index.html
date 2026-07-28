@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+  <script>
+    // Kakao 지도/장소 검색과 위치 권한은 file:// 환경에서 정상 동작하지 않는다.
+    // 사용자가 index.html을 직접 열어도 로컬 웹 서버로 자동 전환한다.
+    if (window.location.protocol === "file:") {
+      window.location.replace("http://127.0.0.1:4175/index.html");
+    }
+  </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>나의 대동여지도 - Project Giloa</title>
@@ -11,7 +18,7 @@
 <link rel="stylesheet" href="./vendor/leaflet.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.Default.css?v=app-local-9">
-<link rel="stylesheet" href="./style.css?v=app-local-9">
+<link rel="stylesheet" href="./style.css?v=app-local-18">
 </head>
 <body>
 <div id="user-id-modal" class="user-id-modal">
@@ -81,9 +88,9 @@
 </div>
 
 
-<!-- 상단 탭: 기억 / 사진 / 발걸음 -->
-<div class="sidebar-tabs two-tabs" id="top-tabs">
-  <div class="sidebar-tab active" id="tab-photo" onclick="switchAllTab('photo')"><span class="sidebar-tab-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8" cy="9" r="1.8"/><path d="M3 17l5.2-5.2a1.8 1.8 0 0 1 2.6 0l2.1 2.1 4.1-5a1.8 1.8 0 0 1 2.8 0L21 10.4"/></svg></span><span class="sidebar-tab-text">사진 기록</span></div>
+<!-- 상단 탭: 사진 / 발걸음 -->
+<div class="sidebar-tabs" id="top-tabs">
+  <div class="sidebar-tab active" id="tab-photo" onclick="switchAllTab('photo')"><span class="sidebar-tab-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8" cy="9" r="1.8"/><path d="M3 17l5.2-5.2a1.8 1.8 0 0 1 2.6 0l2.1 2.1 4.1-5a1.8 1.8 0 0 1 2.8 0L21 10.4"/></svg></span><span class="sidebar-tab-text">사진</span></div>
   <div class="sidebar-tab" id="tab-gpx" onclick="switchAllTab('gpx')"><span class="sidebar-tab-icon text-icon">GPX</span><span class="sidebar-tab-text">발걸음</span></div>
 </div>
 
@@ -122,14 +129,8 @@
 
 </div>
 
-<!-- 하단 탭: 뱃지 / 방문 / 아이템 (고정) -->
-<div class="sidebar-service-menu">
-  <a href="../privacy/" class="sidebar-service-link"><span class="sidebar-service-icon">⌾</span><span>개인정보처리방침</span><span class="sidebar-service-arrow">›</span></a>
-  <a href="../terms/" class="sidebar-service-link"><span class="sidebar-service-icon">▤</span><span>이용약관</span><span class="sidebar-service-arrow">›</span></a>
-  <a href="../support/" class="sidebar-service-link"><span class="sidebar-service-icon">?</span><span>고객지원</span><span class="sidebar-service-arrow">›</span></a>
-</div>
-
-<div id="bottom-tabs" class="two-tabs">
+<!-- 하단 탭: 방문 / 아이템 (고정) -->
+<div id="bottom-tabs">
   <div class="sidebar-tab" id="tab-visit" onclick="switchAllTab('visit')"><span class="sidebar-tab-icon text-icon">V</span><span class="sidebar-tab-text">방문</span></div>
   <div class="sidebar-tab" id="tab-item" onclick="switchAllTab('item')"><span class="sidebar-tab-icon text-icon">I</span><span class="sidebar-tab-text">아이템</span></div>
 </div>
@@ -158,6 +159,25 @@
     <button id="lang-btn-ja" class="lang-btn" data-lang="ja" onclick="toggleLang('ja')">あ</button>
     <button id="lang-btn-zh" class="lang-btn" data-lang="zh" onclick="toggleLang('zh')">中</button>
 </div>
+</div>
+
+<div id="daily-task-widget">
+  <button id="daily-task-tag" type="button" onclick="toggleDailyTasks()" aria-expanded="false" aria-controls="daily-task-panel">
+    <span class="daily-task-tag-label">할 일</span>
+    <span id="daily-task-tag-count">0/3</span>
+  </button>
+  <section id="daily-task-panel" aria-hidden="true" aria-labelledby="daily-task-title">
+    <div class="daily-task-head">
+      <div>
+        <div class="daily-task-kicker">오늘의 길로아</div>
+        <h2 id="daily-task-title">오늘의 할 일</h2>
+      </div>
+      <button class="daily-task-close" type="button" onclick="toggleDailyTasks(false)" aria-label="할 일 닫기">&times;</button>
+    </div>
+    <p class="daily-task-copy">가볍게 걸으며 오늘의 길을 남겨보세요.</p>
+    <div id="daily-task-list"></div>
+    <div class="daily-task-summary"><span id="daily-task-summary">0/3 완료</span><span>매일 자정에 새로 시작</span></div>
+  </section>
 </div>
 
 <div id="tour-panel">
@@ -190,28 +210,49 @@
 <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none" onchange="handlePhotos(event)">
 <input type="file" id="gallery-input" accept="image/*" multiple style="display:none" onchange="handlePhotos(event)">
 
+<div id="special-place-editor" class="special-place-editor" aria-hidden="true">
+  <div class="special-place-card" role="dialog" aria-modal="true" aria-labelledby="special-place-title">
+    <div id="special-place-title" class="special-place-title">특별한 장소</div>
+    <textarea id="special-place-note" class="special-place-note" rows="3" maxlength="500" placeholder="이 장소에 대한 내용을 입력하세요"></textarea>
+    <div id="special-place-error" class="special-place-error" role="alert"></div>
+    <div class="special-place-actions">
+      <button id="special-place-cancel" class="special-place-button secondary" type="button" onclick="closeSpecialPlaceEditor()" aria-label="취소">취소</button>
+      <button id="special-place-save" class="special-place-button primary" type="button" onclick="saveSpecialPlacePin()" aria-label="저장">저장</button>
+    </div>
+  </div>
+</div>
+
 <div id="help-btn" class="btn" onclick="toggleHelp()">?</div>
 <div id="help-popup" onclick="handleHelpOverlayClick(event)">
 <div class="help-content" id="help-content-box">
-<div class="help-tab-row">
-<div class="help-tab active" id="htab-ask" onclick="switchHelpTab('ask')">문의하기</div>
-<div class="help-tab" id="htab-info" onclick="switchHelpTab('info')">! 설명보기</div>
+<div class="help-tab-row" role="tablist" aria-label="도움말 메뉴">
+<button class="help-tab active" id="htab-ask" type="button" role="tab" aria-selected="true" aria-controls="hpanel-ask" tabindex="0" onclick="switchHelpTab('ask')" onkeydown="handleHelpTabKey(event, 'ask')">문의하기</button>
+<button class="help-tab" id="htab-info" type="button" role="tab" aria-selected="false" aria-controls="hpanel-info" tabindex="-1" onclick="switchHelpTab('info')" onkeydown="handleHelpTabKey(event, 'info')">설명보기</button>
+<button class="help-tab" id="htab-market" type="button" role="tab" aria-selected="false" aria-controls="hpanel-market" tabindex="-1" onclick="switchHelpTab('market')" onkeydown="handleHelpTabKey(event, 'market')">주변 시세</button>
 <span onclick="toggleHelp()" class="help-close">&times;</span>
 </div>
-<div id="hpanel-ask" class="help-panel">
+<div id="hpanel-ask" class="help-panel" role="tabpanel" aria-labelledby="htab-ask">
 <p id="help-ask-copy" style="font-size:13px;color:rgba(255,255,255,0.6);line-height:1.7;margin-bottom:14px;">사용 중 불편한 점이나 건의사항은<br>카카오톡 오픈채팅으로 들려주세요</p>
 <div class="help-notice" id="help-notice">현재 저장된 GPX 데이터는 서버로 전송되지 않아요.<br>모든 기록은 <b>오직 이 기기 안에서만</b> 저장되고 보여져요.</div>
 <a href="https://open.kakao.com/o/gwg21Cni" target="_blank" class="help-link" id="help-link">카카오톡 오픈채팅 문의</a>
 </div>
 <button id="help-tutorial-replay" type="button" class="help-link help-tutorial-link" onclick="replayGiloaTutorial()">튜토리얼 다시 보기</button>
-<div id="hpanel-info" class="help-panel" style="display:none;">
+<div id="hpanel-info" class="help-panel" role="tabpanel" aria-labelledby="htab-info" hidden>
 <div class="help-guide-list">
 <div class="help-guide-item"><div class="help-guide-icon red-dot"></div><div class="help-guide-text"><b>녹화 버튼</b><br><span>누르면 GPS 경로 기록 시작. 다시 누르면 중지.</span></div></div>
 <div class="help-guide-item"><div class="help-guide-icon photo-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8" cy="9" r="1.8"/><path d="M3 17l5.2-5.2a1.8 1.8 0 0 1 2.6 0l2.1 2.1 4.1-5a1.8 1.8 0 0 1 2.8 0L21 10.4"/></svg></div><div class="help-guide-text"><b>사진 버튼</b><br><span>갤러리에서 사진을 불러와 저장해요. 의미 있는 장소를 쓰려면 지도에 찍힌 사진을 두 번 눌러 입력해 주세요.</span></div></div>
-<div class="help-guide-item"><div class="help-guide-icon blue-dot"></div><div class="help-guide-text"><b>현재 위치 버튼</b><br><span>조준점 아이콘이에요. 지도를 내 현재 위치로 다시 이동시켜요.</span></div></div>
+<div class="help-guide-item"><div class="help-guide-icon blue-dot"></div><div class="help-guide-text"><b>현재 위치와 특별 장소</b><br><span>지도 위 파란 현재 위치 점을 누르면 메모와 함께 특별 장소 핀을 저장할 수 있어요.</span></div></div>
 <div class="help-guide-item"><div class="help-guide-icon person-icon"><svg width="16" height="16" viewBox="0 0 26 26" fill="none"><circle cx="13" cy="9" r="4.5" stroke="white" stroke-width="1.6"/><path d="M3.5 23c0-5.247 4.253-8.5 9.5-8.5s9.5 3.253 9.5 8.5" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg></div><div class="help-guide-text"><b>상태 버튼</b><br><span>사람 아이콘이에요. 내 현재 칭호, 레벨, 진행 상태를 확인할 수 있어요.</span></div></div>
 <div class="help-guide-item"><div class="help-guide-icon menu-icon">≡</div><div class="help-guide-text"><b>메뉴 버튼 (상단 왼쪽)</b><br><span>햄버거 아이콘이에요. 기억, 사진, 발걸음, 뱃지, 방문, 아이템 목록을 열어볼 수 있어요.</span></div></div>
 </div>
+</div>
+<div id="hpanel-market" class="help-panel local-market-panel" role="tabpanel" aria-labelledby="htab-market" hidden>
+  <h2 id="local-market-title" class="local-market-title">이 지역의 주변 시세</h2>
+  <p id="local-market-description" class="local-market-description">현재 지역에서 일반적으로 형성된 가격을 참고용으로 보여줍니다.</p>
+  <div id="local-market-region" class="local-market-region">현재 지역</div>
+  <div id="local-market-content" aria-live="polite"></div>
+  <p id="local-market-source" class="local-market-source">공공데이터를 바탕으로 한 참고 가격입니다.</p>
+  <div id="local-market-updated" class="local-market-updated" hidden></div>
 </div>
 </div>
 </div>
@@ -258,7 +299,7 @@
 <script src="./vendor/leaflet.markercluster.js?v=app-local-9"></script>
 <script src="./config.js?v=app-local-9"></script>
 <script src="./vendor/tf.min.js?v=app-local-9"></script>
-<script src="./script.js?v=app-local-9"></script>
+<script src="./script.js?v=app-local-17"></script>
 <script>
 if ("serviceWorker" in navigator && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
     window.addEventListener("load", function() {

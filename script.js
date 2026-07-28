@@ -24,9 +24,9 @@ const STORAGE_KEY = "giloa-v7";
 const USER_ID_KEY = "giloa-user-id";
 const FOG_ENABLED_KEY = "giloa-fog-enabled";
 const MAP_LAYER_KEY = "giloa-map-layers";
-const MAP_LAYER_RADIUS_M = 100;
+const MAP_LAYER_RADIUS_M = 300;
 const GPX_SAVES_KEY = "giloa-gpx-saves";
-const TUTORIAL_DONE_KEY = "giloa-guide-tutorial-done-v2";
+const TUTORIAL_DONE_KEY = "giloa-guide-tutorial-done-v3";
 const FOG_ALPHA_BASE = 0.40;
 const FOG_ALPHA_PER_LV = 0;
 function getFogAlpha() { return FOG_ALPHA_BASE; }
@@ -145,17 +145,21 @@ function loadMapLayerSettings() {
 var mapLayerSettings = loadMapLayerSettings();
 var librariesLoaded = false;
 function saveMapLayerSettings() { localStorage.setItem(MAP_LAYER_KEY, JSON.stringify(mapLayerSettings)); }
-let currentPos = null; let pathCoordinates = []; let memories = []; let totalDistance = 0;
+let currentPos = null; let pathCoordinates = []; let memories = []; let specialPlacePins = []; let totalDistance = 0;
 let currentUserId = "";
 let playerMarker = null; let playerHeading = null; let watchId = null; let saveTimer = null; let rafId = null;
 let screenWakeLock = null; let screenWakeLockTimer = null; let screenAwakeUntil = 0; let autoRecordingTimer = null; let trackingRetryTimer = null; let photoTapTimer = null;
 let autoRecordingNoticePending = false;
 const memoryMarkers = new Map();
+const specialPlaceMarkers = new Map();
+let specialPlaceEditorCoords = null; let activeSpecialPlaceMarker = null; let activeSpecialPlacePin = null; let specialPlacePopupTimer = null;
 let activeGpxId = null; let activeGpxLayers = []; let dialHours = 8;
 const STAY_BONUS_MS = 30 * 60 * 1000; const STAY_BONUS_RADIUS_M = 50;
 const IMAGE_MISSION_RADIUS_M = 120;
 let stayBonusStartTime = null; let stayBonusAnchor = null; let stayBonusLevelBoost = 0; let stayBonusPlaces = [];
 let activeImageMission = null;
+const DAILY_TASK_KEY = "giloa-daily-tasks-v1";
+let dailyTaskPanelOpen = false;
 let selectedDestination = null;
 let lastPhotoMarkerSize = null;
 let heicLoaderPromise = null;
@@ -355,6 +359,8 @@ map.createPane("tourPane");
 map.getPane("tourPane").style.zIndex = 660;
 map.createPane("libraryPane");
 map.getPane("libraryPane").style.zIndex = 665;
+map.createPane("specialPlacePane");
+map.getPane("specialPlacePane").style.zIndex = 670;
 map.createPane("restroomPane");
 map.getPane("restroomPane").style.zIndex = 667;
 var tourRenderer = L.svg({ pane: "tourPane" });
@@ -579,7 +585,59 @@ function updateHud() {
     if (photoBarEl && photoNextEl) { if (!nextRow || nextRow.photos === 0) { photoBarEl.style.width = "100%"; photoNextEl.textContent = nextRow ? t.hud_no_condition : t.hud_max; } else { var pct3 = nextRow.photos > current.photos ? Math.min(100, ((photoCount - current.photos) / (nextRow.photos - current.photos)) * 100) : 100; photoBarEl.style.width = pct3.toFixed(1) + "%"; var remain3 = Math.max(0, nextRow.photos - photoCount); photoNextEl.textContent = remain3 > 0 ? t.hud_next + " " + remain3 + t.unit_count : t.hud_condition_met; } }
 }
 
-function updateStats() { var todayDist = calcTodayDistance(); var distEl = document.getElementById("dist-val"); var todayEl = document.getElementById("today-dist-val"); var memEl = document.getElementById("memory-count-val"); var photoEl = document.getElementById("photo-count-val"); if (distEl) distEl.innerHTML = (totalDistance / 1000).toFixed(2) + "<span>km</span>"; if (todayEl) todayEl.innerHTML = (todayDist / 1000).toFixed(2) + "<span>km</span>"; if (memEl) memEl.innerHTML = memories.length + "<span>개</span>"; if (photoEl) photoEl.innerHTML = photos.length + "<span>장</span>"; updateHud(); checkBadges(); }
+function getDailyTaskDate() {
+    var now = new Date();
+    return now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+}
+function loadDailyTaskState() {
+    var today = getDailyTaskDate();
+    try {
+        var saved = JSON.parse(localStorage.getItem(DAILY_TASK_KEY) || "null");
+        if (saved && saved.date === today) return saved;
+    } catch (e) {}
+    var fresh = { date: today, startDistance: totalDistance, startPhotos: photos.length };
+    localStorage.setItem(DAILY_TASK_KEY, JSON.stringify(fresh));
+    return fresh;
+}
+function getDailyTaskProgress() {
+    var state = loadDailyTaskState();
+    var walked = Math.max(0, totalDistance - Number(state.startDistance || 0));
+    var photoCount = Math.max(0, photos.length - Number(state.startPhotos || 0));
+    return [
+        { icon: "↗", name: "새로운 길 100m 가기", current: Math.min(walked, 100), target: 100, value: Math.min(Math.round(walked), 100) + "/100m" },
+        { icon: "✦", name: "1km 걷기", current: Math.min(walked, 1000), target: 1000, value: (Math.min(walked, 1000) / 1000).toFixed(1) + "/1km" },
+        { icon: "◇", name: "사진 1장 찍기", current: Math.min(photoCount, 1), target: 1, value: Math.min(photoCount, 1) + "/1장" }
+    ];
+}
+function updateDailyMissions() {
+    var listEl = document.getElementById("daily-task-list");
+    if (!listEl) return;
+    var tasks = getDailyTaskProgress();
+    var completed = tasks.filter(function(task) { return task.current >= task.target; }).length;
+    listEl.innerHTML = tasks.map(function(task) {
+        var pct = Math.min(100, Math.round((task.current / task.target) * 100));
+        var done = pct >= 100;
+        return '<div class="daily-task-item' + (done ? ' done' : '') + '"><div class="daily-task-icon">' + (done ? "✓" : task.icon) + '</div><div><div class="daily-task-name">' + task.name + '</div><div class="daily-task-track"><div class="daily-task-fill" style="width:' + pct + '%"></div></div></div><div class="daily-task-value">' + task.value + '</div></div>';
+    }).join("");
+    var tagCount = document.getElementById("daily-task-tag-count");
+    var summary = document.getElementById("daily-task-summary");
+    var tag = document.getElementById("daily-task-tag");
+    if (tagCount) tagCount.textContent = completed + "/3";
+    if (summary) summary.textContent = completed + "/3 완료";
+    if (tag) tag.classList.toggle("all-done", completed === 3);
+}
+function toggleDailyTasks(forceOpen) {
+    dailyTaskPanelOpen = typeof forceOpen === "boolean" ? forceOpen : !dailyTaskPanelOpen;
+    var panel = document.getElementById("daily-task-panel");
+    var tag = document.getElementById("daily-task-tag");
+    if (panel) {
+        panel.classList.toggle("open", dailyTaskPanelOpen);
+        panel.setAttribute("aria-hidden", dailyTaskPanelOpen ? "false" : "true");
+    }
+    if (tag) tag.setAttribute("aria-expanded", dailyTaskPanelOpen ? "true" : "false");
+    if (dailyTaskPanelOpen) updateDailyMissions();
+}
+function updateStats() { var todayDist = calcTodayDistance(); var distEl = document.getElementById("dist-val"); var todayEl = document.getElementById("today-dist-val"); var memEl = document.getElementById("memory-count-val"); var photoEl = document.getElementById("photo-count-val"); if (distEl) distEl.innerHTML = (totalDistance / 1000).toFixed(2) + "<span>km</span>"; if (todayEl) todayEl.innerHTML = (todayDist / 1000).toFixed(2) + "<span>km</span>"; if (memEl) memEl.innerHTML = memories.length + "<span>개</span>"; if (photoEl) photoEl.innerHTML = photos.length + "<span>장</span>"; updateHud(); updateDailyMissions(); checkBadges(); }
 
 function toggleHud() { applyHudLang(UI_TEXT[currentLang] || UI_TEXT.ko); isHudExpanded = !isHudExpanded; document.getElementById("hud").classList.toggle("expanded", isHudExpanded); document.getElementById("controls").classList.toggle("hud-open", isHudExpanded); document.getElementById("help-btn").classList.toggle("hud-open", isHudExpanded); if (isHudExpanded) { setTimeout(function() { document.addEventListener("click", handleHudOutsideClick); }, 0); } else { document.removeEventListener("click", handleHudOutsideClick); } }
 function handleHudOutsideClick(event) { var hud = document.getElementById("hud"); if (!hud.contains(event.target)) { isHudExpanded = false; hud.classList.remove("expanded"); document.getElementById("controls").classList.remove("hud-open"); document.getElementById("help-btn").classList.remove("hud-open"); document.removeEventListener("click", handleHudOutsideClick); } }
@@ -622,9 +680,115 @@ function syncImageMissionUI() {
     photoBtn.setAttribute("title", activeImageMission ? activeImageMission.name + " ?占쏙옙?吏 誘몄뀡" : "媛ㅻ윭由ъ뿉???占쎌쭊 遺덈윭?占쎄린");
 }
 function syncFogButton() { var t = UI_TEXT[currentLang] || UI_TEXT.ko; var toggleBtn = document.getElementById("fog-toggle-btn"); var toggleState = document.getElementById("fog-toggle-state"); if (!toggleBtn) return; toggleBtn.classList.toggle("on", isFogEnabled); toggleBtn.classList.toggle("off", !isFogEnabled); if (toggleState) { toggleState.textContent = isFogEnabled ? t.fog_on : t.fog_off; toggleState.classList.toggle("on", isFogEnabled); toggleState.classList.toggle("off", !isFogEnabled); } }
+const localMarketPriceData = {
+    regionName: "current",
+    sourceName: "publicData",
+    updatedAt: null,
+    items: { meal: 10500, cafe: 4800, necessities: 2500, transport: 4800 }
+};
+const marketCategoryMap = {
+    meal: [], cafe: [], necessities: [], transport: []
+    // 추후 품목별 단위와 조사 기준을 확인한 뒤 카테고리 대표가격 산정 방식 적용 필요
+};
+let activeHelpTab = "ask";
+async function fetchLocalMarketPrices(latitude, longitude) {
+    // 추후 공공데이터 API 또는 CSV 연동 위치. 좌표는 연동 시 지역 판별에 사용한다.
+    void latitude; void longitude; void marketCategoryMap;
+    return localMarketPriceData;
+}
+function getCurrentCoordinates() {
+    return currentPos ? { latitude: currentPos.lat, longitude: currentPos.lng } : { latitude: null, longitude: null };
+}
+function formatLocalPrice(value, language) {
+    var amount = Number(value);
+    if (!isFinite(amount) || amount < 0) return "";
+    var formatted = Math.round(amount).toLocaleString(language === "ko" ? "ko-KR" : "en-US");
+    return language === "ko" ? formatted + "원" : "₩" + formatted;
+}
+function showLocalMarketPriceLoading() {
+    var content = document.getElementById("local-market-content");
+    var t = UI_TEXT[currentLang] || UI_TEXT.ko;
+    if (content) content.innerHTML = '<div class="local-market-state local-market-loading">' + t.market_loading + '</div>';
+}
+function showLocalMarketPriceEmpty() {
+    var content = document.getElementById("local-market-content");
+    var t = UI_TEXT[currentLang] || UI_TEXT.ko;
+    if (content) content.innerHTML = '<div class="local-market-state">' + t.market_empty + '</div>';
+}
+function renderLocalMarketPrices(data) {
+    var t = UI_TEXT[currentLang] || UI_TEXT.ko;
+    var content = document.getElementById("local-market-content");
+    if (!content || !data || !data.items) { showLocalMarketPriceEmpty(); return; }
+    var definitions = [
+        { key: "meal", icon: "🍽", label: t.market_meal },
+        { key: "cafe", icon: "☕", label: t.market_cafe },
+        { key: "necessities", icon: "▣", label: t.market_necessities },
+        { key: "transport", icon: "↔", label: t.market_transport }
+    ];
+    var validItems = definitions.filter(function(item) {
+        var value = Number(data.items[item.key]);
+        return isFinite(value) && value >= 0;
+    });
+    if (!validItems.length) { showLocalMarketPriceEmpty(); return; }
+    content.innerHTML = '<div class="local-market-list">' + validItems.map(function(item) {
+        return '<div class="local-market-item"><div class="local-market-icon" aria-hidden="true">' + item.icon + '</div><div class="local-market-name">' + item.label + '</div><div class="local-market-price">' + formatLocalPrice(data.items[item.key], currentLang) + '</div></div>';
+    }).join("") + '</div>';
+    setText("local-market-region", t.market_current_area);
+    var updated = document.getElementById("local-market-updated");
+    if (updated) {
+        updated.hidden = !data.updatedAt;
+        updated.textContent = data.updatedAt ? t.market_updated + " " + data.updatedAt : "";
+    }
+}
+async function renderLocalMarketPriceTab() {
+    showLocalMarketPriceLoading();
+    var coords = getCurrentCoordinates();
+    try {
+        var data = await fetchLocalMarketPrices(coords.latitude, coords.longitude);
+        if (activeHelpTab === "market") renderLocalMarketPrices(data);
+    } catch (e) {
+        if (activeHelpTab === "market") showLocalMarketPriceEmpty();
+    }
+}
+function updateLocalMarketPriceLanguage() {
+    var t = UI_TEXT[currentLang] || UI_TEXT.ko;
+    setText("local-market-title", t.market_title);
+    setText("local-market-description", t.market_description);
+    setText("local-market-region", t.market_current_area);
+    setText("local-market-source", t.market_source);
+    if (activeHelpTab === "market") renderLocalMarketPrices(localMarketPriceData);
+}
 function toggleHelp() { applyHelpLang(UI_TEXT[currentLang] || UI_TEXT.ko); document.getElementById("help-popup").classList.toggle("show"); }
 function handleHelpOverlayClick(event) { var box = document.getElementById("help-content-box"); if (!box.contains(event.target)) toggleHelp(); }
-function switchHelpTab(tab) { applyHelpLang(UI_TEXT[currentLang] || UI_TEXT.ko); ["ask", "info"].forEach(function(t) { document.getElementById("htab-" + t).classList.toggle("active", t === tab); document.getElementById("hpanel-" + t).style.display = t === tab ? "" : "none"; }); }
+function switchHelpTab(tab) {
+    if (["ask", "info", "market"].indexOf(tab) < 0) tab = "ask";
+    activeHelpTab = tab;
+    applyHelpLang(UI_TEXT[currentLang] || UI_TEXT.ko);
+    ["ask", "info", "market"].forEach(function(name) {
+        var tabEl = document.getElementById("htab-" + name);
+        var panelEl = document.getElementById("hpanel-" + name);
+        var selected = name === tab;
+        if (tabEl) { tabEl.classList.toggle("active", selected); tabEl.setAttribute("aria-selected", selected ? "true" : "false"); tabEl.tabIndex = selected ? 0 : -1; }
+        if (panelEl) panelEl.hidden = !selected;
+    });
+    var replay = document.getElementById("help-tutorial-replay");
+    if (replay) replay.style.display = tab === "market" ? "none" : "";
+    var box = document.getElementById("help-content-box");
+    if (box) box.scrollTop = 0;
+    if (tab === "market") renderLocalMarketPriceTab();
+}
+function showHelpTab(tabName) { switchHelpTab(tabName); }
+function handleHelpTabKey(event, tab) {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight" && event.key !== "Home" && event.key !== "End") return;
+    event.preventDefault();
+    var tabs = ["ask", "info", "market"];
+    var index = tabs.indexOf(tab);
+    if (event.key === "Home") index = 0;
+    else if (event.key === "End") index = tabs.length - 1;
+    else index = (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+    switchHelpTab(tabs[index]);
+    document.getElementById("htab-" + tabs[index]).focus();
+}
 function replayGiloaTutorial() { var helpPopup = document.getElementById("help-popup"); if (helpPopup) helpPopup.classList.remove("show"); localStorage.removeItem(TUTORIAL_DONE_KEY); openGiloaTutorial(true); }
 function togglePhotoMenu() { triggerGallery(); }
 function closePhotoMenu() { document.getElementById("photo-menu").classList.remove("open"); document.getElementById("photo-menu-overlay").classList.remove("show"); }
@@ -923,8 +1087,24 @@ function handlePosition(position) {
     if (isFinite(heading)) playerHeading = heading;
     else if (prevPos && prevPos.distanceTo(latlng) > 2) playerHeading = bearingBetween(prevPos, latlng);
     currentPos = latlng;
-    if (!playerMarker) { playerMarker = L.marker(latlng, { pane: "playerPane", icon: L.divIcon({ className: "player-marker", iconSize: [18, 18] }) }).addTo(map); map.setView(latlng, 16); }
+    if (!playerMarker) {
+        playerMarker = L.marker(latlng, {
+            pane: "playerPane", keyboard: true,
+            title: (UI_TEXT[currentLang] || UI_TEXT.ko).special_place,
+            icon: L.divIcon({ className: "player-marker", html: '<span class="player-marker-dot"></span>', iconSize: [44, 44], iconAnchor: [22, 22] })
+        }).addTo(map);
+        playerMarker.on("click", function(e) {
+            if (e && e.originalEvent) L.DomEvent.stop(e.originalEvent);
+            if (currentPos) openSpecialPlaceEditor(currentPos.lat, currentPos.lng);
+        });
+        map.setView(latlng, 16);
+    }
     else { playerMarker.setLatLng(latlng); }
+    refreshMapCenteredLayerMarkers();
+    if (!prevPos) {
+        scheduleRestroomFetch();
+        scheduleTourFetch();
+    }
     updateVisionCone(latlng);
     syncImageMissionUI();
     if (!isRecording) return;
@@ -1005,6 +1185,8 @@ function updateMemoryList() { var container = document.getElementById("memory-li
 // 紐⑤뱺 ???占쏀솚
 var ALL_TABS = ["photo", "gpx", "visit", "item"];
 function switchAllTab(tab) {
+    if (tab === "memory") tab = "photo";
+    if (tab === "badge") tab = "item";
     ALL_TABS.forEach(function(t) {
         var tabEl = document.getElementById("tab-" + t);
         var panelEl = document.getElementById("panel-" + t);
@@ -1017,45 +1199,7 @@ function switchAllTab(tab) {
     if (tab === "item") updateItemList();
 }
 function switchTab(tab) { switchAllTab(tab); }
-function switchCollectionTab(tab) { switchAllTab(tab); }
-function updatePhotoList() {
-    var container = document.getElementById("photo-list-container");
-    if (!container) return;
-    if (photos.length === 0) {
-        container.innerHTML = '<p class="empty-message" style="grid-column:1/-1">아직 저장된 사진이 없습니다.</p>';
-        return;
-    }
-    container.innerHTML = "";
-    photos.slice().reverse().forEach(function(p) {
-        var item = document.createElement("div");
-        item.className = "photo-list-item";
-        var img = document.createElement("img");
-        img.src = p.thumb || p.photo || p.remoteThumbUrl || p.remotePhotoUrl;
-        var note = document.createElement("div");
-        note.className = "photo-list-note";
-        note.textContent = (p.note || "").trim() || "이 사진을 남긴 이유를 입력해 주세요.";
-        var date = document.createElement("div");
-        date.className = "photo-list-date";
-        date.textContent = p.dateString;
-        var del = document.createElement("div");
-        del.className = "photo-list-del";
-        del.textContent = "×";
-        del.addEventListener("click", function(e) {
-            e.stopPropagation();
-            deletePhoto(p.id);
-            updatePhotoList();
-        });
-        item.addEventListener("click", function() { focusPhotoOnMap(p); });
-        item.addEventListener("dblclick", function(e) { e.preventDefault(); openPhotoInGallery(p); });
-        item.addEventListener("contextmenu", function(e) { e.preventDefault(); focusPhotoOnMap(p); });
-        item.title = "지도에서 보기";
-        item.appendChild(img);
-        item.appendChild(note);
-        item.appendChild(date);
-        item.appendChild(del);
-        container.appendChild(item);
-    });
-}
+function updatePhotoList() { var container = document.getElementById("photo-list-container"); if (!container) return; if (photos.length === 0) { container.innerHTML = '<p class="empty-message" style="grid-column:1/-1">아직 저장된 사진이 없습니다.</p>'; return; } container.innerHTML = ""; photos.slice().reverse().forEach(function(p) { var item = document.createElement("div"); item.className = "photo-list-item"; var img = document.createElement("img"); img.src = p.thumb || p.photo || p.remoteThumbUrl || p.remotePhotoUrl; var date = document.createElement("div"); date.className = "photo-list-date"; date.textContent = p.dateString; var del = document.createElement("div"); del.className = "photo-list-del"; del.textContent = "×"; del.addEventListener("click", function(e) { e.stopPropagation(); deletePhoto(p.id); updatePhotoList(); }); item.addEventListener("click", function() { focusPhotoOnMap(p); }); item.addEventListener("dblclick", function(e) { e.preventDefault(); openPhotoInGallery(p); }); item.addEventListener("contextmenu", function(e) { e.preventDefault(); focusPhotoOnMap(p); }); item.title = "지도에서 보기"; item.appendChild(img); item.appendChild(date); item.appendChild(del); container.appendChild(item); }); }
 function findPhotoMarker(id) { var found = null; photoClusterGroup.eachLayer(function(layer) { if (layer._photoData && layer._photoData.id === id) found = layer; }); return found; }
 function adjustHourDial(dir) { var next = dialHours + dir; if (next < 1 || next > 8) return; dialHours = next; updateDialUI(); }
 function updateDialUI() { var labelEl = document.getElementById("dial-hour-label"); var infoEl = document.getElementById("gpx-range-info"); if (labelEl) labelEl.textContent = dialHours + "h"; if (infoEl) infoEl.textContent = "Recent " + dialHours + " hour route"; }
@@ -1204,10 +1348,14 @@ async function changeUserId() {
     syncUserIdUI();
     pathCoordinates = [];
     memories = [];
+    specialPlacePins = [];
     photos = [];
     totalDistance = 0;
     memoryMarkers.forEach(function(marker) { map.removeLayer(marker); });
     memoryMarkers.clear();
+    specialPlaceMarkers.forEach(function(marker) { map.removeLayer(marker); });
+    specialPlaceMarkers.clear();
+    closeSpecialPlacePopup();
     if (photoClusterGroup) photoClusterGroup.clearLayers();
     clearActiveGpxRoute();
     loadState();
@@ -1222,6 +1370,7 @@ function buildStatePayload() {
     return {
         pathCoordinates: pathCoordinates.map(function(p) { return { lat: p.lat, lng: p.lng, startTime: p.startTime, endTime: p.endTime, visits: p.visits || 1 }; }),
         memories: memories.map(function(m) { return { id: m.id, lat: m.lat, lng: m.lng, name: m.name, time: m.time, dateString: m.dateString, timeString: m.timeString }; }),
+        specialPlacePins: specialPlacePins.map(function(pin) { return { id: pin.id, latitude: pin.latitude, longitude: pin.longitude, note: pin.note, createdAt: pin.createdAt }; }),
         photos: photos.map(function(p) {
             return {
                 id: p.id,
@@ -1238,7 +1387,6 @@ function buildStatePayload() {
                 remoteThumbUrl: typeof p.remoteThumbUrl === "string" ? p.remoteThumbUrl : "",
                 storagePath: typeof p.storagePath === "string" ? p.storagePath : "",
                 thumbStoragePath: typeof p.thumbStoragePath === "string" ? p.thumbStoragePath : "",
-                note: typeof p.note === "string" ? p.note : "",
                 imagePrediction: p.imagePrediction && typeof p.imagePrediction === "object" ? {
                     label: typeof p.imagePrediction.label === "string" ? p.imagePrediction.label : "",
                     probability: isFinite(p.imagePrediction.probability) ? p.imagePrediction.probability : 0,
@@ -1259,6 +1407,12 @@ function applyStatePayload(saved) {
     if (Array.isArray(saved.memories)) {
         memories = saved.memories.filter(function(m) { return isFinite(m.lat) && isFinite(m.lng) && typeof m.name === "string"; }).map(function(m) { return { id: typeof m.id === "string" ? m.id : String(m.time), lat: m.lat, lng: m.lng, name: m.name, time: m.time, dateString: m.dateString, timeString: typeof m.timeString === "string" ? m.timeString : new Date(m.time).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }) }; });
     }
+    specialPlacePins = Array.isArray(saved.specialPlacePins) ? saved.specialPlacePins.filter(function(pin) {
+        return pin && typeof pin.id === "string" && isFinite(pin.latitude) && isFinite(pin.longitude) &&
+            typeof pin.note === "string" && pin.note.trim() && !isNaN(Date.parse(pin.createdAt));
+    }).map(function(pin) {
+        return { id: pin.id, latitude: Number(pin.latitude), longitude: Number(pin.longitude), note: pin.note, createdAt: pin.createdAt };
+    }) : [];
     totalDistance = isFinite(saved.totalDistance) ? saved.totalDistance : 0;
     if (Array.isArray(saved.photos)) {
         photos = saved.photos.filter(function(p) { return isFinite(p.lat) && isFinite(p.lng) && p.id; }).map(function(p) {
@@ -1277,7 +1431,6 @@ function applyStatePayload(saved) {
                 remoteThumbUrl: typeof p.remoteThumbUrl === "string" ? p.remoteThumbUrl : "",
                 storagePath: typeof p.storagePath === "string" ? p.storagePath : "",
                 thumbStoragePath: typeof p.thumbStoragePath === "string" ? p.thumbStoragePath : "",
-                note: typeof p.note === "string" ? p.note : "",
                 imagePrediction: p.imagePrediction && typeof p.imagePrediction === "object" ? {
                     label: typeof p.imagePrediction.label === "string" ? p.imagePrediction.label : "",
                     probability: isFinite(p.imagePrediction.probability) ? p.imagePrediction.probability : 0,
@@ -1310,6 +1463,118 @@ function loadState() {
     } catch (e) {
         console.error("蹂듭썝 ?占쏀뙣", e);
     }
+}
+
+function getSpecialPlaceText() { return UI_TEXT[currentLang] || UI_TEXT.ko; }
+function createSpecialPlaceId() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") return window.crypto.randomUUID();
+    return "special-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+}
+function applySpecialPlaceLang() {
+    var t = getSpecialPlaceText();
+    setText("special-place-title", t.special_place);
+    var note = document.getElementById("special-place-note");
+    var save = document.getElementById("special-place-save");
+    var cancel = document.getElementById("special-place-cancel");
+    if (note) note.placeholder = t.special_place_placeholder;
+    if (save) { save.textContent = t.save_pin; save.setAttribute("aria-label", t.save_pin); }
+    if (cancel) { cancel.textContent = t.cancel_pin; cancel.setAttribute("aria-label", t.cancel_pin); }
+    if (playerMarker && playerMarker.getElement()) playerMarker.getElement().setAttribute("aria-label", t.special_place);
+    if (activeSpecialPlaceMarker && activeSpecialPlacePin) openSpecialPlacePopup(activeSpecialPlaceMarker, activeSpecialPlacePin, true);
+}
+function openSpecialPlaceEditor(latitude, longitude) {
+    var editor = document.getElementById("special-place-editor");
+    var note = document.getElementById("special-place-note");
+    if (!editor || !note || !isFinite(latitude) || !isFinite(longitude)) return;
+    specialPlaceEditorCoords = { latitude: Number(latitude), longitude: Number(longitude) };
+    applySpecialPlaceLang();
+    document.getElementById("special-place-error").textContent = "";
+    note.value = "";
+    editor.classList.add("show");
+    editor.setAttribute("aria-hidden", "false");
+    setTimeout(function() { note.focus(); }, 50);
+}
+function closeSpecialPlaceEditor() {
+    var editor = document.getElementById("special-place-editor");
+    if (!editor) return;
+    editor.classList.remove("show");
+    editor.setAttribute("aria-hidden", "true");
+    specialPlaceEditorCoords = null;
+    var error = document.getElementById("special-place-error");
+    if (error) error.textContent = "";
+}
+function saveSpecialPlacePin() {
+    var noteEl = document.getElementById("special-place-note");
+    var note = noteEl ? noteEl.value.trim() : "";
+    var t = getSpecialPlaceText();
+    if (!note) {
+        var error = document.getElementById("special-place-error");
+        if (error) error.textContent = t.empty_pin_note;
+        if (noteEl) noteEl.focus();
+        return;
+    }
+    if (!specialPlaceEditorCoords) return;
+    var pin = {
+        id: createSpecialPlaceId(),
+        latitude: specialPlaceEditorCoords.latitude,
+        longitude: specialPlaceEditorCoords.longitude,
+        note: note,
+        createdAt: new Date().toISOString()
+    };
+    specialPlacePins.push(pin);
+    createSpecialPlaceMarker(pin);
+    persistState();
+    closeSpecialPlaceEditor();
+    showCollectionToast(t.pin_saved);
+}
+function createSpecialPlaceMarker(pinData) {
+    if (!pinData || specialPlaceMarkers.has(pinData.id)) return specialPlaceMarkers.get(pinData && pinData.id);
+    var marker = L.marker([pinData.latitude, pinData.longitude], {
+        pane: "specialPlacePane", keyboard: true, title: getSpecialPlaceText().special_place,
+        icon: L.divIcon({ className: "special-place-marker-wrap", html: '<div class="special-place-marker"><span>★</span></div>', iconSize: [30, 34], iconAnchor: [15, 30] })
+    }).addTo(map);
+    marker.on("click", function(e) {
+        if (e && e.originalEvent) L.DomEvent.stop(e.originalEvent);
+        if (activeSpecialPlaceMarker === marker) closeSpecialPlacePopup();
+        else openSpecialPlacePopup(marker, pinData);
+    });
+    specialPlaceMarkers.set(pinData.id, marker);
+    return marker;
+}
+function renderSavedSpecialPlacePins() {
+    specialPlacePins.forEach(function(pin) { createSpecialPlaceMarker(pin); });
+}
+function buildSpecialPlacePopup(pinData) {
+    var t = getSpecialPlaceText();
+    var wrap = document.createElement("div"); wrap.className = "special-place-popup";
+    var title = document.createElement("div"); title.className = "special-place-popup-title"; title.textContent = t.special_place;
+    var note = document.createElement("div"); note.className = "special-place-popup-note"; note.textContent = pinData.note;
+    var time = document.createElement("div"); time.className = "special-place-popup-time";
+    time.textContent = new Date(pinData.createdAt).toLocaleString(currentLang, { dateStyle: "medium", timeStyle: "short" });
+    wrap.appendChild(title); wrap.appendChild(note); wrap.appendChild(time);
+    return wrap;
+}
+function openSpecialPlacePopup(marker, pinData, keepTimer) {
+    if (!marker || !pinData) return;
+    if (activeSpecialPlaceMarker && activeSpecialPlaceMarker !== marker) closeSpecialPlacePopup();
+    marker.bindPopup(buildSpecialPlacePopup(pinData), { closeButton: false, autoClose: false, closeOnClick: false, offset: [0, -24] }).openPopup();
+    activeSpecialPlaceMarker = marker;
+    activeSpecialPlacePin = pinData;
+    if (!keepTimer) scheduleSpecialPlacePopupClose();
+}
+function closeSpecialPlacePopup() {
+    clearSpecialPlacePopupTimer();
+    if (activeSpecialPlaceMarker) activeSpecialPlaceMarker.closePopup();
+    activeSpecialPlaceMarker = null;
+    activeSpecialPlacePin = null;
+}
+function scheduleSpecialPlacePopupClose() {
+    clearSpecialPlacePopupTimer();
+    specialPlacePopupTimer = setTimeout(closeSpecialPlacePopup, 3000);
+}
+function clearSpecialPlacePopupTimer() {
+    if (specialPlacePopupTimer !== null) clearTimeout(specialPlacePopupTimer);
+    specialPlacePopupTimer = null;
 }
 
 var imageClassifierPromise = null;
@@ -1410,8 +1675,7 @@ function processPhoto(img, now, lat, lng, options) {
         remoteThumbUrl: "",
         storagePath: "",
         thumbStoragePath: "",
-        imagePrediction: options.imagePrediction || null,
-        note: typeof options.note === "string" ? options.note : (options.mission && options.mission.name ? options.mission.name : "")
+        imagePrediction: options.imagePrediction || null
     };
     if (data.imagePrediction) awardImagePredictionBadge(data.imagePrediction);
     photos.push(data);
@@ -1609,12 +1873,6 @@ async function handlePhotos(event) {
     syncRecordingUI();
     if (failedCount > 0) alert("?占쏙옙? ?占쎌쭊(" + failedCount + "占???泥섎━?占쏙옙? 紐삵뻽?占쎈땲??");
 }
-function savePhotoNote(data, value) {
-    if (!data) return;
-    data.note = String(value || "").trim();
-    scheduleSave();
-    updatePhotoList();
-}
 function createPhotoMarker(data, openPopup) {
     var size = getPhotoMarkerSize();
     lastPhotoMarkerSize = size;
@@ -1625,52 +1883,45 @@ function createPhotoMarker(data, openPopup) {
     var img = document.createElement("img");
     img.src = data.photo || data.thumb || data.remotePhotoUrl || data.remoteThumbUrl;
     img.style.cssText = "width:72vw;max-width:280px;border-radius:8px;margin-bottom:8px;display:block;cursor:pointer;";
-    img.title = "두 번 누르면 원본 보기";
-    img.addEventListener("dblclick", function(e) { e.stopPropagation(); openPhotoInGallery(data); });
-
+    img.title = "한 번 누르면 기억으로 저장, 두 번 누르면 원본 보기";
+    img.addEventListener("click", function(e) {
+        e.stopPropagation();
+        if (photoTapTimer) {
+            clearTimeout(photoTapTimer);
+            photoTapTimer = null;
+            openPhotoInGallery(data);
+            return;
+        }
+        photoTapTimer = setTimeout(function() {
+            photoTapTimer = null;
+            addPhotoMemory(data);
+        }, 280);
+    });
     var info = document.createElement("div");
     info.style.cssText = "font-size:12px;color:rgba(255,255,255,0.6);text-align:center;margin:6px 0 8px;";
     info.textContent = data.dateString + " " + data.timeString;
-
-    var editor = document.createElement("div");
-    editor.className = "photo-note-editor";
-    var label = document.createElement("label");
-    label.className = "photo-note-label";
-    label.textContent = "이 사진을 남긴 이유";
-    var textarea = document.createElement("textarea");
-    textarea.className = "photo-note-input";
-    textarea.placeholder = "예: 처음 방문한 장소, 다시 오고 싶은 풍경, 특별했던 순간";
-    textarea.value = data.note || "";
-    textarea.addEventListener("click", function(e) { e.stopPropagation(); });
-    var saveBtn = document.createElement("button");
-    saveBtn.className = "photo-note-save";
-    saveBtn.textContent = "기록 저장";
-    saveBtn.addEventListener("click", function(e) {
-        e.stopPropagation();
-        savePhotoNote(data, textarea.value);
-        saveBtn.textContent = "저장됨";
-        setTimeout(function() { saveBtn.textContent = "기록 저장"; }, 900);
-    });
-    editor.appendChild(label);
-    editor.appendChild(textarea);
-    editor.appendChild(saveBtn);
-
-    var note = document.createElement("div");
-    note.style.cssText = "font-size:11px;color:rgba(255,255,255,0.52);text-align:center;margin:8px 0;";
-    note.textContent = (data.locationSource === "exif" ? "사진 촬영 위치" : "현재 위치 기준") + "에 표시됩니다.";
-
+    var predictionInfo = null;
+    if (false && data.imagePrediction && data.imagePrediction.label) {
+        var predictionLabel = getReadableImagePredictionLabel(data.imagePrediction.label);
+        predictionInfo = document.createElement("div");
+        predictionInfo.className = data.imagePrediction.accepted ? "photo-ai-result accepted" : "photo-ai-result";
+        predictionInfo.textContent = predictionLabel + " " + (data.imagePrediction.percent || 0) + "%";
+    }
     var delBtn = document.createElement("button");
     delBtn.className = "popup-delete-btn";
     delBtn.textContent = "사진 삭제";
     delBtn.addEventListener("click", function() { deletePhoto(data.id); marker.closePopup(); });
-
     popupEl.appendChild(img);
     popupEl.appendChild(info);
-    popupEl.appendChild(editor);
+    if (predictionInfo) popupEl.appendChild(predictionInfo);
+    var hasSource = !!(data.remotePhotoUrl || data.sourceUri || data.sourceWebPath);
+    var note = document.createElement("div");
+    note.style.cssText = "font-size:11px;color:rgba(255,255,255,0.52);text-align:center;margin:0 0 8px;";
+    var locationLabel = data.locationSource === "exif" ? "사진 촬영 위치" : "현재 위치 기준";
+    note.textContent = locationLabel + " · 한 번 누르면 기억으로 저장, 두 번 누르면 원본을 엽니다.";
     popupEl.appendChild(note);
     popupEl.appendChild(delBtn);
     marker.bindPopup(popupEl);
-    marker.on("click", function() { setSelectedDestination(data.lat, data.lng, data.note || "사진 기록"); });
     photoClusterGroup.addLayer(marker);
     if (openPopup) marker.openPopup();
 }
@@ -1700,7 +1951,7 @@ function renderStoredPhotoMarkers() {
     }).catch(function(e) { console.warn("IDB 遺덈윭?占쎄린 ?占쏀뙣", e); });
 }
 function initGpxDial() { dialHours = 8; updateDialUI(); }
-function initHudTapTargets() { var hud = document.getElementById("hud"); var handle = document.getElementById("hud-handle"); var distItem = document.querySelector(".hud-prog-item:nth-child(1)"); var memItem = document.querySelector(".hud-prog-item:nth-child(2)"); var photoItem = document.querySelector(".hud-prog-item:nth-child(3)"); if (hud && !hud.dataset.stopBound) { hud.dataset.stopBound = "1"; ["click", "pointerdown"].forEach(function(type) { hud.addEventListener(type, function(e) { e.stopPropagation(); }, { passive: true }); }); } if (handle) { handle.style.cursor = "pointer"; } if (distItem) { distItem.style.cursor = "pointer"; distItem.addEventListener("click", function() { toggleSidebar(true); switchTab("gpx"); }); } if (memItem) { memItem.style.cursor = "pointer"; memItem.addEventListener("click", function() { toggleSidebar(true); switchTab("photo"); }); } if (photoItem) { photoItem.style.cursor = "pointer"; photoItem.addEventListener("click", function() { toggleSidebar(true); switchTab("photo"); }); } }
+function initHudTapTargets() { var hud = document.getElementById("hud"); var handle = document.getElementById("hud-handle"); var distItem = document.querySelector(".hud-prog-item:nth-child(1)"); var photoItem = document.querySelector(".hud-prog-item:nth-child(3)"); if (hud && !hud.dataset.stopBound) { hud.dataset.stopBound = "1"; ["click", "pointerdown"].forEach(function(type) { hud.addEventListener(type, function(e) { e.stopPropagation(); }, { passive: true }); }); } if (handle) { handle.style.cursor = "pointer"; } if (distItem) { distItem.style.cursor = "pointer"; distItem.addEventListener("click", function() { toggleSidebar(true); switchTab("gpx"); }); } if (photoItem) { photoItem.style.cursor = "pointer"; photoItem.addEventListener("click", function() { toggleSidebar(true); switchTab("photo"); }); } }
 
 var tutorialStepIndex = 0;
 var tutorialStepsByLang = {
@@ -1710,6 +1961,7 @@ var tutorialStepsByLang = {
         { target: "#tour-header", title: "주변 관광지", copy: "누르면 접기 / 펼치기", pose: "point-right" },
         { target: "#lang-btn-en", title: "번역 버튼", copy: "언어를 바꿔서 보기", pose: "point-right" },
         { target: "#loc-btn", title: "기록 버튼", copy: "경로 기록 시작 / 중단", pose: "focus" },
+        { target: ".player-marker", title: "특별 장소 핀", copy: "지도 위 파란 현재 위치 점을 누르고 메모를 남기면 이곳을 특별 장소로 저장할 수 있어.", pose: "focus" },
         { target: "#photo-btn", title: "사진 버튼", copy: "사진을 지도에 저장", pose: "point-left" },
         { target: "#traffic-btn", title: "길찾기 버튼", copy: "선택한 곳까지 길찾기", pose: "point-left" },
         { target: "#hud", title: "상태창", copy: "레벨과 진행도 확인", pose: "cheer" }
@@ -1720,6 +1972,7 @@ var tutorialStepsByLang = {
         { target: "#tour-header", title: "Nearby Places", copy: "Tap to fold / unfold.", pose: "point-right" },
         { target: "#lang-btn-en", title: "Language", copy: "Switch the app language.", pose: "point-right" },
         { target: "#loc-btn", title: "Record", copy: "Start / stop route recording.", pose: "focus" },
+        { target: ".player-marker", title: "Special Place Pin", copy: "Tap the blue current-location dot and add a note to save this spot as a special place.", pose: "focus" },
         { target: "#photo-btn", title: "Photos", copy: "Save photos on the map.", pose: "point-left" },
         { target: "#traffic-btn", title: "Directions", copy: "Find a route to a selected place.", pose: "point-left" },
         { target: "#hud", title: "Status", copy: "Check level and progress.", pose: "cheer" }
@@ -1730,6 +1983,7 @@ var tutorialStepsByLang = {
         { target: "#tour-header", title: "周辺観光地", copy: "タップで折りたたみ / 展開。", pose: "point-right" },
         { target: "#lang-btn-ja", title: "翻訳ボタン", copy: "表示言語を切り替えます。", pose: "point-right" },
         { target: "#loc-btn", title: "記録ボタン", copy: "経路記録を開始 / 停止。", pose: "focus" },
+        { target: ".player-marker", title: "特別な場所のピン", copy: "地図上の青い現在地の点をタップしてメモを入力すると、特別な場所として保存できます。", pose: "focus" },
         { target: "#photo-btn", title: "写真ボタン", copy: "写真を地図に保存します。", pose: "point-left" },
         { target: "#traffic-btn", title: "ルート案内", copy: "選んだ場所まで案内します。", pose: "point-left" },
         { target: "#hud", title: "ステータス", copy: "レベルと進行度を確認。", pose: "cheer" }
@@ -1740,6 +1994,7 @@ var tutorialStepsByLang = {
         { target: "#tour-header", title: "周边景点", copy: "点击可收起 / 展开。", pose: "point-right" },
         { target: "#lang-btn-zh", title: "翻译按钮", copy: "切换显示语言。", pose: "point-right" },
         { target: "#loc-btn", title: "记录按钮", copy: "开始 / 停止路线记录。", pose: "focus" },
+        { target: ".player-marker", title: "特别地点标记", copy: "点击地图上的蓝色当前位置圆点并填写备注，即可将这里保存为特别地点。", pose: "focus" },
         { target: "#photo-btn", title: "照片按钮", copy: "把照片保存到地图上。", pose: "point-left" },
         { target: "#traffic-btn", title: "路线按钮", copy: "前往选中的地点。", pose: "point-left" },
         { target: "#hud", title: "状态栏", copy: "查看等级和进度。", pose: "cheer" }
@@ -1921,6 +2176,7 @@ async function init() {
     loadBonusState();
     loadCollection();
     renderStoredMarkers();
+    renderSavedSpecialPlacePins();
     migratePhotosToThumbOnly().finally(function() { renderStoredPhotoMarkers(); });
     updateStats();
     updateMemoryList();
@@ -1931,6 +2187,11 @@ async function init() {
     initGpxDial();
     initHudTapTargets();
     initGiloaTutorial();
+    var specialEditor = document.getElementById("special-place-editor");
+    if (specialEditor) specialEditor.addEventListener("click", function(e) { if (e.target === specialEditor) closeSpecialPlaceEditor(); });
+    document.addEventListener("keydown", function(e) {
+        if (e.key === "Escape" && specialEditor && specialEditor.classList.contains("show")) closeSpecialPlaceEditor();
+    });
     setTimeout(startAutoRecordingOnLaunch, 800);
 }
 map.whenReady(function() { setTimeout(init, 0); });
@@ -1976,13 +2237,21 @@ function isTourItemVisible(item) {
     if (typeId === "32") return !!mapLayerSettings.lodging;
     return true;
 }
-function getVisibleTourItems() { return tourItems.filter(isTourItemVisible); }
+function getVisibleTourItems() {
+    return tourItems.filter(isTourItemVisible).filter(isNearbyMapLayerTourItem);
+}
+function getMapSearchCenter() {
+    return currentPos || map.getCenter();
+}
 function isWithinMapSearchCenter(lat, lng, radiusM) {
     if (!map || !isFinite(lat) || !isFinite(lng)) return false;
-    return map.getCenter().distanceTo([lat, lng]) <= (radiusM || MAP_LAYER_RADIUS_M);
+    return getMapSearchCenter().distanceTo([lat, lng]) <= (radiusM || MAP_LAYER_RADIUS_M);
 }
 function isNearbyMapLayerTourItem(item) {
     return isWithinMapSearchCenter(parseFloat(item && item.mapy), parseFloat(item && item.mapx), MAP_LAYER_RADIUS_M);
+}
+function getNearbyFestivalItems() {
+    return festivalItems.filter(isNearbyMapLayerTourItem);
 }
 function applyTourTypeVars(el, meta) { el.style.setProperty("--tour-color", meta.color); el.style.setProperty("--tour-fill", meta.fill); el.style.setProperty("--tour-border", meta.border); }function getTodayString() {
     var d = new Date();
@@ -1993,7 +2262,7 @@ function applyTourTypeVars(el, meta) { el.style.setProperty("--tour-color", meta
 
 function fetchFestivals(options) {
     options = options || {};
-    var center = map.getCenter();
+    var center = getMapSearchCenter();
     var today = getTodayString();
     var requestLang = currentLang;
     var requestSeq = ++festivalRequestSeq;
@@ -2012,7 +2281,8 @@ function fetchFestivals(options) {
 function updateFestivalBadge() {
     var badge = document.getElementById("tour-festival-badge");
     if (!badge) return;
-    if (festivalItems.length > 0) { badge.textContent = (UI_TEXT[currentLang] || UI_TEXT.ko).festival_badge + " " + festivalItems.length; badge.classList.add("show"); }
+    var nearbyItems = getNearbyFestivalItems();
+    if (nearbyItems.length > 0) { badge.textContent = (UI_TEXT[currentLang] || UI_TEXT.ko).festival_badge + " " + nearbyItems.length; badge.classList.add("show"); }
     else { badge.classList.remove("show"); }
 }
 
@@ -2020,10 +2290,11 @@ function renderFestivalStrip() {
     var label = document.getElementById("festival-strip-label");
     var strip = document.getElementById("festival-strip");
     if (!strip || !label) return;
-    if (festivalItems.length === 0) { strip.classList.remove("show"); label.classList.remove("show"); return; }
+    var nearbyItems = getNearbyFestivalItems();
+    if (nearbyItems.length === 0) { strip.classList.remove("show"); label.classList.remove("show"); return; }
     strip.innerHTML = "";
-    var center = map.getCenter();
-    festivalItems.forEach(function(item) {
+    var center = getMapSearchCenter();
+    nearbyItems.forEach(function(item) {
         var card = document.createElement("div"); card.className = "festival-card"; applyTourTypeVars(card, getTourTypeMeta("15"));
         var typeEl = document.createElement("div"); typeEl.className = "tour-card-type"; typeEl.textContent = getTourTypeName("15");
         var nameEl = document.createElement("div"); nameEl.className = "festival-card-name"; nameEl.textContent = getTourDisplayTitle(item) || "異뺤젣";
@@ -2047,7 +2318,7 @@ function renderFestivalStrip() {
 
 function fetchTourSpots(options) {
     options = options || {};
-    var center = map.getCenter();
+    var center = getMapSearchCenter();
     var radiusM = MAP_LAYER_RADIUS_M;
     var listEl = document.getElementById("tour-list"); var loadingEl = document.getElementById("tour-loading");
     var emptyEl = document.getElementById("tour-empty"); var expandBtn = document.getElementById("tour-expand-btn"); var countEl = document.getElementById("tour-count");
@@ -2198,7 +2469,7 @@ function syncTourCloseButton() {
 
 function renderTourCards() {
     var listEl = document.getElementById("tour-list"); var expandBtn = document.getElementById("tour-expand-btn"); if (!listEl || !expandBtn) return;
-    listEl.innerHTML = ""; var center = map.getCenter();
+    listEl.innerHTML = ""; var center = getMapSearchCenter();
     var visibleItems = getVisibleTourItems();
     var panel = document.getElementById("tour-panel");
     if (panel) panel.classList.toggle("collapsed", !tourPanelOpen);
@@ -2287,7 +2558,7 @@ function showTourPopup(item) {
 }
 
 function clearTourMarkers() { tourMarkers.forEach(function(m) { map.removeLayer(m); }); tourMarkers = []; }
-function addTourMarkers() { clearTourMarkers(); getVisibleTourItems().filter(isNearbyMapLayerTourItem).forEach(function(item) { var lat = parseFloat(item.mapy); var lng = parseFloat(item.mapx); if (!isFinite(lat) || !isFinite(lng)) return; var meta = getTourTypeMeta(item.contenttypeid); var icon = L.divIcon({ className: "tour-map-marker-wrap", html: "<div class='tour-map-marker' style='--tour-color:" + meta.color + ";--tour-fill:" + meta.fill + ";--tour-border:" + meta.border + ";'><span class='tour-map-dot'></span><span class='tour-map-label'>" + escapeHtml(meta.label) + "</span></div>", iconSize: [76, 28], iconAnchor: [10, 14] }); var marker = L.marker([lat, lng], { pane: "tourPane", icon: icon, title: (getTourTypeName(item.contenttypeid) || meta.label) + " - " + (getTourDisplayTitle(item) || "") }).addTo(map); marker.on("click", function() { showTourPopup(item); }); tourMarkers.push(marker); }); }
+function addTourMarkers() { clearTourMarkers(); getVisibleTourItems().forEach(function(item) { var lat = parseFloat(item.mapy); var lng = parseFloat(item.mapx); if (!isFinite(lat) || !isFinite(lng)) return; var meta = getTourTypeMeta(item.contenttypeid); var icon = L.divIcon({ className: "tour-map-marker-wrap", html: "<div class='tour-map-marker' style='--tour-color:" + meta.color + ";--tour-fill:" + meta.fill + ";--tour-border:" + meta.border + ";'><span class='tour-map-dot'></span><span class='tour-map-label'>" + escapeHtml(meta.label) + "</span></div>", iconSize: [76, 28], iconAnchor: [10, 14] }); var marker = L.marker([lat, lng], { pane: "tourPane", icon: icon, title: (getTourTypeName(item.contenttypeid) || meta.label) + " - " + (getTourDisplayTitle(item) || "") }).addTo(map); marker.on("click", function() { showTourPopup(item); }); tourMarkers.push(marker); }); }
 
 
 // ?쒖슱 怨듦났?꾩꽌愿 ?꾩튂?뺣낫
@@ -2305,6 +2576,8 @@ var restroomRawLoaded = false;
 var restroomGeoCache = {};      // { 二쇱냼: {lat, lng} } - localStorage???곴뎄 罹먯떆
 var restroomVisibleItems = [];  // 醫뚰몴媛 ?뺣낫?섏뼱 ?ㅼ젣濡??쒖떆 以묒씤 ??ぉ
 var restroomMarkers = [];
+var restroomMarkerLayer = L.layerGroup().addTo(map);
+var restroomSearchSeq = 0;
 var restroomGuFetched = {};     // ?대? 吏?ㅼ퐫?⑹쓣 ?쒕룄??援??대쫫 吏묓빀 (以묐났 諛⑹?)
 var restroomGeocodeQueueBusy = false;
 var RESTROOM_MARKER_COLOR = "#a3e635";
@@ -2412,7 +2685,16 @@ function fetchRestroomRawData() {
         return restroomRawItems;
     }).catch(function(err) { console.warn("?붿옣???곗씠??濡쒕뱶 ?ㅻ쪟", err); return []; });
 }
-function clearRestroomMarkers() { restroomMarkers.forEach(function(marker) { map.removeLayer(marker); }); restroomMarkers = []; }
+function clearRestroomMarkers() {
+    restroomMarkers.forEach(function(marker) {
+        if (restroomMarkerLayer.hasLayer(marker)) restroomMarkerLayer.removeLayer(marker);
+        else if (map.hasLayer(marker)) map.removeLayer(marker);
+    });
+    restroomMarkers = [];
+    restroomMarkerLayer.clearLayers();
+    var pane = map.getPane("restroomPane");
+    if (pane) pane.querySelectorAll(".leaflet-marker-icon, .leaflet-marker-shadow").forEach(function(el) { el.remove(); });
+}
 function rememberRestroomItem(item) {
     var key = String(item.addr || item.name || "") + "|" + item.lat + "|" + item.lng;
     var existing = restroomVisibleItems.findIndex(function(saved) {
@@ -2427,11 +2709,11 @@ function createRestroomMarker(item) {
     if (!isWithinMapSearchCenter(item.lat, item.lng, MAP_LAYER_RADIUS_M)) return;
     var label = getRestroomLabel();
     var icon = L.divIcon({
-        className: "library-map-marker-wrap",
+        className: "library-map-marker-wrap restroom-map-marker-wrap",
         html: "<div class='library-map-marker' style='--tour-color:" + RESTROOM_MARKER_COLOR + ";'><span class='library-map-dot' style='background:" + RESTROOM_MARKER_COLOR + ";'></span><span class='library-map-label'>" + escapeHtml(label) + "</span></div>",
         iconSize: [76, 28], iconAnchor: [10, 14]
     });
-    var marker = L.marker([item.lat, item.lng], { pane: "restroomPane", icon: icon, title: label + " - " + (item.name || "") }).addTo(map);
+    var marker = L.marker([item.lat, item.lng], { pane: "restroomPane", icon: icon, title: label + " - " + (item.name || "") }).addTo(restroomMarkerLayer);
     marker.on("click", function() { showRestroomPopup(item); });
     restroomMarkers.push(marker);
 }
@@ -2487,12 +2769,12 @@ function geocodeQueueSequential(items, onEach) {
     step();
 }
 // 吏??以묒떖???꾩튂??"援?瑜??뚯븘?댁꽌, 洹?援ъ쓽 ?붿옣?ㅻ쭔 吏?ㅼ퐫??罹먯떆???녿뒗 寃껊쭔) + ?쒖떆
-function fetchRestroomsForCurrentArea() {
+function fetchRestroomsFromLocalDataForCurrentArea() {
     if (!mapLayerSettings.restroom) return;
     fetchRestroomRawData().then(function(allItems) {
         if (!allItems.length) return;
         return loadKakaoTrafficSdk().then(function() {
-            var center = map.getCenter();
+            var center = getMapSearchCenter();
             var geocoder = new window.kakao.maps.services.Geocoder();
             geocoder.coord2RegionCode(center.lng, center.lat, function(result, status) {
                 if (status !== window.kakao.maps.services.Status.OK || !result || !result.length) return;
@@ -2538,7 +2820,7 @@ loadRestroomGeoCache();
 function scheduleTourFetch() { if (tourFetchTimer) clearTimeout(tourFetchTimer); tourFetchTimer = setTimeout(function() { tourFetchTimer = null; tourExpanded = false; fetchTourSpots(); fetchFestivals(); }, 1200); }
 map.on("moveend", scheduleTourFetch);
 map.on("moveend", refreshMapCenteredLayerMarkers);
-map.on("click", function() { collapseTourPanel(); });
+map.on("click", function() { collapseTourPanel(); closeSpecialPlacePopup(); });
 scheduleTourFetch();
 if (mapLayerSettings.library) fetchLibraries();
 
@@ -2569,6 +2851,7 @@ function applyMapLayerChange(key) {
         if (mapLayerSettings.restroom) {
             fetchRestroomsForCurrentArea();
         } else {
+            restroomSearchSeq += 1;
             clearRestroomMarkers();
             restroomGuFetched = {}; // ?ㅼ떆 耳곗쓣 ???꾩옱 蹂댁씠??援щ? ?ы룊媛?섎룄濡?珥덇린??(吏?ㅼ퐫??罹먯떆???좎??섏뼱 ?ы샇異쒖? ????
         }
@@ -2585,12 +2868,60 @@ function toggleMapLayer(key) {
     syncMapLayerToggleUI(key);
     applyMapLayerChange(key);
 }
+function fetchRestroomsForCurrentArea() {
+    if (!mapLayerSettings.restroom) return;
+    var center = getMapSearchCenter();
+    var requestSeq = ++restroomSearchSeq;
+    loadKakaoTrafficSdk().then(function() {
+        if (requestSeq !== restroomSearchSeq || !mapLayerSettings.restroom) return;
+        if (!window.kakao.maps.services || !window.kakao.maps.services.Places) {
+            fetchRestroomsFromLocalDataForCurrentArea();
+            return;
+        }
+        var places = new window.kakao.maps.services.Places();
+        places.keywordSearch("화장실", function(results, status) {
+            if (requestSeq !== restroomSearchSeq || !mapLayerSettings.restroom) return;
+            if (status === window.kakao.maps.services.Status.OK) {
+                restroomVisibleItems = (results || []).map(function(place) {
+                    return {
+                        _giloaKey: "kakao|" + (place.id || place.x + "|" + place.y),
+                        name: place.place_name || "화장실",
+                        addr: place.road_address_name || place.address_name || "",
+                        tel: place.phone || "",
+                        hours: "",
+                        openType: "",
+                        lat: parseFloat(place.y),
+                        lng: parseFloat(place.x)
+                    };
+                }).filter(function(item) {
+                    return isWithinMapSearchCenter(item.lat, item.lng, MAP_LAYER_RADIUS_M);
+                });
+                renderRestroomMarkers();
+                return;
+            }
+            if (status === window.kakao.maps.services.Status.ZERO_RESULT) {
+                restroomVisibleItems = [];
+                renderRestroomMarkers();
+                return;
+            }
+            fetchRestroomsFromLocalDataForCurrentArea();
+        }, {
+            location: new window.kakao.maps.LatLng(center.lat, center.lng),
+            radius: MAP_LAYER_RADIUS_M,
+            size: 15,
+            sort: window.kakao.maps.services.SortBy.DISTANCE
+        });
+    }).catch(function() {
+        if (requestSeq === restroomSearchSeq) fetchRestroomsFromLocalDataForCurrentArea();
+    });
+}
 function refreshMapCenteredLayerMarkers() {
     if (mapLayerSettings.library && librariesLoaded) renderLibraryMarkers(currentLang);
     if (mapLayerSettings.restroom) {
         renderRestroomMarkers();
     }
-    addTourMarkers();
+    updateFestivalBadge();
+    renderTourCards();
 }
 function initMapLayerUI() {
     Object.keys(MAP_LAYER_DEFAULTS).forEach(function(key) { syncMapLayerToggleUI(key); });
@@ -2644,8 +2975,8 @@ function varcoTranslate(text, sourceLang, targetLang) {
 }
 
 var UI_TEXT = {
-    ko: { sidebar_title: "나의 기록", fog_label: "안개 효과", fog_on: "켜짐", fog_off: "꺼짐", tab_memory: "기억", tab_photo: "사진 기록", tab_gpx: "경로", tab_badge: "아이템", tab_visit: "방문", tab_item: "아이템", rec_idle: "중단됨", rec_active: "기록중", gps_weak: "GPS 약함 ({value}m)", gps_very_weak: "GPS 매우 약함 ({value}m)", stay_bonus_wait: "기록중 - 체류 보너스까지 {value}분", stay_bonus_done: "30분 체류 완료! 레벨 +1 보너스!", empty_memory: "아직 기록이 없습니다.", empty_photo: "아직 사진이 없습니다.", tour_title: "주변 관광지", tour_place_fallback: "관광지", festival_label: "주변 축제", festival_badge: "축제", loading: "검색 중...", empty_tour: "주변 장소가 없습니다", close: "닫기", more: "더보기", next: "다음", start: "시작", previous: "이전", count_suffix: "곳", unit_count: "개", hud_title_label: "현재 칭호", hud_level_label: "LV", hud_dist_label: "이동 거리", hud_memory_label: "기억", hud_photo_label: "사진", hud_next: "다음까지", hud_condition_met: "달성!", hud_no_condition: "조건 없음", hud_max: "최고!", hud_max_level: "최고 레벨!", help_tab_ask: "문의하기", help_tab_info: "설명보기", help_tutorial_replay: "튜토리얼 다시 보기", help_ask_copy: "사용 중 불편한 점이나 건의사항은<br>카카오톡 오픈채팅으로 알려주세요.", help_notice: "저장된 GPX 데이터는 서버로 전송되지 않습니다.<br>모든 기록은 <b>이 기기 안에만</b> 저장되고 보여집니다.", help_link: "카카오톡 오픈채팅", help_record_title: "기록 버튼", help_record_desc: "누르면 GPS 경로 기록을 시작하고 다시 누르면 중단합니다.", help_photo_title: "사진 버튼", help_photo_desc: "갤러리에서 사진을 불러옵니다.", help_memory_title: "기억 버튼", help_memory_desc: "현재 위치에 이름을 붙여 기억으로 저장합니다.", help_location_title: "현재 위치 버튼", help_location_desc: "지도를 현재 위치로 이동합니다.", help_status_title: "상태 버튼", help_status_desc: "칭호와 진행 상태를 확인합니다.", help_menu_title: "메뉴 버튼", help_menu_desc: "기억, 사진, 경로 기록을 확인합니다." },
-    en: { sidebar_title: "My Records", fog_label: "Fog Effect", fog_on: "On", fog_off: "Off", tab_memory: "Memory", tab_photo: "Photo", tab_gpx: "Route", tab_badge: "Badges", tab_visit: "Visits", tab_item: "Items", rec_idle: "Stopped", rec_active: "Recording", gps_weak: "Weak GPS ({value}m)", gps_very_weak: "Very weak GPS ({value}m)", stay_bonus_wait: "Recording - stay bonus in {value} min", stay_bonus_done: "30 min stay complete! Level +1 bonus!", empty_memory: "No records yet.", empty_photo: "No photos yet.", tour_title: "Nearby Places", tour_place_fallback: "Place", festival_label: "Nearby Festivals", festival_badge: "Festivals", loading: "Searching...", empty_tour: "No nearby places", close: "Close", more: "More", next: "Next", start: "Start", previous: "Back", count_suffix: "places", unit_count: "", hud_title_label: "Current Title", hud_level_label: "LV", hud_dist_label: "Distance", hud_memory_label: "Memories", hud_photo_label: "Photos", hud_next: "Next", hud_condition_met: "Met!", hud_no_condition: "No condition", hud_max: "Max!", hud_max_level: "Max level reached!", help_tab_ask: "Contact", help_tab_info: "Guide", help_tutorial_replay: "Replay Tutorial", help_ask_copy: "Tell us about issues or suggestions<br>through KakaoTalk open chat.", help_notice: "Saved GPX data is not sent to the server.<br>All records are stored and shown <b>only on this device</b>.", help_link: "KakaoTalk Open Chat", help_record_title: "Record Button", help_record_desc: "Tap to start GPS route recording. Tap again to stop.", help_photo_title: "Photo Button", help_photo_desc: "Import photos from your gallery.", help_memory_title: "Memory Button", help_memory_desc: "Name your current location and save it as a memory.", help_location_title: "Current Location Button", help_location_desc: "Move the map back to your current location.", help_status_title: "Status Button", help_status_desc: "Check your title and progress.", help_menu_title: "Menu Button", help_menu_desc: "View memories, photos, and route records." },
+    ko: { sidebar_title: "나의 기록", fog_label: "안개 효과", fog_on: "켜짐", fog_off: "꺼짐", tab_memory: "기억", tab_photo: "사진", tab_gpx: "경로", tab_badge: "뱃지", tab_visit: "방문", tab_item: "아이템", rec_idle: "중단됨", rec_active: "기록중", gps_weak: "GPS 약함 ({value}m)", gps_very_weak: "GPS 매우 약함 ({value}m)", stay_bonus_wait: "기록중 - 체류 보너스까지 {value}분", stay_bonus_done: "30분 체류 완료! 레벨 +1 보너스!", empty_memory: "아직 기록이 없습니다.", empty_photo: "아직 사진이 없습니다.", tour_title: "주변 관광지", tour_place_fallback: "관광지", festival_label: "주변 축제", festival_badge: "축제", loading: "검색 중...", empty_tour: "주변 장소가 없습니다", close: "닫기", more: "더보기", next: "다음", start: "시작", previous: "이전", count_suffix: "곳", unit_count: "개", hud_title_label: "현재 칭호", hud_level_label: "LV", hud_dist_label: "이동 거리", hud_memory_label: "기억", hud_photo_label: "사진", hud_next: "다음까지", hud_condition_met: "달성!", hud_no_condition: "조건 없음", hud_max: "최고!", hud_max_level: "최고 레벨!", help_tab_ask: "문의하기", help_tab_info: "설명보기", help_tutorial_replay: "튜토리얼 다시 보기", help_ask_copy: "사용 중 불편한 점이나 건의사항은<br>카카오톡 오픈채팅으로 알려주세요.", help_notice: "저장된 GPX 데이터는 서버로 전송되지 않습니다.<br>모든 기록은 <b>이 기기 안에만</b> 저장되고 보여집니다.", help_link: "카카오톡 오픈채팅", help_record_title: "기록 버튼", help_record_desc: "누르면 GPS 경로 기록을 시작하고 다시 누르면 중단합니다.", help_photo_title: "사진 버튼", help_photo_desc: "갤러리에서 사진을 불러옵니다.", help_memory_title: "기억 버튼", help_memory_desc: "현재 위치에 이름을 붙여 기억으로 저장합니다.", help_location_title: "현재 위치와 특별 장소", help_location_desc: "지도 위 파란 현재 위치 점을 누르면 메모와 함께 특별 장소 핀을 저장할 수 있습니다.", help_status_title: "상태 버튼", help_status_desc: "칭호와 진행 상태를 확인합니다.", help_menu_title: "메뉴 버튼", help_menu_desc: "기억, 사진, 경로 기록을 확인합니다." },
+    en: { sidebar_title: "My Records", fog_label: "Fog Effect", fog_on: "On", fog_off: "Off", tab_memory: "Memory", tab_photo: "Photo", tab_gpx: "Route", tab_badge: "Badges", tab_visit: "Visits", tab_item: "Items", rec_idle: "Stopped", rec_active: "Recording", gps_weak: "Weak GPS ({value}m)", gps_very_weak: "Very weak GPS ({value}m)", stay_bonus_wait: "Recording - stay bonus in {value} min", stay_bonus_done: "30 min stay complete! Level +1 bonus!", empty_memory: "No records yet.", empty_photo: "No photos yet.", tour_title: "Nearby Places", tour_place_fallback: "Place", festival_label: "Nearby Festivals", festival_badge: "Festivals", loading: "Searching...", empty_tour: "No nearby places", close: "Close", more: "More", next: "Next", start: "Start", previous: "Back", count_suffix: "places", unit_count: "", hud_title_label: "Current Title", hud_level_label: "LV", hud_dist_label: "Distance", hud_memory_label: "Memories", hud_photo_label: "Photos", hud_next: "Next", hud_condition_met: "Met!", hud_no_condition: "No condition", hud_max: "Max!", hud_max_level: "Max level reached!", help_tab_ask: "Contact", help_tab_info: "Guide", help_tutorial_replay: "Replay Tutorial", help_ask_copy: "Tell us about issues or suggestions<br>through KakaoTalk open chat.", help_notice: "Saved GPX data is not sent to the server.<br>All records are stored and shown <b>only on this device</b>.", help_link: "KakaoTalk Open Chat", help_record_title: "Record Button", help_record_desc: "Tap to start GPS route recording. Tap again to stop.", help_photo_title: "Photo Button", help_photo_desc: "Import photos from your gallery.", help_memory_title: "Memory Button", help_memory_desc: "Name your current location and save it as a memory.", help_location_title: "Current Location & Special Places", help_location_desc: "Tap the blue current-location dot on the map to save a special-place pin with a note.", help_status_title: "Status Button", help_status_desc: "Check your title and progress.", help_menu_title: "Menu Button", help_menu_desc: "View memories, photos, and route records." },
     ja: {},
     zh: {}
 };
@@ -2670,7 +3001,7 @@ Object.assign(UI_TEXT.ja, {
     help_record_title: "記録ボタン", help_record_desc: "押すとGPSルート記録を開始し、もう一度押すと停止します。",
     help_photo_title: "写真ボタン", help_photo_desc: "ギャラリーから写真を読み込みます。",
     help_memory_title: "記憶ボタン", help_memory_desc: "現在地に名前を付けて記憶として保存します。",
-    help_location_title: "現在地ボタン", help_location_desc: "地図を現在地へ移動します。",
+    help_location_title: "現在地と特別な場所", help_location_desc: "地図上の青い現在地の点をタップすると、メモ付きの特別な場所のピンを保存できます。",
     help_status_title: "ステータスボタン", help_status_desc: "称号と進行状況を確認します。",
     help_menu_title: "メニューボタン", help_menu_desc: "記憶、写真、ルート記録を確認します。"
 });
@@ -2693,7 +3024,7 @@ Object.assign(UI_TEXT.zh, {
     help_record_title: "记录按钮", help_record_desc: "点击开始记录GPS路线，再次点击即可停止。",
     help_photo_title: "照片按钮", help_photo_desc: "从相册导入照片。",
     help_memory_title: "记忆按钮", help_memory_desc: "为当前位置命名并保存为记忆。",
-    help_location_title: "当前位置按钮", help_location_desc: "将地图移回当前位置。",
+    help_location_title: "当前位置与特别地点", help_location_desc: "点击地图上的蓝色当前位置圆点，即可保存带备注的特别地点标记。",
     help_status_title: "状态按钮", help_status_desc: "查看称号和进度。",
     help_menu_title: "菜单按钮", help_menu_desc: "查看记忆、照片和路线记录。"
 });
@@ -2717,11 +3048,60 @@ Object.assign(UI_TEXT.zh, {
     map_layer_lodging: "住宿", map_layer_restroom: "卫生间", map_layer_community: "社区中心",
     map_layer_coming_soon: "即将推出"
 });
+Object.assign(UI_TEXT.ko, {
+    special_place: "특별한 장소", special_place_placeholder: "이 장소에 대한 내용을 입력하세요",
+    save_pin: "저장", cancel_pin: "취소", empty_pin_note: "내용을 입력해 주세요.", pin_saved: "특별한 장소가 저장되었습니다."
+});
+Object.assign(UI_TEXT.en, {
+    special_place: "Special Place", special_place_placeholder: "Write something about this place",
+    save_pin: "Save", cancel_pin: "Cancel", empty_pin_note: "Please enter a note.", pin_saved: "Special place saved."
+});
+Object.assign(UI_TEXT.ja, {
+    special_place: "特別な場所", special_place_placeholder: "この場所について入力してください",
+    save_pin: "保存", cancel_pin: "キャンセル", empty_pin_note: "内容を入力してください。", pin_saved: "特別な場所を保存しました。"
+});
+Object.assign(UI_TEXT.zh, {
+    special_place: "特别地点", special_place_placeholder: "请输入关于这个地点的内容",
+    save_pin: "保存", cancel_pin: "取消", empty_pin_note: "请输入内容。", pin_saved: "特别地点已保存。"
+});
+Object.assign(UI_TEXT.ko, {
+    help_tab_market: "주변 시세", market_title: "이 지역의 주변 시세",
+    market_description: "현재 지역에서 일반적으로 형성된 가격을 참고용으로 보여줍니다.",
+    market_meal: "식사", market_cafe: "카페", market_necessities: "생필품", market_transport: "교통",
+    market_source: "공공데이터를 바탕으로 한 참고 가격입니다.",
+    market_loading: "주변 시세를 불러오는 중입니다.", market_empty: "현재 지역의 시세 정보가 없습니다.",
+    market_updated: "업데이트 날짜", market_current_area: "현재 지역"
+});
+Object.assign(UI_TEXT.en, {
+    help_tab_market: "Local Prices", market_title: "Local Price Guide",
+    market_description: "This shows typical prices in the current area for reference.",
+    market_meal: "Meals", market_cafe: "Cafes", market_necessities: "Daily necessities", market_transport: "Transportation",
+    market_source: "Reference prices based on public data.",
+    market_loading: "Loading local price information.", market_empty: "Price information is not available for this area.",
+    market_updated: "Updated", market_current_area: "Current area"
+});
+Object.assign(UI_TEXT.ja, {
+    help_tab_market: "周辺相場", market_title: "この地域の周辺相場",
+    market_description: "現在の地域で一般的に形成されている価格を参考として表示します。",
+    market_meal: "食事", market_cafe: "カフェ", market_necessities: "生活必需品", market_transport: "交通",
+    market_source: "公共データに基づく参考価格です。",
+    market_loading: "周辺相場を読み込んでいます。", market_empty: "現在の地域の相場情報はありません。",
+    market_updated: "更新日", market_current_area: "現在の地域"
+});
+Object.assign(UI_TEXT.zh, {
+    help_tab_market: "周边行情", market_title: "当前地区的周边行情",
+    market_description: "显示当前地区通常形成的价格，仅供参考。",
+    market_meal: "餐饮", market_cafe: "咖啡", market_necessities: "生活必需品", market_transport: "交通",
+    market_source: "基于公共数据的参考价格。",
+    market_loading: "正在加载周边行情。", market_empty: "当前地区暂无行情信息。",
+    market_updated: "更新日期", market_current_area: "当前地区"
+});
 function setText(id, value) { var el = document.getElementById(id); if (el) el.textContent = value; }
 function setHtml(id, value) { var el = document.getElementById(id); if (el) el.innerHTML = value; }
 function applyHelpLang(t) {
     setText("htab-ask", t.help_tab_ask);
     setText("htab-info", t.help_tab_info);
+    setText("htab-market", t.help_tab_market);
     setText("help-tutorial-replay", t.help_tutorial_replay);
     setHtml("help-ask-copy", t.help_ask_copy);
     setHtml("help-notice", t.help_notice);
@@ -2733,6 +3113,7 @@ function applyHelpLang(t) {
         if (title && titles[idx]) title.textContent = titles[idx];
         if (desc && descs[idx]) desc.textContent = descs[idx];
     });
+    updateLocalMarketPriceLanguage();
 }
 function applyHudLang(t) {
     setText("hud-title-label", t.hud_title_label);
@@ -2781,6 +3162,7 @@ function applyUILang(lang) {
     syncLanguageButtons(lang);
     applyHelpLang(t);
     applyHudLang(t);
+    applySpecialPlaceLang();
     renderTourCards();
     renderFestivalStrip();
     translateTourItemsForLang(lang, tourItems);
@@ -2923,7 +3305,7 @@ function loadCollection() {
         badges = Array.isArray(data.badges) ? data.badges : [];
         visitStamps = Array.isArray(data.visitStamps) ? data.visitStamps : [];
         items = Array.isArray(data.items) ? data.items : [];
-        updateItemList();
+        updateBadgeList();
         updateVisitList();
     } catch(e) { console.warn("?占쎌쭛 ?占쎈낫 蹂듭썝 ?占쏀뙣", e); }
 }
@@ -2939,7 +3321,7 @@ function earnBadge(badgeId) {
     var now = new Date();
     badges.push({ id: badgeId, earnedAt: now.getTime(), dateString: now.toLocaleDateString("ko-KR") });
     saveCollection();
-    updateItemList();
+    updateBadgeList();
     showCollectionToast(def.icon + " 諭껓옙? ?占쎈뱷! " + def.name);
 }
 
@@ -2966,10 +3348,23 @@ function checkBadges() {
 }
 
 function updateBadgeList() {
-    var container = document.getElementById("badge-list");
+    updateItemList();
+}
+
+function updateItemList() {
+    var container = document.getElementById("item-list");
     if (!container) return;
-    if (badges.length === 0) { container.innerHTML = '<p class="empty-message">?占쎌쭅 ?占쎈뱷???占쏙옙?媛 ?占쎌뒿?占쎈떎.</p>'; return; }
+    if (badges.length === 0 && items.length === 0) { container.innerHTML = '<p class="empty-message" style="grid-column:1/-1">아직 획득한 아이템이 없습니다.</p>'; return; }
     container.innerHTML = "";
+    items.slice().reverse().forEach(function(savedItem) {
+        var item = document.createElement("div");
+        item.className = "badge-item item-card";
+        var icon = savedItem.icon || "I";
+        var name = savedItem.name || savedItem.title || "Item";
+        var date = savedItem.dateString || (savedItem.earnedAt ? new Date(savedItem.earnedAt).toLocaleDateString("ko-KR") : "");
+        item.innerHTML = '<div class="badge-icon">' + icon + '</div><div class="badge-name">' + escapeHtml(name) + '</div><div class="badge-date">' + escapeHtml(date) + '</div>';
+        container.appendChild(item);
+    });
     badges.slice().reverse().forEach(function(b) {
         var def = BADGE_DEFS.find(function(d) { return d.id === b.id; });
         if (!def) return;
@@ -2978,54 +3373,6 @@ function updateBadgeList() {
         item.innerHTML = '<div class="badge-icon">' + def.icon + '</div><div class="badge-name">' + def.name + '</div><div class="badge-date">' + b.dateString + '</div>';
         item.title = def.desc || def.name;
         container.appendChild(item);
-    });
-}
-
-function updateItemList() {
-    var container = document.getElementById("item-list");
-    if (!container) return;
-    container.innerHTML = "";
-
-    var merged = [];
-    badges.slice().reverse().forEach(function(b) {
-        var def = BADGE_DEFS.find(function(d) { return d.id === b.id; });
-        if (!def) return;
-        merged.push({ type: "badge", icon: def.icon, name: def.name, date: b.dateString, desc: def.desc || "" });
-    });
-    items.slice().reverse().forEach(function(item) {
-        merged.push({ type: "item", icon: item.icon || "I", name: item.name || "아이템", date: item.dateString || "", desc: item.desc || "" });
-    });
-
-    if (merged.length === 0) {
-        container.innerHTML = '<p class="empty-message" style="grid-column:1/-1">아직 획득한 아이템이 없습니다.</p>';
-        return;
-    }
-
-    var title = document.createElement("div");
-    title.className = "collection-section-title";
-    title.textContent = "수집한 아이템";
-    container.appendChild(title);
-
-    merged.forEach(function(entry) {
-        var card = document.createElement("div");
-        card.className = entry.type === "badge" ? "badge-item item-card" : "item-card";
-        var icon = document.createElement("div");
-        icon.className = entry.type === "badge" ? "badge-icon" : "item-icon";
-        if (entry.type === "badge") icon.innerHTML = entry.icon;
-        else icon.textContent = entry.icon;
-        var name = document.createElement("div");
-        name.className = "item-name";
-        name.textContent = entry.name;
-        card.appendChild(icon);
-        card.appendChild(name);
-        if (entry.date) {
-            var date = document.createElement("div");
-            date.className = "badge-date";
-            date.textContent = entry.date;
-            card.appendChild(date);
-        }
-        card.title = entry.desc || entry.name;
-        container.appendChild(card);
     });
 }
 
@@ -3045,12 +3392,7 @@ function updateVisitList() {
     });
 }
 
-function switchCollectionTab(tab) {
-    ["badge", "visit", "item"].forEach(function(t) {
-        document.getElementById("ctab-" + t).classList.toggle("active", t === tab);
-        document.getElementById("cpanel-" + t).style.display = t === tab ? "" : "none";
-    });
-}
+function switchCollectionTab(tab) { switchAllTab(tab === "badge" ? "item" : tab); }
 
 function showCollectionToast(msg) {
     var toast = document.createElement("div");
