@@ -26,8 +26,6 @@ The heart and faith behind this project are shared in Korean and English in [OPE
 
 이는 참여를 막기 위한 것이 아니라, 여러 플랫폼으로 경험이 흩어져 현실·온라인 혼합 게임의 의미가 약해지는 것을 막고 모든 참여자가 같은 세계를 함께 발전시키기 위한 원칙입니다.
 
-지금 보이는 이것은 부족해 보일지 모릅니다. 그러나 나중에는 좋은 서비스로 만들어지길 바랍니다.
-
 GILOA is not a platform that one person can complete alone. Training Teachable Machine models, marking real-world places, and building local information and stories require the participation of many people.
 
 Anyone will be able to contribute by following the official contribution methods and guidelines to be published in the future. Contributed places, data, and content should be gathered around the official GILOA platform so that the real and online worlds remain part of one connected experience.

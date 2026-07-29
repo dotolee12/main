@@ -55,7 +55,6 @@
 그러나 길로아는  
 한 사람이 홀로 완성할 수 있는 프로젝트가 아닙니다.
 
-티처블 머신을 통한 학습,  
 현실의 장소를 찾아 기록하는 일,  
 그리고 지역마다 새로운 길을 발견하는 일에는  
 많은 사람의 관심과 참여가 필요합니다.
@@ -136,9 +135,8 @@ I believe that, too, will be a path God continues—
 and part of the path GILOA has walked.
 
 Yet GILOA is not a project that one person can complete alone.
-
-Training models with Teachable Machine,  
-finding and marking places in the real world,  
+ 
+Finding and marking places in the real world,  
 and discovering new paths in every community  
 all require the attention and participation of many people.
 
