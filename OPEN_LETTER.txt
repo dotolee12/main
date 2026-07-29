@@ -1,0 +1,24 @@
+# GILOA
+
+Welcome.
+
+If you are reading this repository,
+thank you for your interest.
+
+This project is not the work of one person.
+
+It exists because of countless people,
+open-source developers,
+teachers,
+my country,
+and AI collaboration.
+
+If you improve this project,
+please help make the world a little better.
+
+If possible,
+I'd love to hear your ideas too.
+
+Thank you.
+
+Jeremy Lee
