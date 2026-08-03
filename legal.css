@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --primary: #1a2035;
   --secondary: #4fc3f7;
   --surface: #232b43;
@@ -193,3 +193,14 @@ footer {
   main { width: min(100% - 24px, 920px); padding-top: 40px; }
   section { padding: 19px; }
 }
+
+.brand { color: var(--text); text-decoration: none; font-weight: 800; }
+.nav { display: flex; gap: 15px; font-size: 13px; }
+.nav a { color: var(--muted); text-decoration: none; }
+.nav a:hover { color: var(--secondary); }
+.support-links { display: grid; gap: 12px; }
+.support-link { display: block; padding: 18px; border: 1px solid var(--line); border-radius: 14px; color: var(--text); text-decoration: none; background: rgba(255,255,255,.035); }
+.support-link:hover { border-color: rgba(79,195,247,.5); background: rgba(79,195,247,.08); }
+.support-link strong { display: block; }
+.support-link span { color: var(--muted); font-size: 13px; }
+.eyebrow { color: var(--secondary); font-size: 12px; font-weight: 800; letter-spacing: .12em; }
