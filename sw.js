@@ -1,4 +1,4 @@
-﻿var APP_CACHE = "giloa-app-shell-local-v35";
+﻿var APP_CACHE = "giloa-app-shell-local-v36";
 var TILE_CACHE = "giloa-map-tiles-v2";
 var TILE_CACHE_MAX = 350;
 var APP_SHELL = [
@@ -85,17 +85,31 @@ self.addEventListener("fetch", function(event) {
   }
 
   if (url.origin === self.location.origin) {
-    event.respondWith(
-      caches.match(event.request, { ignoreSearch: true }).then(function(cached) {
-        return cached || fetch(event.request).then(function(response) {
+    var isHtmlRequest = event.request.mode === "navigate" || /\.html?$/.test(url.pathname) || url.pathname === "/";
+    if (isHtmlRequest) {
+      event.respondWith(
+        fetch(event.request, { cache: "no-store" }).then(function(response) {
           var copy = response.clone();
           caches.open(APP_CACHE).then(function(cache) { cache.put(event.request, copy); });
           return response;
-        }).catch(function() { return cached; });
+        }).catch(function() {
+          return caches.match(event.request, { ignoreSearch: true });
+        })
+      );
+      return;
+    }
+    event.respondWith(
+      fetch(event.request).then(function(response) {
+        var copy = response.clone();
+        caches.open(APP_CACHE).then(function(cache) { cache.put(event.request, copy); });
+        return response;
+      }).catch(function() {
+        return caches.match(event.request, { ignoreSearch: true });
       })
     );
   }
 });
+
 
 
 
