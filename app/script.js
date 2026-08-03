@@ -1,4 +1,4 @@
-// 앱 시작 시 위치 권한 요청
+﻿// 앱 시작 시 위치 권한 요청
 async function requestLocationPermission() {
     if (window.Capacitor && window.Capacitor.isNativePlatform()) {
         try {
@@ -3171,6 +3171,7 @@ function applyUILang(lang) {
     updateDailyMissions();
     applySpecialPinLanguage();
     renderSpecialPins();
+    syncSidebarInfoLinks();
     syncTutorialHelpHint();
 }
 
@@ -3514,3 +3515,87 @@ function bearingBetween(from, to) {
  * Full bilingual letter: OPEN_LETTER.md
  * Copyright (c) 2026 Jeremy Lee. All rights reserved.
  */
+
+var activeGiloaInfoType = null;
+var GILOA_INFO_COPY = {
+    ko: {
+        accountBtn: "계정 보호", privacyBtn: "프라이버시", aboutBtn: "길로아 이야기", close: "닫기", pageLink: "전체 페이지 보기",
+        account: { title: "계정은 어떻게 보호되나요?", lead: "길로아는 기록을 남기는 앱이라 계정과 위치 기록이 섞이지 않도록 구분해서 다룹니다.", items: ["사용자가 입력한 아이디를 기준으로 사진, 방문, 발걸음 기록을 분리합니다.", "저장된 기록은 앱 기능을 위해서만 불러오며, 화면에는 비밀번호 같은 민감한 값을 표시하지 않습니다.", "공용 기기에서는 사용 후 아이디를 변경하거나 브라우저 저장 데이터를 지우면 내 기록 노출을 줄일 수 있습니다."] },
+        privacy: { title: "프라이버시", lead: "사진, 위치, 경로 정보는 지도 기록을 보여주기 위해 필요한 범위 안에서만 사용합니다.", items: ["사진 위치 정보는 지도에 사진을 올리고 뱃지 조건을 확인하는 데 사용합니다.", "GPS 발걸음은 방문 기록과 경로 복원에 사용되며, 사용자가 멈추거나 삭제할 수 있습니다.", "외부 관광지 API는 주변 장소를 찾기 위해 현재 위치 주변 좌표를 조회할 때 사용됩니다."] },
+        about: { title: "길로아는 왜 만들어졌나요?", lead: "길로아는 지나간 길을 그냥 사라지게 두지 않고, 사진과 장소와 기억으로 남기기 위해 만들어졌습니다.", items: ["내가 걸은 길, 찍은 사진, 만난 장소를 하나의 개인 지도 안에 모읍니다.", "여행지와 동네를 게임처럼 탐험하면서 방문, 아이템, 뱃지로 성취감을 느끼게 합니다.", "사용자가 자기만의 대동여지도를 만들어 가는 경험을 목표로 합니다."] }
+    },
+    en: {
+        accountBtn: "Account", privacyBtn: "Privacy", aboutBtn: "Why Giloa", close: "Close", pageLink: "Open full page",
+        account: { title: "How are accounts protected?", lead: "Giloa keeps records separated by account so personal routes and photos do not get mixed.", items: ["Photos, visits, and route records are grouped by the user ID you enter.", "Saved records are loaded only for app features, and sensitive values such as passwords are not shown on screen.", "On shared devices, changing the ID or clearing browser data helps prevent others from seeing your records."] },
+        privacy: { title: "Privacy", lead: "Photos, location, and route data are used only as needed to display your map records.", items: ["Photo location data is used to place photos on the map and check badge conditions.", "GPS steps are used for visits and route recovery, and you can stop or delete them.", "Nearby place APIs use coordinates around your current area only to find useful spots."] },
+        about: { title: "Why was Giloa made?", lead: "Giloa was made so the roads you walk can remain as photos, places, and memories.", items: ["It gathers walked paths, photos, and places into one personal map.", "It makes local exploration feel playful through visits, items, and badges.", "Its goal is to help each user build their own living map."] }
+    },
+    ja: {
+        accountBtn: "アカウント", privacyBtn: "プライバシー", aboutBtn: "Giloaとは", close: "閉じる", pageLink: "ページ全体を見る",
+        account: { title: "アカウントはどう守られますか？", lead: "Giloaは個人のルートや写真が混ざらないよう、アカウントごとに記録を分けて扱います。", items: ["入力したユーザーIDを基準に、写真・訪問・ルート記録を分けます。", "保存された記録はアプリ機能のためだけに読み込み、パスワードのような重要な値は画面に表示しません。", "共有端末では、利用後にIDを変更したりブラウザの保存データを消すことで記録の露出を減らせます。"] },
+        privacy: { title: "プライバシー", lead: "写真、位置、ルート情報は、地図記録を表示するために必要な範囲で使います。", items: ["写真の位置情報は、地図上への配置とバッジ条件の確認に使います。", "GPSの足跡は訪問記録とルート復元に使われ、停止や削除ができます。", "周辺スポットAPIは、現在地周辺の座標から場所を探すために使います。"] },
+        about: { title: "Giloaはなぜ作られましたか？", lead: "Giloaは、歩いた道を写真・場所・記憶として残すために作られました。", items: ["歩いた道、撮った写真、出会った場所を一つの個人地図に集めます。", "訪問、アイテム、バッジで街や旅先の探索をゲームのように楽しめます。", "ユーザーが自分だけの生きた地図を作っていく体験を目指しています。"] }
+    },
+    zh: {
+        accountBtn: "账号", privacyBtn: "隐私", aboutBtn: "关于 Giloa", close: "关闭", pageLink: "查看完整页面",
+        account: { title: "账号如何受到保护？", lead: "Giloa 会按账号区分记录，避免个人路线和照片混在一起。", items: ["照片、访问和路线记录会按照你输入的用户 ID 进行区分。", "保存的记录只会为了应用功能而读取，密码等敏感值不会显示在画面上。", "在共用设备上，使用后更换 ID 或清除浏览器数据，可以减少记录被他人看到的可能。"] },
+        privacy: { title: "隐私", lead: "照片、位置和路线信息只在显示地图记录所需的范围内使用。", items: ["照片位置信息用于把照片放到地图上，并确认徽章条件。", "GPS 足迹用于访问记录和路线恢复，你可以随时停止或删除。", "附近地点 API 只会使用当前位置周边坐标来查找有用地点。"] },
+        about: { title: "Giloa 为什么被创建？", lead: "Giloa 是为了把走过的路保留下来，变成照片、地点和记忆。", items: ["把你走过的路、拍过的照片和遇到的地点收集到一张个人地图中。", "通过访问、道具和徽章，让探索城市和旅行地变得更有游戏感。", "目标是帮助每个用户创建属于自己的动态地图。"] }
+    }
+};
+function getGiloaInfoCopy() {
+    var lang = typeof currentLang === "string" ? normalizeLang(currentLang) : "ko";
+    var source = (typeof GILOA_INFO_COPY === "object" && GILOA_INFO_COPY) ? GILOA_INFO_COPY : null;
+    if (!source) return { accountBtn: "계정 보호", privacyBtn: "프라이버시", aboutBtn: "길로아 이야기", close: "닫기", pageLink: "전체 페이지 보기", about: { title: "길로아 안내", lead: "안내 페이지로 이동해 주세요.", items: [] } };
+    return source[lang] || source.ko || source.en;
+}
+function syncSidebarInfoLinks() {
+    var copy = getGiloaInfoCopy();
+    setText("info-account-btn", copy.accountBtn);
+    setText("info-privacy-btn", copy.privacyBtn);
+    setText("info-about-btn", copy.aboutBtn);
+    var close = document.getElementById("giloa-info-close");
+    if (close) close.setAttribute("aria-label", copy.close);
+    if (activeGiloaInfoType) renderGiloaInfo(activeGiloaInfoType);
+}
+function renderGiloaInfo(type) {
+    var copy = getGiloaInfoCopy();
+    var data = copy[type] || copy.about;
+    var pageHref = "./" + (type === "account" ? "account" : type === "privacy" ? "privacy" : "about") + "/index.html";
+    setText("giloa-info-title", data.title);
+    var body = document.getElementById("giloa-info-body");
+    if (!body) return;
+    var html = '<p class="giloa-info-lead">' + escapeHtml(data.lead) + '</p><ul class="giloa-info-list">';
+    data.items.forEach(function(item) { html += '<li>' + escapeHtml(item) + '</li>'; });
+    body.innerHTML = html + '</ul><a class="giloa-info-page-link" href="' + pageHref + '">' + escapeHtml(copy.pageLink || "전체 페이지 보기") + '</a>';
+}
+function openGiloaInfoLink(event, type) {
+    if (event && event.preventDefault) event.preventDefault();
+    openGiloaInfo(type);
+    return false;
+}
+function openGiloaInfo(type) {
+    activeGiloaInfoType = type || "about";
+    renderGiloaInfo(activeGiloaInfoType);
+    var modal = document.getElementById("giloa-info-modal");
+    if (!modal) return;
+    modal.classList.add("show");
+    modal.setAttribute("aria-hidden", "false");
+}
+function closeGiloaInfo() {
+    activeGiloaInfoType = null;
+    var modal = document.getElementById("giloa-info-modal");
+    if (modal) { modal.classList.remove("show"); modal.setAttribute("aria-hidden", "true"); }
+}
+function handleGiloaInfoOverlayClick(event) {
+    if (event && event.target && event.target.id === "giloa-info-modal") closeGiloaInfo();
+}
+document.addEventListener("keydown", function(event) {
+    if (event.key === "Escape") closeGiloaInfo();
+});
+try { syncSidebarInfoLinks(); } catch (_) {}
+
+
+
+
+

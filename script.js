@@ -3561,7 +3561,7 @@ function syncSidebarInfoLinks() {
 function renderGiloaInfo(type) {
     var copy = getGiloaInfoCopy();
     var data = copy[type] || copy.about;
-    var pageHref = "./" + (type === "account" ? "account" : type === "privacy" ? "privacy" : "about") + "/";
+    var pageHref = "./" + (type === "account" ? "account" : type === "privacy" ? "privacy" : "about") + "/index.html";
     setText("giloa-info-title", data.title);
     var body = document.getElementById("giloa-info-body");
     if (!body) return;
@@ -3594,6 +3594,7 @@ document.addEventListener("keydown", function(event) {
     if (event.key === "Escape") closeGiloaInfo();
 });
 try { syncSidebarInfoLinks(); } catch (_) {}
+
 
 
 

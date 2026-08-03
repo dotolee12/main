@@ -1,4 +1,4 @@
-var APP_CACHE = "giloa-app-shell-local-v27";
+﻿var APP_CACHE = "giloa-app-shell-local-v35";
 var TILE_CACHE = "giloa-map-tiles-v2";
 var TILE_CACHE_MAX = 350;
 var APP_SHELL = [
@@ -8,6 +8,12 @@ var APP_SHELL = [
   "./config.js",
   "./style.css",
   "./script.js",
+  "./terms/index.html",
+  "./support/index.html",
+  "./privacy/index.html",
+  "./about/index.html",
+  "./account/index.html",
+  "./legal.css",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/icon-maskable-512.png",
@@ -90,3 +96,11 @@ self.addEventListener("fetch", function(event) {
     );
   }
 });
+
+
+
+
+
+
+
+

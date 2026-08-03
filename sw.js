@@ -1,4 +1,4 @@
-﻿var APP_CACHE = "giloa-app-shell-local-v34";
+﻿var APP_CACHE = "giloa-app-shell-local-v35";
 var TILE_CACHE = "giloa-map-tiles-v2";
 var TILE_CACHE_MAX = 350;
 var APP_SHELL = [
@@ -96,6 +96,7 @@ self.addEventListener("fetch", function(event) {
     );
   }
 });
+
 
 
 
