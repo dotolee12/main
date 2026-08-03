@@ -3545,7 +3545,9 @@ var GILOA_INFO_COPY = {
 };
 function getGiloaInfoCopy() {
     var lang = typeof currentLang === "string" ? normalizeLang(currentLang) : "ko";
-    return GILOA_INFO_COPY[lang] || GILOA_INFO_COPY.ko;
+    var source = (typeof GILOA_INFO_COPY === "object" && GILOA_INFO_COPY) ? GILOA_INFO_COPY : null;
+    if (!source) return { accountBtn: "계정 보호", privacyBtn: "프라이버시", aboutBtn: "길로아 이야기", close: "닫기", pageLink: "전체 페이지 보기", about: { title: "길로아 안내", lead: "안내 페이지로 이동해 주세요.", items: [] } };
+    return source[lang] || source.ko || source.en;
 }
 function syncSidebarInfoLinks() {
     var copy = getGiloaInfoCopy();
@@ -3592,6 +3594,7 @@ document.addEventListener("keydown", function(event) {
     if (event.key === "Escape") closeGiloaInfo();
 });
 try { syncSidebarInfoLinks(); } catch (_) {}
+
 
 
 
