@@ -4,143 +4,97 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#1a2035">
-  <meta name="description" content="길로아 안드로이드 베타테스터 모집">
-  <title>길로아 안드로이드 베타테스터 모집</title>
+  <meta name="description" content="길로아 Android 베타테스터 모집">
+  <title>길로아 Android 베타테스터 모집</title>
   <link rel="stylesheet" href="./style.css">
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="https://giloa.kr" aria-label="길로아 홈페이지">
-      <img
-        src="./assets/giloa-logo.png"
-        alt="길로아"
-        class="brand-logo"
-        onerror="this.hidden=true; this.nextElementSibling.hidden=false;"
-      >
-      <span class="brand-fallback" hidden><i></i>GILOA</span>
+    <a class="brand" href="https://giloa.kr" target="_blank" rel="noopener" aria-label="길로아 홈페이지">
+      <img src="./assets/giloa-logo.png" alt="길로아 GA 로고" class="brand-logo">
+      <span class="brand-name">GILOA</span>
     </a>
 
     <nav class="language-nav" aria-label="언어 선택">
-      <button type="button" class="lang active" data-lang="ko">한</button>
-      <button type="button" class="lang" data-lang="en">EN</button>
-      <button type="button" class="lang" data-lang="ja">あ</button>
-      <button type="button" class="lang" data-lang="zh">中</button>
+      <button type="button" class="lang active" data-lang="ko" aria-label="한국어">한</button>
+      <button type="button" class="lang" data-lang="en" aria-label="English">EN</button>
+      <button type="button" class="lang" data-lang="ja" aria-label="日本語">あ</button>
+      <button type="button" class="lang" data-lang="zh" aria-label="中文">中</button>
     </nav>
   </header>
 
   <main>
-    <section class="hero">
-      <div class="hero-copy">
-        <p class="eyebrow" data-i18n="eyebrow">ANDROID CLOSED TEST</p>
-
-        <h1 data-i18n="heroTitle">
-          길로아 안드로이드<br>
-          베타테스터를 모집합니다
-        </h1>
-
-        <p class="hero-description" data-i18n="heroDescription">
-          내가 걸은 길이 지도가 되는 여행·걷기 기록 앱입니다.
-          정식 출시 전, 실제 사용 의견을 들려주실 분을 찾고 있습니다.
-        </p>
-
-        <div class="hero-actions">
-          <a
-            class="button primary"
-            href="https://docs.google.com/forms/d/e/1FAIpQLSdnFF8OMZrShZXczUawf9x9n9sS83lcqEvl3Yp6HWJSKJpn8g/viewform"
-            target="_blank"
-            rel="noopener"
-            data-i18n="applyButton"
-          >테스터 신청하기</a>
-
-          <a
-            class="button secondary"
-            href="https://giloa.kr"
-            target="_blank"
-            rel="noopener"
-            data-i18n="homeButton"
-          >길로아 홈페이지 보기</a>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-top">
+        <div class="hero-intro">
+          <p class="eyebrow" data-i18n="eyebrow">ANDROID CLOSED TEST</p>
+          <h1 id="hero-title" data-i18n="heroTitle">길로아 안드로이드<br>베타테스터를 모집합니다</h1>
+          <p class="hero-description" data-i18n="heroDescription">내가 걸은 길이 지도가 되는 여행·걷기 기록 앱입니다.<br>정식 출시 전, 실제 사용 의견을 들려주실 분을 찾고 있습니다.</p>
         </div>
 
-        <ul class="trust-list">
-          <li data-i18n="trust1">무료 참여</li>
-          <li data-i18n="trust2">이름과 Gmail 주소만 필요</li>
-          <li data-i18n="trust3">금전 및 다른 개인정보 요구 없음</li>
-          <li data-i18n="trust4">현재 Android만 지원 · iOS 추후 지원</li>
-        </ul>
+        <div class="mascot-stage">
+          <div class="map-lines" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <div class="stage-label" data-i18n="stageLabel">함께 발견하는 새로운 길</div>
+          <img src="./assets/gillo-welcome.png" alt="길로아의 길로 캐릭터" class="mascot-image">
+          <div class="speech-bubble" data-i18n="speech">안녕! 나는 길로야.<br>길로아를 함께 걸어보고<br>네 이야기를 들려줄래?</div>
+        </div>
 
-        <aside class="privacy-box">
-          <div class="privacy-icon" aria-hidden="true">▣</div>
-          <div>
-            <strong data-i18n="privacyTitle">개인정보 안전 안내</strong>
-            <p data-i18n="privacyText">
-              수집 정보는 테스트 참여 확인과 Google Play 테스터 등록 목적으로만 사용되며,
-              외부에 제공되지 않습니다.
-            </p>
-          </div>
-        </aside>
-      </div>
-
-      <div class="app-preview" aria-label="길로아 앱 동작 화면 예시">
-        <div class="phone-frame">
-          <div class="phone-header">
-            <button type="button" aria-label="메뉴">☰</button>
-            <div class="phone-tools">
-              <span>◎</span>
-              <span>▱</span>
-              <span>⋮</span>
-            </div>
-          </div>
-
-          <div class="map-area">
-            <div class="map-grid"></div>
-            <div class="map-fog fog-a"></div>
-            <div class="map-fog fog-b"></div>
-
-            <div class="level-card">
-              <strong>★ Lv. 6</strong>
-              <small data-i18n="levelText">기록 탐험가</small>
-              <div class="progress"><i></i></div>
-            </div>
-
-            <div class="route route-1"></div>
-            <div class="route route-2"></div>
-            <div class="route route-3"></div>
-
-            <div class="place place-a">경복궁</div>
-            <div class="place place-b">한강공원</div>
-            <div class="place place-c">남산</div>
-
-            <div class="current-position"></div>
-
-            <img
-              src="./assets/gillo.png"
-              alt="길로 마스코트"
-              class="mascot"
-              onerror="this.hidden=true; document.querySelector('.mascot-fallback').hidden=false;"
-            >
-            <div class="mascot-fallback" hidden aria-label="길로 마스코트 자리">길로</div>
-
-            <div class="speech-bubble" data-i18n="speech">
-              길로와 함께<br>세상을 탐험해요!
-            </div>
-
-            <div class="side-controls" aria-hidden="true">
-              <span>◎</span>
-              <span>▣</span>
-              <span>☆</span>
-            </div>
-          </div>
-
-          <div class="phone-stats">
-            <div><small data-i18n="statDistance">총 거리</small><strong>128.7 km</strong></div>
-            <div><small data-i18n="statToday">오늘 거리</small><strong>7.3 km</strong></div>
-            <div><small data-i18n="statMemory">기억</small><strong>23</strong></div>
-            <div><small data-i18n="statPhoto">사진</small><strong>47</strong></div>
-          </div>
+        <div class="hero-actions">
+          <a class="button primary" href="https://docs.google.com/forms/d/e/1FAIpQLSdnFF8OMZrShZXczUawf9x9n9sS83lcqEvl3Yp6HWJSKJpn8g/viewform" target="_blank" rel="noopener" data-i18n="applyButton">테스터 신청하기</a>
+          <a class="button secondary" href="https://giloa.kr" target="_blank" rel="noopener" data-i18n="homeButton">길로아 홈페이지 보기</a>
         </div>
       </div>
     </section>
+
+    <section class="information" aria-labelledby="guide-title">
+      <div class="section-heading">
+        <p class="section-kicker" data-i18n="guideKicker">BEFORE YOU JOIN</p>
+        <h2 id="guide-title" data-i18n="guideTitle">참여 전 확인해 주세요</h2>
+      </div>
+
+      <div class="info-grid">
+        <article class="guide-card checklist-card">
+          <h3 data-i18n="checklistTitle">테스터 참여 안내</h3>
+          <ul class="checklist">
+            <li data-i18n="check1">무료로 참여할 수 있습니다.</li>
+            <li data-i18n="check2">Google Play 테스트에 사용할 Gmail 주소가 필요합니다.</li>
+            <li data-i18n="check3">Google 계정과 연결된 Gmail 주소로 신청해 주세요.</li>
+            <li data-i18n="check4">금전 및 다른 개인정보를 요구하지 않습니다.</li>
+            <li data-i18n="check5">현재 Android만 지원합니다.</li>
+            <li data-i18n="check6">iOS는 추후 지원할 예정입니다.</li>
+          </ul>
+        </article>
+
+        <aside class="guide-card privacy-card">
+          <div class="privacy-mark" aria-hidden="true">✓</div>
+          <div>
+            <h3 data-i18n="privacyTitle">개인정보 안내</h3>
+            <p data-i18n="privacyText">이름과 Gmail 주소만 수집합니다. 수집 정보는 테스트 참여 확인과 Google Play 테스터 등록 목적으로만 사용되며, 외부에 제공되지 않습니다.</p>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="process" aria-labelledby="process-title">
+      <div class="section-heading">
+        <p class="section-kicker" data-i18n="processKicker">HOW TO JOIN</p>
+        <h2 id="process-title" data-i18n="processTitle">참여 절차</h2>
+      </div>
+      <ol class="steps">
+        <li><span>01</span><strong data-i18n="step1">Gmail로 신청</strong></li>
+        <li><span>02</span><strong data-i18n="step2">Google Play 테스트 등록</strong></li>
+        <li><span>03</span><strong data-i18n="step3">길로아 설치</strong></li>
+        <li><span>04</span><strong data-i18n="step4">직접 사용해보기</strong></li>
+        <li><span>05</span><strong data-i18n="step5">의견 보내기</strong></li>
+      </ol>
+      <a class="button primary final-cta" href="https://docs.google.com/forms/d/e/1FAIpQLSdnFF8OMZrShZXczUawf9x9n9sS83lcqEvl3Yp6HWJSKJpn8g/viewform" target="_blank" rel="noopener" data-i18n="finalButton">길로아와 함께 걷기</a>
+    </section>
   </main>
+
+  <footer>
+    <span>Project GILOA</span>
+    <a href="https://giloa.kr" target="_blank" rel="noopener">giloa.kr</a>
+  </footer>
 
   <script src="./script.js"></script>
 </body>
