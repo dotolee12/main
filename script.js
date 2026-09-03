@@ -289,27 +289,44 @@ function toggleDailyTasks(force) {
     if(dailyTaskPanelOpen)updateDailyMissions();
 }
 
-// 지??초기??
-const map = L.map("map", { zoomControl: false, attributionControl: false }).setView([37.5665, 126.978], 16);
+// 지도 초기화
+const map = L.map("map", {
+    zoomControl: false,
+    attributionControl: false
+}).setView([37.5665, 126.978], 16);
+
+// API 키가 필요 없는 지도 공급자 목록
 const BASE_TILE_LAYERS = [
     {
-        url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-        options: { zIndex: 10, maxZoom: 20 }
-    },
-    {
         url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        options: { maxZoom: 19, zIndex: 10, attribution: '&copy; OpenStreetMap contributors' }
+        options: {
+            maxZoom: 19,
+            zIndex: 10,
+            attribution: "&copy; OpenStreetMap contributors"
+        }
     },
     {
         url: "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
-        options: { zIndex: 10, maxZoom: 19 }
+        options: {
+            maxZoom: 19,
+            zIndex: 10,
+            attribution:
+                "&copy; OpenStreetMap contributors, Tiles style by Humanitarian OpenStreetMap Team"
+        }
     },
     {
         url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
-        options: { zIndex: 10, maxZoom: 19 }
+        options: {
+            maxZoom: 19,
+            zIndex: 10,
+            attribution:
+                "Tiles &copy; Esri"
+        }
     }
 ];
+
 let currentBaseTileLayer = null;
+let lastReadyBaseTileLayer = null;
 let currentBaseTileIndex = 0;
 let baseTileErrorCount = 0;
 let baseTileLoadTimer = null;
@@ -317,16 +334,38 @@ let baseTileLoadTimer = null;
 function setBaseTileLayer(index) {
     var meta = BASE_TILE_LAYERS[index] || BASE_TILE_LAYERS[0];
     var mapWrap = document.getElementById("map-wrap");
+
     if (mapWrap) {
-        mapWrap.classList.remove("tiles-ready");
+        if (!lastReadyBaseTileLayer) {
+            mapWrap.classList.remove("tiles-ready");
+        }
+
         mapWrap.classList.remove("tiles-error");
     }
-    if (currentBaseTileLayer) map.removeLayer(currentBaseTileLayer);
+
+    // 마지막으로 정상 표시된 지도는 새 지도가 준비될 때까지 유지한다.
+    if (
+        currentBaseTileLayer &&
+        currentBaseTileLayer !== lastReadyBaseTileLayer &&
+        map.hasLayer(currentBaseTileLayer)
+    ) {
+        map.removeLayer(currentBaseTileLayer);
+    }
+
     currentBaseTileIndex = index;
     baseTileErrorCount = 0;
-    currentBaseTileLayer = L.tileLayer(meta.url, meta.options).addTo(map);
-    if (baseTileLoadTimer !== null) clearTimeout(baseTileLoadTimer);
-    baseTileLoadTimer = setTimeout(function() {
+
+    var tileLayer = L.tileLayer(meta.url, meta.options).addTo(map);
+    currentBaseTileLayer = tileLayer;
+
+    if (baseTileLoadTimer !== null) {
+        clearTimeout(baseTileLoadTimer);
+    }
+
+    // 9초 동안 지도가 표시되지 않으면 다음 공급자를 사용한다.
+    baseTileLoadTimer = setTimeout(function () {
+        if (tileLayer !== currentBaseTileLayer) return;
+
         if (mapWrap && !mapWrap.classList.contains("tiles-ready")) {
             if (currentBaseTileIndex < BASE_TILE_LAYERS.length - 1) {
                 setBaseTileLayer(currentBaseTileIndex + 1);
@@ -334,28 +373,56 @@ function setBaseTileLayer(index) {
                 mapWrap.classList.add("tiles-error");
             }
         }
-    }, 1500);
-    currentBaseTileLayer.on("tileload", function() {
+    }, 9000);
+
+    tileLayer.on("tileload", function () {
+        if (tileLayer !== currentBaseTileLayer) return;
+
         if (baseTileLoadTimer !== null) {
             clearTimeout(baseTileLoadTimer);
             baseTileLoadTimer = null;
         }
+
         if (mapWrap) {
             mapWrap.classList.add("tiles-ready");
             mapWrap.classList.remove("tiles-error");
         }
+
+        // 새 지도가 준비된 후 이전 지도를 제거한다.
+        if (
+            lastReadyBaseTileLayer &&
+            lastReadyBaseTileLayer !== tileLayer &&
+            map.hasLayer(lastReadyBaseTileLayer)
+        ) {
+            map.removeLayer(lastReadyBaseTileLayer);
+        }
+
+        lastReadyBaseTileLayer = tileLayer;
+        scheduleRender();
     });
-    currentBaseTileLayer.on("tileerror", function() {
+
+    tileLayer.on("tileerror", function () {
+        if (tileLayer !== currentBaseTileLayer) return;
+
         baseTileErrorCount += 1;
-        if (baseTileErrorCount >= 1 && currentBaseTileIndex < BASE_TILE_LAYERS.length - 1) {
+
+        // 일부 타일의 일시적인 오류에는 바로 공급자를 바꾸지 않는다.
+        if (
+            baseTileErrorCount >= 6 &&
+            currentBaseTileIndex < BASE_TILE_LAYERS.length - 1
+        ) {
             setBaseTileLayer(currentBaseTileIndex + 1);
-        } else if (baseTileErrorCount >= 3 && mapWrap) {
+        } else if (baseTileErrorCount >= 6 && mapWrap) {
             mapWrap.classList.add("tiles-error");
         }
     });
 }
+
 setBaseTileLayer(0);
-setTimeout(function() { map.invalidateSize(); }, 250);
+
+setTimeout(function () {
+    map.invalidateSize();
+}, 250);
 
 let kakaoTrafficMap = null;
 let kakaoTrafficLoading = null;
