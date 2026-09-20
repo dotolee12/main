@@ -1,14 +1,12 @@
 {
-  "name": "나의 대동여지도 - Project Giloa",
-  "short_name": "Giloa",
+  "name": "길로아 - 현실 여행 RPG",
+  "short_name": "길로아",
+  "description": "걸은 길과 여행의 기억이 성장으로 이어지는 현실 여행 RPG",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#0d0d18",
-  "theme_color": "#0d0d18",
-  "lang": "ko-KR",
-  "icons": [
-    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "./icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
+  "orientation": "any",
+  "background_color": "#1a2035",
+  "theme_color": "#1a2035",
+  "lang": "ko-KR"
 }
