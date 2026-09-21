@@ -13,9 +13,9 @@ window.GILOA_SEOUL_RESTROOM_API_KEY = "664a4d746c646f743439646e664d58";
 window.GILOA_SEOUL_LIBRARY_API_BASE = "";
 window.GILOA_SEOUL_RESTROOM_API_BASE = "";
 
-// Public CARTO Voyager tiles used by Leaflet for the base map.  Keep this
-// value available before map-bootstrap.js and script.js run; without it
-// Leaflet cannot expand {z}/{x}/{y}, so the web deployment remains on
-// "Map loading" even though the rest of the UI has loaded.
+// OpenStreetMap Standard tiles for the Leaflet base map. Keep this value
+// available before map-bootstrap.js and script.js run; without it Leaflet
+// cannot expand {z}/{x}/{y}, so the web deployment remains on "Map loading"
+// even though the rest of the UI has loaded.
 window.GILOA_CARTO_TILE_URL =
-    "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png";
+    "https://tile.openstreetmap.org/{z}/{x}/{y}.png";

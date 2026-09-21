@@ -807,8 +807,7 @@ const BASE_TILE_LAYERS = [
             maxZoom: 20,
             crossOrigin: true,
             attribution:
-                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
-                '&copy; <a href="https://carto.com/attributions">CARTO</a>'
+                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }
     }
 ];
