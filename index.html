@@ -66,13 +66,13 @@ html,body{background:#1a2035;margin:0;height:100%;width:100%;overflow:hidden}
      로직은 전혀 건드리지 않고, 그 위에 얹히는 별도 레이어라서 기존 흐름에 영향이 없다.
      목적: "로딩 중 빈 화면"을 없애서 로딩 시간 자체가 아니라 체감 대기를 줄인다. -->
 <div id="giloa-boot-splash" aria-live="polite" aria-label="GILOA loading">
-  <div class="gbs-slide is-active"><img src="./images/startup/01-memories.png" alt="" decoding="async"></div>
-  <div class="gbs-slide"><img src="./images/startup/02-horizon.png" alt="" decoding="async"></div>
-  <div class="gbs-slide"><img src="./images/startup/03-hello.png" alt="" decoding="async"></div>
-  <div class="gbs-slide"><img src="./images/startup/04-photo.png" alt="" decoding="async"></div>
-  <div class="gbs-slide"><img src="./images/startup/05-fog-map.png" alt="" decoding="async"></div>
-  <div class="gbs-slide"><img src="./images/startup/06-discovery.png" alt="" decoding="async"></div>
-  <div class="gbs-slide"><img src="./images/startup/07-glowing-map.png" alt="" decoding="async"></div>
+  <div class="gbs-slide is-active"><img data-src="./images/startup/01-memories.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img data-src="./images/startup/02-horizon.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img data-src="./images/startup/03-hello.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img data-src="./images/startup/04-photo.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img data-src="./images/startup/05-fog-map.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img data-src="./images/startup/06-discovery.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img data-src="./images/startup/07-glowing-map.png" alt="" decoding="async"></div>
   <button id="gbs-skip" class="gbs-skip" type="button">지도 먼저 보기</button>
   <div class="gbs-ui">
     <div class="gbs-brand"><i></i><span>GILOA</span></div>
@@ -141,7 +141,7 @@ var skipText={
   slides.forEach(function(_,i){var dot=document.createElement("i");if(i===0)dot.className="is-active";progress.appendChild(dot)});
   // Pick one random startup image, and show the text that belongs to that image.
   var dots=[].slice.call(progress.children),index=Math.floor(Math.random()*slides.length),timer=null,started=Date.now(),hidden=false;
-  function show(i){index=i%slides.length;slides.forEach(function(el,n){el.classList.toggle("is-active",n===index)});dots.forEach(function(el,n){el.className=n===index?"is-active":""});title.textContent=words[lang][index][0];copy.textContent=words[lang][index][1]}
+  function show(i){index=i%slides.length;var selectedImage=slides[index].querySelector("img");if(selectedImage&&!selectedImage.getAttribute("src")){selectedImage.setAttribute("fetchpriority","low");selectedImage.setAttribute("src",selectedImage.getAttribute("data-src"))}slides.forEach(function(el,n){el.classList.toggle("is-active",n===index)});dots.forEach(function(el,n){el.className=n===index?"is-active":""});title.textContent=words[lang][index][0];copy.textContent=words[lang][index][1]}
   show(index);
   setTimeout(function(){if(!hidden)splash.classList.add("gbs-long")},5000);
   function hide(){if(hidden)return;hidden=true;clearInterval(timer);splash.classList.add("gbs-hide");setTimeout(function(){if(splash.parentNode)splash.parentNode.removeChild(splash)},320)}
@@ -858,7 +858,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <script>
 if (window.location.protocol !== "file:" && "serviceWorker" in navigator && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
     window.addEventListener("load", function() {
-    navigator.serviceWorker.register("./sw.js?v=app-local-205", { updateViaCache: "none" })
+    navigator.serviceWorker.register("./sw.js?v=app-local-206", { updateViaCache: "none" })
             .then(function(registration) { console.log("SW 등록 완료"); return registration.update(); })
             .catch(function(e) { console.warn("SW 등록 실패", e); });
     });
@@ -866,7 +866,7 @@ if (window.location.protocol !== "file:" && "serviceWorker" in navigator && !(wi
     // The current page already has one consistent set of scripts; the updated
     // worker is used naturally on the next launch/navigation.
     navigator.serviceWorker.addEventListener("controllerchange", function() {
-        try { sessionStorage.setItem("giloa-sw-updated-v205", "1"); } catch (_) {}
+        try { sessionStorage.setItem("giloa-sw-updated-v206", "1"); } catch (_) {}
         window.dispatchEvent(new Event("giloa:service-worker-updated"));
     });
 }
