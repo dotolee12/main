@@ -1,5 +1,22 @@
+:root {
+    --giloa-primary: #1a2035;
+    --giloa-secondary: #4fc3f7;
+    --giloa-secondary-soft: rgba(79,195,247,.16);
+    --giloa-gold: #ffd66b;
+    --giloa-memory: #ffb36b;
+    --giloa-success: #b8ff40;
+    --giloa-danger: #ff6b6b;
+    --giloa-panel: rgba(26,32,53,.92);
+    --giloa-panel-strong: rgba(18,23,40,.97);
+}
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { width: 100%; height: 100%; overflow: hidden; background: #111; font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: pan-x pan-y pinch-zoom; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: var(--giloa-primary); font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: pan-x pan-y pinch-zoom; }
+
+/* Remove delayed/double-tap behaviour from controls in older Android WebViews. */
+button, [role="button"], a, input, select, label {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
 
 /* Keep browser/WebView pinch zoom available on text-heavy interface surfaces. */
 #sidebar, #tour-panel, #help-popup, #hud, .language-onboarding,
@@ -72,6 +89,17 @@ body.gft-active .giloa-tutorial,
     font-weight: 900;
     cursor: pointer;
 }
+
+.cloud-account-card { margin-bottom: 16px; padding: 15px; border: 1px solid rgba(79,195,247,.24); border-radius: 14px; background: rgba(255,255,255,.055); }
+.cloud-account-card h2 { margin: 0 0 6px; font-size: 16px; color: #fff; }
+.cloud-account-card > p { margin: 0 0 10px; color: rgba(255,255,255,.68); font-size: 12px; line-height: 1.55; }
+.cloud-account-input { width: 100%; min-height: 42px; margin-top: 8px; padding: 0 11px; border: 1px solid rgba(255,255,255,.18); border-radius: 9px; background: rgba(8,13,27,.62); color: #fff; font-size: 14px; }
+.cloud-account-actions { display: flex; gap: 8px; margin-top: 10px; }
+.cloud-account-actions button { flex: 1; min-height: 40px; border: 0; border-radius: 9px; background: var(--giloa-secondary); color: #08131f; font-weight: 850; cursor: pointer; }
+.cloud-account-actions button.secondary { border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.08); color: #fff; }
+.cloud-account-text-button { display: block; margin: 10px auto 0; padding: 4px 8px; border: 0; background: transparent; color: #8ee8ff; font-size: 12px; text-decoration: underline; cursor: pointer; }
+.cloud-account-status { min-height: 18px; margin-top: 9px !important; color: #8ee8ff !important; }
+.cloud-account-status.is-error { color: #ff9b9b !important; }
 
 #map-wrap {
     position: absolute;
@@ -149,7 +177,6 @@ body.gft-active .giloa-tutorial,
 .leaflet-visitedPlacePane-pane { z-index: 675 !important; }
 
 .fishing-map-marker-wrap{background:transparent!important;border:0!important}
-.camping-map-marker-wrap{background:transparent!important;border:0!important}
 
 .visited-place-marker {
     width: 38px !important;
@@ -607,6 +634,17 @@ body.gft-active .giloa-tutorial,
 #controls.hud-open { bottom: calc(266px + env(safe-area-inset-bottom)); }
 .btn { width: 56px; height: 56px; border-radius: 50%; background: rgba(30,30,45,0.82); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; font-size: 20px; color: #fff; backdrop-filter: blur(8px); transition: 0.2s; }
 #photo-btn { border-color: #ffd55c; }
+.camera-icon {
+    width: 27px;
+    height: 27px;
+    color: #fff;
+    display: block;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
 #memo-btn { border-color: #ff8aac; }
 #traffic-btn {
     border-color: #fee500;
@@ -618,6 +656,11 @@ body.gft-active .giloa-tutorial,
     height: 27px;
     color: #fee500;
     display: block;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
     overflow: visible;
 }
 #rec-btn {
@@ -714,6 +757,8 @@ body.gft-active .giloa-tutorial,
 .help-tab-row { display: flex; align-items: stretch; border-bottom: 1px solid rgba(255,255,255,0.08); padding: 0 12px; }
 .help-tab { flex: 1 1 0; min-width: 0; min-height: 48px; text-align: center; padding: 12px 3px; border: 0; border-bottom: 2px solid transparent; background: transparent; font-family: inherit; font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.45); cursor: pointer; transition: 0.2s; white-space: nowrap; }
 .help-tab.active { color: #4db8ff; border-bottom-color: #4db8ff; }
+#htab-settings { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+.help-tab-globe { width: 17px; height: 17px; flex: 0 0 17px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .help-tab:focus-visible { outline: 2px solid #4fc3f7; outline-offset: -3px; border-radius: 5px; }
 .help-close { cursor: pointer; font-size: 18px; color: rgba(255,255,255,0.45); padding: 14px 0 14px 12px; flex-shrink: 0; }
 .help-panel { padding: 18px 20px; }
@@ -1064,9 +1109,6 @@ body.gft-active .giloa-tutorial,
 .fishing-map-icon{display:grid;place-items:center;width:13px;height:13px;flex:0 0 13px;color:#7dd3fc}
 .fishing-map-icon svg{display:block;width:13px;height:13px;overflow:visible;fill:none;stroke:currentColor;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round}
 .fishing-map-label{max-width:52px;overflow:hidden;text-overflow:ellipsis}
-.camping-map-marker{border-color:rgba(34,197,94,.85);background:rgba(6,32,16,.94)}
-.camping-map-icon{font-size:13px;line-height:1;flex:0 0 13px}
-.camping-map-label{max-width:52px;overflow:hidden;text-overflow:ellipsis}
 .tour-card-image { width: 30px; height: 30px; flex: 0 0 30px; overflow: hidden; border-radius: 6px; background: rgba(79,195,247,0.12); }
 .tour-card-image img, .tour-popup-image img { width: 100%; height: 100%; display: block; object-fit: cover; }
 .tour-card-image.loading { position: relative; background: rgba(79,195,247,.10); }
@@ -1812,7 +1854,6 @@ body.language-onboarding-open{overflow:hidden}
 @media(min-width:700px){.first-meeting-scene{top:43%;width:min(58vh,500px)}.language-select-card{bottom:24px}}
 @media(max-height:680px){.first-meeting-scene{top:37%;width:min(62vh,360px)}.language-select-card{padding:14px}.language-select-title{margin-bottom:10px}.language-select-option{min-height:48px}.first-meeting-greeting p{min-height:48px;margin-bottom:10px;font-size:17px}}
 @media(prefers-reduced-motion:reduce){.first-meeting-light,.first-meeting-stars,.first-meeting-gilo,.first-meeting-unknown,.first-meeting-blink,.language-select-card{animation:none!important;transition:none!important}.language-onboarding.phase-intro .first-meeting-light,.language-onboarding.phase-intro .first-meeting-stars,.language-onboarding.phase-intro .first-meeting-gilo,.language-onboarding.phase-intro .first-meeting-unknown{opacity:1}.language-onboarding.phase-intro .first-meeting-blink{opacity:0}.language-onboarding.phase-intro .first-meeting-light{transform:translate(-50%,-50%) scale(18)}.language-onboarding.phase-intro .first-meeting-gilo{transform:none}}
-:root { --giloa-primary:#1a2035; --giloa-secondary:#4fc3f7; --giloa-secondary-soft:rgba(79,195,247,.16); --giloa-gold:#ffd66b; --giloa-memory:#ffb36b; --giloa-success:#b8ff40; --giloa-danger:#ff6b6b; --giloa-panel:rgba(26,32,53,.92); --giloa-panel-strong:rgba(18,23,40,.97); }
 #time-atmosphere { position:absolute; inset:0; z-index:4; pointer-events:none; opacity:.06; transition:background 1s ease; }
 #time-atmosphere.dawn { background:linear-gradient(135deg,#1d5d9b,transparent 65%); }
 #time-atmosphere.day { opacity:.025; background:#fff4dc; }
@@ -2025,39 +2066,11 @@ body.giloa-restoring #map, body.giloa-restoring #top-bar, body.giloa-restoring #
 .journey-recap-visual > div { min-width: 0; }
 .journey-recap-visual > div > span { display: block; margin-right: 34px; overflow-wrap: anywhere; }
 
-/* 길로아 알리기(SNS 공유) 시트 */
-.giloa-share{position:fixed;inset:0;z-index:5300;color:#fff}
-.giloa-share[hidden]{display:none}
-.giloa-share-scrim{position:absolute;inset:0;background:rgba(4,8,20,.72);backdrop-filter:blur(5px)}
-.giloa-share-card{position:absolute;left:50%;top:50%;width:min(430px,calc(100vw - 28px));max-height:calc(100vh - 36px);box-sizing:border-box;padding:20px;border:1px solid rgba(91,192,255,.34);border-radius:22px;background:linear-gradient(145deg,rgba(26,32,53,.99),rgba(10,16,32,.99));box-shadow:0 24px 70px rgba(0,0,0,.58);transform:translate(-50%,-50%);overflow:auto}
-.giloa-share-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
-.giloa-share-head span{color:#68ccff;font-size:9px;font-weight:900;letter-spacing:.14em}
-.giloa-share-head h2{margin:4px 0 0;font-size:22px}
-.giloa-share-head button{width:36px;height:36px;flex:0 0 36px;border:0;border-radius:50%;background:rgba(255,255,255,.08);color:#fff;font:300 25px/1 system-ui;cursor:pointer}
-.giloa-share-copy{margin:12px 0 14px;color:rgba(255,255,255,.68);font-size:12px;line-height:1.55}
-.giloa-share-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px}
-.giloa-share-btn{display:grid;justify-items:center;gap:7px;min-height:84px;padding:12px 6px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.045);color:#fff;font:inherit;cursor:pointer;touch-action:manipulation;transition:border-color .16s ease,background .16s ease,transform .12s ease}
-.giloa-share-btn:hover,.giloa-share-btn:focus-visible{border-color:rgba(104,204,255,.6);background:rgba(104,204,255,.1);outline:none}
-.giloa-share-btn:active{transform:scale(.97)}
-.giloa-share-mark{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.07);font-size:15px;font-weight:900}
-.giloa-share-label{font-size:11px;font-weight:800;line-height:1.3;text-align:center;word-break:keep-all}
-.giloa-share-note{margin:14px 2px 0;color:rgba(255,255,255,.42);font-size:10px;line-height:1.55}
-@media(max-width:420px){.giloa-share-card{padding:17px;border-radius:18px}.giloa-share-head h2{font-size:20px}.giloa-share-grid{grid-template-columns:repeat(3,1fr)}}
-
-/* Journey share: brand-consistent Instagram-ready image sharing */
-.journey-recap-actions .instagram-share{
-    border-color:rgba(79,195,247,.72)!important;
-    background:linear-gradient(135deg,#4fc3f7,#8be7ff)!important;
-    color:#07111f!important;
-    font-weight:900!important;
-    box-shadow:0 8px 22px rgba(79,195,247,.18);
-}
-.journey-recap-actions .instagram-share:active{transform:scale(.985)}
-
-.journey-share-anytime{margin-top:7px!important;border-color:rgba(79,195,247,.55)!important;background:rgba(79,195,247,.12)!important;color:#9beaff!important}
-
-/* 공유 시트 모드 전환 탭 (길로아 소개 / 내가 걸은 길) */
-.giloa-share-modes{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0 0 12px;padding:4px;border:1px solid rgba(255,255,255,.08);border-radius:13px;background:rgba(255,255,255,.04)}
-.giloa-share-mode{min-height:36px;border:0;border-radius:10px;background:transparent;color:rgba(255,255,255,.62);font:inherit;font-size:12px;font-weight:850;cursor:pointer;touch-action:manipulation}
-.giloa-share-mode.active{background:rgba(104,204,255,.16);color:#a9e8ff;box-shadow:inset 0 0 0 1px rgba(104,204,255,.45)}
-.giloa-share-mode:focus-visible{outline:2px solid #68ccff;outline-offset:2px}
+/* Record sync beside the travel identity, stacked on narrow screens. */
+.route-dates-popup{min-width:180px;line-height:1.6}.route-dates-popup strong{display:block;padding-right:18px}.route-dates-popup ul{max-height:220px;overflow:auto;margin:8px 0;padding-left:18px}.route-dates-popup li{margin:4px 0}
+.hud-identity-sync-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,360px);gap:14px;align-items:start;padding-top:8px}
+.hud-identity-sync-layout>.rpg-growth-panel{min-width:0;margin:0}
+.hud-identity-sync-layout>.cloud-account-card{min-width:0;margin:0;background:linear-gradient(145deg,rgba(26,32,53,.98),rgba(14,20,39,.96))}
+.hud-identity-sync-layout .cloud-account-input{box-sizing:border-box;min-width:0}
+.hud-identity-sync-layout #cloud-account-email{display:block;overflow-wrap:anywhere}
+@media(max-width:760px){.hud-identity-sync-layout{grid-template-columns:minmax(0,1fr);gap:12px}}

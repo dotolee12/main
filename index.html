@@ -28,10 +28,10 @@
 html,body{background:#1a2035;margin:0;height:100%;width:100%;overflow:hidden}
 #giloa-boot-splash{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;background:#1a2035;color:#fff;overflow:hidden;opacity:1;transition:opacity .28s ease;touch-action:manipulation}
 #giloa-boot-splash.gbs-hide{opacity:0;pointer-events:none}
-.gbs-slide{position:absolute;inset:0;opacity:0;transform:scale(1.015);transition:opacity .45s ease,transform 2s ease;pointer-events:none}
+.gbs-slide{position:absolute;inset:0;opacity:0;transition:opacity .45s ease;pointer-events:none}
 .gbs-slide.is-active{opacity:1;transform:scale(1)}
 .gbs-slide::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,13,27,.08) 25%,rgba(8,13,27,.38) 58%,rgba(8,13,27,.96) 100%)}
-.gbs-slide img{width:100%;height:100%;object-fit:cover;display:block}
+.gbs-slide img{width:100%;height:calc(100% - max(190px,28vh) - env(safe-area-inset-bottom));object-fit:contain;object-position:center;display:block}
 .gbs-ui{position:absolute;z-index:3;left:0;right:0;bottom:max(24px,env(safe-area-inset-bottom));padding:22px 24px 10px;text-align:left}
 .gbs-brand{display:flex;align-items:center;gap:9px;margin-bottom:12px;font:900 13px/1.2 system-ui,sans-serif;letter-spacing:.18em}.gbs-brand i{width:10px;height:10px;border-radius:50%;background:#4fc3f7;box-shadow:0 0 18px rgba(79,195,247,.9)}
 .gbs-title{margin:0 0 7px;font:900 clamp(22px,6.2vw,34px)/1.22 system-ui,sans-serif;letter-spacing:-.035em}.gbs-copy{margin:0;max-width:540px;color:rgba(255,255,255,.72);font:650 13px/1.55 system-ui,sans-serif}
@@ -46,7 +46,7 @@ html,body{background:#1a2035;margin:0;height:100%;width:100%;overflow:hidden}
 <!-- 큰 벤더/앱 스크립트를 head 단계에서 미리 프리로드하여, 본문 파싱이 끝날 때까지
      기다리지 않고 CSS와 동시에 다운로드가 시작되도록 한다. (버퍼링 단축) -->
 <link rel="preload" as="script" href="./vendor/leaflet.js?v=app-local-9">
-<link rel="preload" as="script" href="./script.js?v=app-local-212">
+<link rel="preload" as="script" href="./script.js?v=app-local-215">
 <link rel="stylesheet" href="./vendor/leaflet.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.Default.css?v=app-local-9">
@@ -54,10 +54,10 @@ html,body{background:#1a2035;margin:0;height:100%;width:100%;overflow:hidden}
 <!-- 튜토리얼/타임트레이스 CSS는 첫 화면에 필요하지 않으므로 렌더 차단 없이
      비동기로 불러온다 (media=print 트릭 후 onload에서 all로 전환). -->
 <link rel="stylesheet" href="./time-trace.css?v=app-local-1" media="print" onload="this.media='all'">
-<link rel="stylesheet" href="./tutorial.css?v=app-local-129" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="./tutorial.css?v=app-local-131" media="print" onload="this.media='all'">
 <noscript>
   <link rel="stylesheet" href="./time-trace.css?v=app-local-1">
-  <link rel="stylesheet" href="./tutorial.css?v=app-local-129">
+  <link rel="stylesheet" href="./tutorial.css?v=app-local-131">
 </noscript>
 </head>
 <body>
@@ -139,19 +139,9 @@ var skipText={
 };
  status.textContent=statusText[lang];skip.textContent=skipText[lang];
   slides.forEach(function(_,i){var dot=document.createElement("i");if(i===0)dot.className="is-active";progress.appendChild(dot)});
-  // The boot layer is shown again whenever Android recreates the WebView. Pick
-  // one startup image immediately instead of making a short resume wait feel
-  // like a slideshow. The text deliberately mirrors the first-login onboarding.
-  var onboardingWords={
-    ko:["내 주변에는\n무엇이 있을까?","길로와 함께 주변의 새로운 장소를 발견해보세요."],
-    en:["What is around\nme?","Discover new places nearby with Gilo."],
-    ja:["私の周りには\n何がある？","ギロと一緒に、近くの新しい場所を見つけよう。"],
-    zh:["我的周围\n有什么？","和Gilo一起发现附近的新地点。"],
-    es:["¿Qué hay\na mi alrededor?","Descubre nuevos lugares cercanos con Gilo."],
-    fr:["Qu'y a-t-il\nautour de moi ?","Découvrez de nouveaux lieux à proximité avec Gilo."]
-  };
+  // Pick one random startup image, and show the text that belongs to that image.
   var dots=[].slice.call(progress.children),index=Math.floor(Math.random()*slides.length),timer=null,started=Date.now(),hidden=false;
-  function show(i){index=i%slides.length;slides.forEach(function(el,n){el.classList.toggle("is-active",n===index)});dots.forEach(function(el,n){el.className=n===index?"is-active":""});title.textContent=onboardingWords[lang][0];copy.textContent=onboardingWords[lang][1]}
+  function show(i){index=i%slides.length;slides.forEach(function(el,n){el.classList.toggle("is-active",n===index)});dots.forEach(function(el,n){el.className=n===index?"is-active":""});title.textContent=words[lang][index][0];copy.textContent=words[lang][index][1]}
   show(index);
   setTimeout(function(){if(!hidden)splash.classList.add("gbs-long")},5000);
   function hide(){if(hidden)return;hidden=true;clearInterval(timer);splash.classList.add("gbs-hide");setTimeout(function(){if(splash.parentNode)splash.parentNode.removeChild(splash)},320)}
@@ -199,6 +189,11 @@ var skipText={
       <span class="map-layer-copy"><span class="map-layer-name" id="map-layer-name-restaurant">음식점</span><small class="map-layer-source" data-i18n-extra="sourceTourismCredit">출처: ⓒ한국관광공사</small></span>
       <div id="layer-toggle-restaurant" class="toggle-switch small"><div class="toggle-knob"></div></div>
     </div>
+    <div class="map-layer-item" onclick="toggleMapLayer('shopping')">
+      <span class="map-layer-dot" style="--layer-color:#facc15;"></span>
+      <span class="map-layer-copy"><span class="map-layer-name" id="map-layer-name-shopping">쇼핑</span><small class="map-layer-source" data-i18n-extra="sourceTourismCredit">출처: ⓒ한국관광공사</small></span>
+      <div id="layer-toggle-shopping" class="toggle-switch small"><div class="toggle-knob"></div></div>
+    </div>
     <div class="map-layer-item" onclick="toggleMapLayer('lodging')">
       <span class="map-layer-dot" style="--layer-color:#2dd4bf;"></span>
       <span class="map-layer-copy"><span class="map-layer-name" id="map-layer-name-lodging">숙박</span><small class="map-layer-source" data-i18n-extra="sourceTourismCredit">출처: ⓒ한국관광공사</small></span>
@@ -218,11 +213,6 @@ var skipText={
       <span class="map-layer-dot" style="--layer-color:#38bdf8;"></span>
       <span class="map-layer-copy"><span class="map-layer-name" id="map-layer-name-fishing">낚시터</span><small class="map-layer-source" data-i18n-extra="sourceFishing">행정안전부 · 전국 낚시터정보</small></span>
       <div id="layer-toggle-fishing" class="toggle-switch small"><div class="toggle-knob"></div></div>
-    </div>
-    <div class="map-layer-item" onclick="toggleMapLayer('camping')">
-      <span class="map-layer-dot" style="--layer-color:#22c55e;"></span>
-      <span class="map-layer-copy"><span class="map-layer-name" id="map-layer-name-camping">캠핑장</span><small class="map-layer-source" data-i18n-extra="sourceCamping">한국관광공사 · 고캠핑</small></span>
-      <div id="layer-toggle-camping" class="toggle-switch small"><div class="toggle-knob"></div></div>
     </div>
     <div class="map-layer-item" onclick="toggleMapLayer('durunubi')">
       <span class="map-layer-dot" style="--layer-color:#fbbf24;"></span>
@@ -294,20 +284,6 @@ var skipText={
   <span aria-hidden="true">/</span>
   <a id="info-link-about" href="#giloa-story-hub" onclick="return openGiloaInfoPage('about', event)">길로아 이야기</a>
 </nav>
-</div>
-
-<div id="giloa-share-sheet" class="giloa-share" aria-hidden="true" hidden>
-  <div class="giloa-share-scrim" onclick="closeGiloaShare()"></div>
-  <section class="giloa-share-card" role="dialog" aria-modal="true" aria-labelledby="giloa-share-title">
-    <header class="giloa-share-head">
-      <div><span>SHARE GILOA</span><h2 id="giloa-share-title">길로아 알리기</h2></div>
-      <button type="button" onclick="closeGiloaShare()" aria-label="닫기">&times;</button>
-    </header>
-    <p id="giloa-share-copy" class="giloa-share-copy"></p>
-    <div id="giloa-share-modes" class="giloa-share-modes" role="group" aria-label="share mode"></div>
-    <div id="giloa-share-grid" class="giloa-share-grid"></div>
-    <p id="giloa-share-note" class="giloa-share-note"></p>
-  </section>
 </div>
 
 <div id="giloa-sources" class="giloa-sources" aria-hidden="true" hidden>
@@ -498,8 +474,8 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 </div>
 
 <div id="controls">
-<div id="photo-btn" class="btn" onclick="togglePhotoMenu()" title="사진 촬영 또는 가져오기" aria-label="사진 촬영 또는 가져오기"><svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7h3l1.2-2h5.6L16 7h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3.4"/></svg></div>
-<div id="traffic-btn" class="btn" onclick="openKakaoDirections()" title="카카오맵 길찾기" aria-label="카카오맵 길찾기"><svg class="route-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M15.5 5v22" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M15.5 7h10l-3.4 4 3.4 4h-10Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><path d="M15.5 16H6.5l3.3 4-3.3 4h9Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><circle cx="15.5" cy="27" r="2" fill="currentColor"/></svg></div>
+<div id="photo-btn" class="btn" onclick="togglePhotoMenu()" title="사진 촬영 및 추가" aria-label="사진 촬영 및 추가"><svg class="camera-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7.5h3.3L9 5h6l1.7 2.5H20a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H4A1.5 1.5 0 0 1 2.5 18V9A1.5 1.5 0 0 1 4 7.5Z"/><circle cx="12" cy="13.2" r="3.7"/><path d="M5.6 10.3h1.6M18 10.2h.01"/></svg></div>
+<div id="traffic-btn" class="btn" onclick="openKakaoDirections()" title="카카오맵 길찾기" aria-label="카카오맵 길찾기"><svg class="route-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2.5V5M12 9.5V12M12 16.5V21M8.5 21h7"/><path d="M12 5h6.5l2.2 2.25-2.2 2.25H12Z"/><path d="M12 12H5.5l-2.2 2.25 2.2 2.25H12Z"/></svg></div>
 <div id="rec-btn" class="btn record-loc-btn" onclick="toggleLocationRecording()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}" role="button" tabindex="0" title="현재 위치 확인 및 기록 시작 또는 중단" aria-label="현재 위치 확인 및 GPS 경로 기록 시작 또는 중단"><span class="loc-crosshair" aria-hidden="true"><span class="loc-record-icon"></span></span></div>
 </div>
 
@@ -594,7 +570,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <button class="help-tab active" id="htab-ask" type="button" role="tab" aria-selected="true" aria-controls="hpanel-ask" tabindex="0" onclick="switchHelpTab('ask')" onkeydown="handleHelpTabKey(event, 'ask')">문의하기</button>
 <button class="help-tab" id="htab-info" type="button" role="tab" aria-selected="false" aria-controls="hpanel-info" tabindex="-1" onclick="switchHelpTab('info')" onkeydown="handleHelpTabKey(event, 'info')">설명보기</button>
 <button class="help-tab" id="htab-market" type="button" role="tab" aria-selected="false" aria-controls="hpanel-market" tabindex="-1" onclick="switchHelpTab('market')" onkeydown="handleHelpTabKey(event, 'market')">주변 시세</button>
-<button class="help-tab" id="htab-settings" type="button" role="tab" aria-selected="false" aria-controls="hpanel-settings" tabindex="-1" onclick="switchHelpTab('settings')" onkeydown="handleHelpTabKey(event, 'settings')">언어</button>
+<button class="help-tab" id="htab-settings" type="button" role="tab" aria-selected="false" aria-controls="hpanel-settings" tabindex="-1" onclick="switchHelpTab('settings')" onkeydown="handleHelpTabKey(event, 'settings')" aria-label="언어 · Language" title="Language"><svg class="help-tab-globe" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 4 6 4 9s-1 6-4 9c-3-3-4-6-4-9s1-6 4-9Z"/></svg><span id="htab-settings-label">언어</span></button>
 <span onclick="toggleHelp()" class="help-close">&times;</span>
 </div>
 <div id="hpanel-ask" class="help-panel" role="tabpanel" aria-labelledby="htab-ask">
@@ -613,7 +589,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <div class="help-guide-item"><div class="help-guide-icon person-icon"><svg width="16" height="16" viewBox="0 0 26 26" fill="none"><circle cx="13" cy="9" r="4.5" stroke="white" stroke-width="1.6"/><path d="M3.5 23c0-5.247 4.253-8.5 9.5-8.5s9.5 3.253 9.5 8.5" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg></div><div class="help-guide-text"><b>상태 버튼</b><br><span>사람 아이콘이에요. 내 현재 칭호, 레벨, 진행 상태를 확인할 수 있어요.</span></div></div>
 <div class="help-guide-item"><div class="help-guide-icon menu-icon">≡</div><div class="help-guide-text"><b>메뉴 버튼 (상단 왼쪽)</b><br><span>햄버거 아이콘이에요. 기억, 사진, 발걸음, 뱃지, 방문, 아이템 목록을 열어볼 수 있어요.</span></div></div>
 </div>
-<button id="help-tutorial-replay" type="button" class="help-link help-tutorial-link" onclick="replayGiloaTutorial()">길로 부르기</button>
+<button id="help-tutorial-replay" type="button" class="help-link help-tutorial-link" onclick="replayGiloaTutorial()">키 설명</button>
 <button id="help-story-replay" type="button" class="help-link help-story-link" onclick="replayGiloaStory()">길로아 이야기 다시 보기</button>
 </div>
 <div id="hpanel-market" class="help-panel local-market-panel" role="tabpanel" aria-labelledby="htab-market" hidden>
@@ -625,6 +601,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
   <div id="local-market-updated" class="local-market-updated" hidden></div>
 </div>
 <div id="hpanel-settings" class="help-panel" role="tabpanel" aria-labelledby="htab-settings" hidden>
+
   <div class="help-language-grid" data-i18n-extra-aria="changeLanguage" aria-label="언어 변경">
     <button type="button" class="help-language-btn" data-settings-lang="ko" onclick="changeLanguageFromSettings('ko')">한국어</button>
     <button type="button" class="help-language-btn" data-settings-lang="en" onclick="changeLanguageFromSettings('en')">English</button>
@@ -795,6 +772,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <div id="hud-mini-main"><div id="hud-mini-line">LV 1</div><div id="hud-mini-xp-track"><div class="hud-mini-xp-fill" id="hud-mini-progress"></div></div></div>
 </div>
 <div id="hud-basic">
+<div class="hud-identity-sync-layout">
 <section id="rpg-growth-panel" class="rpg-growth-panel" data-i18n-extra-aria="travelGrowth" aria-label="실시간 여행 성장">
 <div class="rpg-growth-head"><div><div id="rpg-growth-kicker" class="rpg-growth-kicker">REAL-WORLD TRAVEL RPG</div><strong id="rpg-trait-name">Travel growth</strong></div><div class="rpg-level-badge">LV <b id="rpg-level">1</b><span id="rpg-level-max" hidden>MAX</span></div></div>
 <div class="my-gilo-profile"><div id="rpg-my-gilo-title" class="my-gilo-title">나의 길로</div><div id="hud-main-gilo" class="my-gilo-avatar my-gilo-avatar-main" aria-hidden="true"><div class="my-gilo-aura"></div><img class="my-gilo-character" src="./gilo%20many%20appearance/gilo-tutorial-welcome-transparent.png" alt=""></div></div>
@@ -805,7 +783,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <button id="rpg-today-photos" type="button" onclick="event.stopPropagation(); openRpgJourneyView('photos');"></button>
 <button id="rpg-today-missions" type="button" onclick="event.stopPropagation(); openRpgJourneyView('missions');"></button>
 </div>
-<button id="journey-recap-open" class="journey-recap-open" data-i18n-extra="recapOpen" type="button" onclick="event.stopPropagation(); showTodayJourneyRecap();">오늘의 대동여지도 보기</button><button id="journey-share-anytime" class="journey-recap-open journey-share-anytime" type="button" onclick="event.stopPropagation(); shareTodayJourneyToInstagram();">오늘의 지도 공유</button>
+<button id="journey-recap-open" class="journey-recap-open" data-i18n-extra="recapOpen" type="button" onclick="event.stopPropagation(); showTodayJourneyRecap();">오늘의 대동여지도 보기</button>
 <div class="rpg-next-row"><span id="rpg-next-label">다음 레벨까지</span><div class="rpg-next-track"><i id="rpg-level-progress"></i></div><b id="rpg-next-value">40</b></div>
 <button id="rpg-details-toggle" class="rpg-details-toggle" type="button" aria-expanded="false" onclick="event.stopPropagation(); toggleRpgDetails();"></button>
 <div id="rpg-stat-details" class="rpg-stat-details" hidden>
@@ -817,6 +795,36 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <div class="rpg-stat growth"><div><span></span><b id="rpg-stat-growth">0</b></div><i><em id="rpg-bar-growth"></em></i></div>
 </div>
 </section>
+  <section class="cloud-account-card" aria-labelledby="cloud-account-title">
+    <h2 id="cloud-account-title">기록 동기화</h2>
+    <p id="cloud-account-copy">로그인하면 이 기기의 기록을 먼저 보존한 뒤 길로아 서버와 동기화합니다.</p>
+    <div id="cloud-account-signed-out">
+      <input id="cloud-email" class="cloud-account-input" type="email" inputmode="email" autocomplete="email" placeholder="이메일">
+      <input id="cloud-password" class="cloud-account-input" type="password" autocomplete="current-password" minlength="6" placeholder="비밀번호 (6자 이상)">
+      <div class="cloud-account-actions">
+        <button id="cloud-sign-in" type="button" onclick="GiloaCloud.signInFromForm()">로그인</button>
+        <button id="cloud-sign-up" type="button" class="secondary" onclick="GiloaCloud.signUpFromForm()">가입</button>
+      </div>
+      <button id="cloud-reset-request" type="button" class="cloud-account-text-button" onclick="GiloaCloud.requestPasswordReset()">비밀번호 재설정</button>
+    </div>
+    <div id="cloud-account-recovery" hidden>
+      <input id="cloud-new-password" class="cloud-account-input" type="password" autocomplete="new-password" minlength="6" placeholder="새 비밀번호 (6자 이상)">
+      <input id="cloud-new-password-confirm" class="cloud-account-input" type="password" autocomplete="new-password" minlength="6" placeholder="새 비밀번호 확인">
+      <div class="cloud-account-actions">
+        <button id="cloud-password-update" type="button" onclick="GiloaCloud.updatePassword()">비밀번호 변경</button>
+        <button id="cloud-password-cancel" type="button" class="secondary" onclick="GiloaCloud.cancelPasswordReset()">취소</button>
+      </div>
+    </div>
+    <div id="cloud-account-signed-in" hidden>
+      <strong id="cloud-account-email"></strong>
+      <div class="cloud-account-actions">
+        <button id="cloud-sync-now" type="button" onclick="GiloaCloud.syncNow(true)">지금 동기화</button>
+        <button id="cloud-sign-out" type="button" class="secondary" onclick="GiloaCloud.signOut()">로그아웃</button>
+      </div>
+    </div>
+    <p id="cloud-account-status" class="cloud-account-status" aria-live="polite"></p>
+  </section>
+</div>
 </div>
 </div>
 
@@ -829,7 +837,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <div><b id="journey-recap-distance">0.0 km</b><span data-i18n-extra="recapDistance">걸은 거리</span></div><div><b id="journey-recap-visits">0</b><span data-i18n-extra="recapDiscoveries">새로운 발견</span></div><div><b id="journey-recap-photos">0</b><span data-i18n-extra="recapPhotos">사진</span></div><div><b id="journey-recap-memories">0</b><span data-i18n-extra="recapMemories">기억</span></div>
 </div>
 <div class="journey-recap-growth"><span data-i18n-extra="recapGrowth">오늘 가장 많이 자란 여행색</span><strong id="journey-recap-trait">탐험 +0</strong><p id="journey-recap-message">오늘의 발걸음이 나만의 지도가 되었어요.</p></div>
-<div class="journey-recap-actions"><button id="journey-recap-share-instagram" type="button" class="instagram-share" onclick="shareTodayJourneyToInstagram()">인스타그램에 공유</button><button type="button" data-i18n-extra="recapRoute" onclick="openTodayRouteFromRecap()">오늘 걸은 길 전체 보기</button><button type="button" class="secondary" data-i18n-extra="close" onclick="hideTodayJourneyRecap()">닫기</button></div>
+<div class="journey-recap-actions"><button type="button" data-i18n-extra="recapRoute" onclick="openTodayRouteFromRecap()">오늘 걸은 길 전체 보기</button><button type="button" class="secondary" data-i18n-extra="close" onclick="hideTodayJourneyRecap()">닫기</button></div>
 </div>
 </section>
 
@@ -841,21 +849,25 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <script src="./vendor/leaflet.markercluster.js?v=app-local-9" defer></script>
 <script src="./vendor/exifr.full.umd.js?v=7.1.3" defer></script>
 <script src="./region-stay-core.js?v=app-local-1" defer></script>
-<script src="./script.js?v=app-local-212" defer></script>
+<script src="./script.js?v=app-local-215" defer></script>
+<script src="./supabase-sync.js?v=app-local-3" defer></script>
+<script src="./medical-layers.js?v=1" defer></script>
 <script src="./time-trace.js?v=app-local-1" defer></script>
 <script src="./hidden-missions.obfuscated.js?v=app-local-1" defer></script>
-<script src="./tutorial.js?v=app-local-132" defer></script>
+<script src="./tutorial.js?v=app-local-134" defer></script>
 <script>
 if (window.location.protocol !== "file:" && "serviceWorker" in navigator && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
     window.addEventListener("load", function() {
-    navigator.serviceWorker.register("./sw.js?v=app-local-207")
-            .then(function(registration) { console.log("SW 등록 완료"); registration.update(); })
+    navigator.serviceWorker.register("./sw.js?v=app-local-205", { updateViaCache: "none" })
+            .then(function(registration) { console.log("SW 등록 완료"); return registration.update(); })
             .catch(function(e) { console.warn("SW 등록 실패", e); });
     });
+    // Do not force-reload a running trip when a new worker takes control.
+    // The current page already has one consistent set of scripts; the updated
+    // worker is used naturally on the next launch/navigation.
     navigator.serviceWorker.addEventListener("controllerchange", function() {
-        if (sessionStorage.getItem("giloa-sw-reloaded-v174") === "1") return;
-        sessionStorage.setItem("giloa-sw-reloaded-v174", "1");
-        window.location.reload();
+        try { sessionStorage.setItem("giloa-sw-updated-v205", "1"); } catch (_) {}
+        window.dispatchEvent(new Event("giloa:service-worker-updated"));
     });
 }
 </script>

@@ -1,4 +1,4 @@
-﻿// giloa.js
+// giloa.js
 // Lightweight compatibility layer for older Android System WebView builds.
 // Missing collection and Promise helpers must never stop the map at startup.
 (function installLegacyCompatibility() {
@@ -302,10 +302,11 @@ function refreshEarlyLanguageUI() {
 }
 
 async function requestLocationPermission() {
-    if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+    if (window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform()) {
         try {
-            const { Geolocation } = window.Capacitor.Plugins;
-            await Geolocation.requestPermissions();
+            const plugins = window.Capacitor.Plugins || {};
+            const Geolocation = plugins.Geolocation;
+            if (Geolocation && typeof Geolocation.requestPermissions === "function") await Geolocation.requestPermissions();
         } catch (e) { console.warn("위치 권한 요청 실패", e); throw e; }
     }
 }
@@ -353,7 +354,8 @@ const STAY_ACCURACY_FACTOR = 1.5;
 const MAX_STAY_RADIUS_M = 75;
 const SAVE_DELAY_MS = 800;
 const CHECKPOINT_INTERVAL_MS = 20000;
-const GILOA_PERSISTENCE_DEBUG = true;
+const GILOA_PERSISTENCE_DEBUG = false;
+const GILOA_DEBUG = false;
 const NETWORK_TIMEOUT_MS = 12000;
 const NETWORK_RETRY_DELAY_MS = 450;
 function waitForNetworkDelay(delay) {
@@ -457,6 +459,9 @@ const MARKER_MIN_SIZE = 20;
 const MARKER_MAX_ZOOM = 17;
 const MARKER_MIN_ZOOM = 14;
 const GAP_THRESHOLD_MS = 3 * 60 * 1000;
+// Never infer a route through missing GPS evidence, even within one session.
+// Use fix timestamps so delayed native samples can reconnect measured legs.
+const PATH_MAX_FIX_GAP_MS = 60 * 1000;
 const PATH_MID_GAP_MAX_MS = 15 * 60 * 1000;
 const PATH_LONG_GAP_MAX_MS = 60 * 60 * 1000;
 const PATH_MID_GAP_MAX_SPEED_MPS = 8;
@@ -464,10 +469,11 @@ const PATH_LONG_GAP_MAX_SPEED_MPS = 3.5;
 const PATH_LONG_GAP_MAX_DISTANCE_M = 5000;
 const PATH_CONNECT_MAX_ACCURACY_M = 100;
 const PHOTO_STORE_PREVIEW = true;
-const PHOTO_POPUP_MAX_SIZE = 2048;
-const PHOTO_POPUP_JPEG_QUALITY = 0.92;
-const PHOTO_POPUP_MIN_QUALITY = 0.78;
-const PHOTO_POPUP_TARGET_BYTES = 1600 * 1024;
+// Compress display previews only; retain original bytes and EXIF separately.
+const PHOTO_POPUP_MAX_SIZE = 1600;
+const PHOTO_POPUP_JPEG_QUALITY = 0.82;
+const PHOTO_POPUP_MIN_QUALITY = 0.70;
+const PHOTO_POPUP_TARGET_BYTES = 600 * 1024;
 const PHOTO_THUMB_SIZE = 120;
 const PHOTO_THUMB_JPEG_QUALITY = 0.74;
 const PHOTO_THUMB_MIN_QUALITY = 0.58;
@@ -586,6 +592,36 @@ function idbSavePhoto(id, photo, thumb, originalBlob, originalMimeType) {
 function idbGetPhoto(id) { return openIdb().then(function(db) { return new Promise(function(resolve, reject) { var req = db.transaction(IDB_STORE, "readonly").objectStore(IDB_STORE).get(id); req.onsuccess = function(e) { resolve(e.target.result || null); }; req.onerror = function(e) { reject(e.target.error); }; }); }); }
 function idbDeletePhoto(id) { return openIdb().then(function(db) { return new Promise(function(resolve, reject) { var tx = db.transaction(IDB_STORE, "readwrite"); tx.objectStore(IDB_STORE).delete(id); tx.oncomplete = resolve; tx.onerror = function(e) { reject(e.target.error); }; }); }); }
 function idbGetAllPhotos() { return openIdb().then(function(db) { return new Promise(function(resolve, reject) { var req = db.transaction(IDB_STORE, "readonly").objectStore(IDB_STORE).getAll(); req.onsuccess = function(e) { resolve(e.target.result || []); }; req.onerror = function(e) { reject(e.target.error); }; }); }); }
+async function recoverOrphanedPhotoRows() {
+    var rows = await idbGetAllPhotos().catch(function(error) { console.warn("Orphaned photo scan failed", error); return []; });
+    if (!Array.isArray(rows) || rows.length === 0) return 0;
+    var known = new Set((photos || []).map(function(photo) { return String(photo && photo.id || ""); }));
+    var deleted = new Set((deletedJourneyRecords && deletedJourneyRecords.photos || []).map(String));
+    var recovered = 0;
+    rows.forEach(function(row) {
+        var id = String(row && row.id || "");
+        if (!id || known.has(id) || deleted.has(id) || !(row.photo || row.thumb || (row.originalBlob && row.originalBlob.size))) return;
+        var match = id.match(/^(\d{13})/);
+        var timestamp = match ? Number(match[1]) : Date.now();
+        if (!isFinite(timestamp) || timestamp < 946684800000 || timestamp > Date.now() + 86400000) timestamp = Date.now();
+        var taken = new Date(timestamp);
+        photos.push({
+            id:id, lat:null, lng:null, photo:row.photo || row.thumb || "", thumb:row.thumb || row.photo || "", time:timestamp,
+            dateString:taken.toLocaleDateString("ko-KR", { year:"numeric", month:"long", day:"numeric" }),
+            timeString:taken.toLocaleTimeString("ko-KR", { hour:"2-digit", minute:"2-digit" }),
+            memo:"", emotion:"", missionId:"", placeId:"", sourceUri:"", sourceWebPath:"", sourceType:"recovered",
+            locationSource:"unknown", locationAccuracy:null, remotePhotoUrl:"", remoteThumbUrl:"", storagePath:"", thumbStoragePath:"",
+            imagePrediction:null, heading:null, contentFingerprint:getPhotoContentFingerprint(row.thumb || row.photo || "")
+        });
+        known.add(id);
+        recovered += 1;
+    });
+    if (recovered > 0) {
+        safeStorageSet(PHOTO_LOCATION_MIGRATION_KEY, "");
+        console.warn("[GILOA PHOTO] recovered orphaned photos: " + recovered);
+    }
+    return recovered;
+}
 function migratePhotosToThumbOnly() {
     if (PHOTO_STORE_PREVIEW) return Promise.resolve();
     return idbGetAllPhotos().then(function(list) {
@@ -608,7 +644,7 @@ var recordingSessionId = null;
 var recordingSessionStartedAt = 0;
 // A clean install starts with destinations only. Once the user changes a
 // switch, the complete selection is restored from localStorage on later runs.
-var MAP_LAYER_DEFAULTS = { tourism: true, library: false, restaurant: false, lodging: false, restroom: false, parking: false, fishing: false, camping: false, durunubi: false, community: false };
+var MAP_LAYER_DEFAULTS = { tourism: true, library: false, restaurant: false, shopping: false, lodging: false, restroom: false, parking: false, fishing: false, durunubi: false, community: false };
 var MAP_LAYER_UNAVAILABLE = { community: true };
 var MAP_VIEWPORT_MARKER_LIMIT = 100;
 var MAP_VIEWPORT_ROUTE_LIMIT = 60;
@@ -617,6 +653,9 @@ function loadMapLayerSettings() {
     try {
         var raw = localStorage.getItem(MAP_LAYER_KEY);
         var saved = raw ? JSON.parse(raw) : {};
+        // Before shopping became its own layer, it followed the tourism switch.
+        // Keep each existing user's visibility choice when migrating that setting.
+        if (raw && !Object.prototype.hasOwnProperty.call(saved, "shopping")) saved.shopping = !!saved.tourism;
         return Object.assign({}, MAP_LAYER_DEFAULTS, saved);
     } catch (e) { return Object.assign({}, MAP_LAYER_DEFAULTS); }
 }
@@ -642,6 +681,8 @@ let specialPlaceEditorCoords = null; let activeSpecialPlaceMarker = null; let ac
 let activeGpxId = null; let activeGpxLayers = []; let dialHours = 8;
 const STAY_BONUS_MS = 30 * 60 * 1000; const STAY_BONUS_RADIUS_M = 50;
 const IMAGE_MISSION_RADIUS_M = 120;
+const AUTO_VISIT_REQUIRED_MS = 30 * 60 * 1000;
+const AUTO_VISIT_RADIUS_M = 50;
 let stayBonusStartTime = null; let stayBonusAnchor = null; let stayBonusLevelBoost = 0; let stayBonusPlaces = [];
 let activeImageMission = null;
 var visitCandidate = { contentId: "", enteredAt: 0, item: null };
@@ -660,26 +701,6 @@ const DAILY_SHARE_TEXT = {
     es: { mission: "Comparte Giloa", action: "Compartir", text: "Estoy creando mi propio mapa de viaje con Giloa." },
     fr: { mission: "Partager Giloa", action: "Partager", text: "Je crée ma propre carte de voyage avec Giloa." }
 };
-// 길로아를 알릴 때 사용하는 대표 링크. 스토어 주소를 기본으로 쓴다
-// (받는 사람이 바로 설치할 수 있는 쪽이 전환에 유리하다).
-const GILOA_STORE_URL = "https://play.google.com/store/apps/details?id=com.giloa.app";
-const GILOA_SITE_URL = "https://play.google.com/store/apps/details?id=com.giloa.app";
-const GILOA_SHARE_UI = {
-    ko: { title: "길로아 알리기", intro: "친구에게 길로아를 소개해 주세요. 알리면 오늘의 할 일이 완료됩니다.", system: "다른 앱으로 공유", instagram: "인스타그램", copyLink: "링크 복사", copied: "문구와 링크를 복사했어요!", igGuide: "인스타그램은 링크 공유 기능이 없어 문구를 복사한 뒤 앱을 열어드려요. 스토리나 게시물에 붙여넣어 주세요.", note: "인스타그램·카카오톡은 ‘다른 앱으로 공유’에서도 선택할 수 있어요." , "modeApp": "길로아 소개", "modeJourney": "내가 걸은 길", "shareImage": "이미지로 공유", "saveImage": "이미지 저장", "journeyNote": "내가 걸은 길은 오늘 기록(거리·발견·사진·기억)으로 카드 이미지를 만듭니다. SNS 링크 버튼에는 요약 문구와 링크만 담깁니다." },
-    en: { title: "Share Giloa", intro: "Introduce Giloa to a friend. Sharing completes today's task.", system: "Share via apps", instagram: "Instagram", copyLink: "Copy link", copied: "Message and link copied!", igGuide: "Instagram has no link-sharing API, so the text is copied and the app opens. Paste it into a story or post.", note: "Instagram and KakaoTalk are also available under \u201cShare via apps\u201d." , "modeApp": "About Giloa", "modeJourney": "My route", "shareImage": "Share as image", "saveImage": "Save image", "journeyNote": "Your route becomes a card image from today\u2019s record. Link buttons carry only the summary text and the link." },
-    ja: { title: "ギロをシェア", intro: "友だちにギロを紹介しましょう。シェアすると今日のやることが完了します。", system: "他のアプリで共有", instagram: "Instagram", copyLink: "リンクをコピー", copied: "テキストとリンクをコピーしました！", igGuide: "Instagramにはリンク共有機能がないため、テキストをコピーしてアプリを開きます。ストーリーや投稿に貼り付けてください。", note: "InstagramやLINEは「他のアプリで共有」からも選べます。" , "modeApp": "ギロ紹介", "modeJourney": "歩いた道", "shareImage": "画像でシェア", "saveImage": "画像を保存", "journeyNote": "歩いた道は今日の記録からカード画像を作ります。リンクボタンには要約とリンクのみ入ります。" },
-    zh: { title: "分享 Giloa", intro: "把 Giloa 介绍给朋友吧。分享后即完成今天的任务。", system: "用其他应用分享", instagram: "Instagram", copyLink: "复制链接", copied: "已复制文案和链接！", igGuide: "Instagram 没有链接分享接口，因此会复制文案并打开应用，请粘贴到故事或帖子中。", note: "Instagram 和微信也可在“用其他应用分享”中选择。" , "modeApp": "介绍 Giloa", "modeJourney": "我走过的路", "shareImage": "以图片分享", "saveImage": "保存图片", "journeyNote": "我走过的路会用今天的记录生成卡片图片。链接按钮只包含摘要和链接。" },
-    es: { title: "Comparte Giloa", intro: "Presenta Giloa a un amigo. Compartir completa la tarea de hoy.", system: "Compartir con apps", instagram: "Instagram", copyLink: "Copiar enlace", copied: "¡Texto y enlace copiados!", igGuide: "Instagram no permite compartir enlaces, así que copiamos el texto y abrimos la app. Pégalo en una historia o publicación.", note: "Instagram también está disponible en \u201cCompartir con apps\u201d." , "modeApp": "Sobre Giloa", "modeJourney": "Mi ruta", "shareImage": "Compartir imagen", "saveImage": "Guardar imagen", "journeyNote": "Tu ruta se convierte en una imagen con el registro de hoy. Los enlaces solo llevan el resumen y el enlace." },
-    fr: { title: "Partager Giloa", intro: "Présentez Giloa à un ami. Partager valide la tâche du jour.", system: "Partager via une app", instagram: "Instagram", copyLink: "Copier le lien", copied: "Texte et lien copiés !", igGuide: "Instagram ne propose pas de partage de lien : le texte est copié et l\u2019app s\u2019ouvre. Collez-le dans une story ou un post.", note: "Instagram est aussi disponible dans \u00ab Partager via une app \u00bb." , "modeApp": "\u00c0 propos", "modeJourney": "Mon parcours", "shareImage": "Partager en image", "saveImage": "Enregistrer", "journeyNote": "Votre parcours devient une image \u00e0 partir du relev\u00e9 du jour. Les liens ne contiennent que le r\u00e9sum\u00e9 et le lien." }
-};
-// 각 SNS의 웹 공유(인텐트) 엔드포인트. 설치된 앱이 있으면 모바일에서 앱이 열린다.
-const GILOA_SHARE_TARGETS = [
-    { id: "threads", label: "Threads", mark: "@", accent: "#ffffff", build: function(text, url) { return "https://www.threads.com/intent/post?text=" + encodeURIComponent(text) + "&url=" + encodeURIComponent(url); } },
-    { id: "x", label: "X", mark: "X", accent: "#ffffff", build: function(text, url) { return "https://x.com/intent/post?text=" + encodeURIComponent(text) + "&url=" + encodeURIComponent(url); } },
-    { id: "facebook", label: "Facebook", mark: "f", accent: "#7aacff", build: function(text, url) { return "https://www.facebook.com/sharer/sharer.php?u=" + encodeURIComponent(url) + "&quote=" + encodeURIComponent(text); } },
-    { id: "line", label: "LINE", mark: "L", accent: "#8fe388", build: function(text, url) { return "https://social-plugins.line.me/lineit/share?url=" + encodeURIComponent(url) + "&text=" + encodeURIComponent(text); } },
-    { id: "band", label: "BAND", mark: "B", accent: "#8fe388", build: function(text, url) { return "https://band.us/plugin/share?body=" + encodeURIComponent(text + "\n" + url) + "&route=" + encodeURIComponent(url); } }
-];
 const RPG_GROWTH_KEY = "giloa-rpg-growth-v1";
 const RPG_POINTS_PER_LEVEL = 40;
 const RPG_STAT_KEYS = ["exploration", "experience", "memory", "connection", "growth"];
@@ -711,8 +732,44 @@ let selectedDestination = null;
 let selectedVisitMarker = null;
 var discoveryRewardTimer = null;
 var giloLastReactionAt = 0;
-var GILO_30_SCENE_BASE = "./gilo many appearance/길로_장면별_30장_PNG/";
-function getGilo30Scene(number) { return GILO_30_SCENE_BASE + "gilo_scene_" + String(number).padStart(2, "0") + ".png"; }
+var GILO_30_SCENE_BASE = "./gilo many appearance/";
+// The 30-scene folder (길로_장면별_30장_PNG) is not in the project yet.
+// Each scene number points to an image that exists in "gilo many appearance".
+// When the 30 scene images are added later, restore:
+//   GILO_30_SCENE_BASE + "길로_장면별_30장_PNG/gilo_scene_" + NN + ".png"
+var GILO_30_SCENE_FILES = [
+    "gilo-scenes-transparent/01-first-meeting-transparent.png", // 1 first_meeting / welcome_back
+    "gilo-actions-transparent/10-map-transparent.png", // 2 find_location
+    "gilo-actions-transparent/01-walking-transparent.png", // 3 start_recording
+    "gilo-actions-transparent/02-running-transparent.png", // 4 first_walk
+    "gilo-emotions-transparent/12-surprised-transparent.png", // 5 first_path_reveal
+    "gilo-emotions-transparent/11-curious-transparent.png", // 6 free_exploration
+    "gilo-emotions-transparent/22-happy-transparent.png", // 7 place_discovered
+    "gilo-actions-transparent/09-explaining-transparent.png", // 8 destination_suggested
+    "gilo-actions-transparent/03-jumping-transparent.png", // 9 approaching_place
+    "gilo-actions-transparent/05-clapping-transparent.png", // 10 place_arrived
+    "gilo-actions-transparent/11-photo-transparent.png", // 11 photo_suggest
+    "gilo-emotions-transparent/05-wink-transparent.png", // 12 photo_saved
+    "gilo-actions-transparent/16-memo-transparent.png", // 13 memory_saved
+    "gilo-actions-transparent/22-coffee-transparent.png", // 14 long_stay
+    "gilo-scenes-transparent/03-special-scene-transparent.png", // 15 mission_found
+    "gilo-actions-transparent/06-thumbs-up-transparent.png", // 16 mission_complete
+    "gilo-daily-transparent/25-v-pose-transparent.png", // 17 daily_complete
+    "gilo-actions-transparent/12-pickup-item-transparent.png", // 18 item_discovered
+    "gilo-actions-transparent/14-give-gift-transparent.png", // 19 treasure_open
+    "gilo-actions-transparent/13-store-item-transparent.png", // 20 item_obtained
+    "gilo-emotions-transparent/23-hopeful-transparent.png", // 21 hidden_mission_found
+    "gilo-emotions-transparent/04-burst-laugh-transparent.png", // 22 hidden_mission_complete
+    "gilo-emotions-transparent/17-confident-transparent.png", // 23 level_up
+    "gilo-emotions-transparent/08-moved-transparent.png", // 24 badge_obtained
+    "gilo-daily-transparent/14-window-view-transparent.png", // 25 rainy_day
+    "gilo-daily-transparent/21-snowman-transparent.png", // 26 snow_day
+    "gilo-scenes-transparent/02-loading-transparent.png", // 27 night_exploration
+    "gilo-emotions-transparent/21-worried-transparent.png", // 28 lost_direction
+    "gilo-actions-transparent/24-resting-transparent.png", // 29 rest_break
+    "gilo-emotions-transparent/24-grateful-transparent.png" // 30 trip_end / thank_you
+];
+function getGilo30Scene(number) { return GILO_30_SCENE_BASE + (GILO_30_SCENE_FILES[number - 1] || GILO_30_SCENE_FILES[0]); }
 // Scene assets progressively replace the legacy random reaction pool. A missing
 // scene is never substituted with another illustration.
 var GILO_SCENE_IMAGES = {
@@ -799,15 +856,26 @@ const recStatusBox = document.getElementById("rec-status-box");
 
 // 吏??珥덇린??
 const map = window.giloaMapBootstrap || L.map("map", { zoomControl: false, attributionControl: true }).setView([37.5665, 126.978], 16);
+const DEFAULT_CARTO_TILE_URL = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 const BASE_TILE_LAYERS = [
     {
-        url: window.GILOA_CARTO_TILE_URL,
+        url: window.GILOA_CARTO_TILE_URL || DEFAULT_CARTO_TILE_URL,
         options: {
             zIndex: 10,
             maxZoom: 20,
             crossOrigin: true,
             attribution:
-                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
+                '&copy; <a href="https://carto.com/attributions">CARTO</a>'
+        }
+    },
+    {
+        url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+        options: {
+            zIndex: 10,
+            maxZoom: 19,
+            crossOrigin: true,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }
     }
 ];
@@ -1040,8 +1108,6 @@ map.createPane("parkingPane");
 map.getPane("parkingPane").style.zIndex = 668;
 map.createPane("fishingPane");
 map.getPane("fishingPane").style.zIndex = 669;
-map.createPane("campingPane");
-map.getPane("campingPane").style.zIndex = 671;
 var tourRenderer = L.svg({ pane: "tourPane" });
 var durunubiRenderer = L.canvas({ pane: "durunubiPane", padding: 1 });
 var durunubiLayerGroup = L.featureGroup().addTo(map);
@@ -1217,7 +1283,7 @@ function loadAdminDistrictBoundaries() {
         scheduleRegionStayRecalculation();
         if (adminDistrictFeatures.length) setAdminBoundaryStatus("ok", String(adminDistrictFeatures.length));
         else setAdminBoundaryStatus("empty", earlyUiText("featuresEmpty"));
-        console.info("[GILOA ADMIN BOUNDARY]", adminDistrictFeatures.length, "districts loaded",
+        if (GILOA_DEBUG) console.info("[GILOA ADMIN BOUNDARY]", adminDistrictFeatures.length, "districts loaded",
             adminDistrictFeatures.slice(0, 3).map(getAdminFeatureTitle));
         refreshRegionBadgeAtlasIfOpen();
     }).catch(function(error) {
@@ -1600,35 +1666,29 @@ function updateRegionEdgeFrame(fix) {
     var frame = document.getElementById("region-edge-frame");
     if (!frame) return;
 
-    var title = "";
-
-    if (
-        fix &&
-        isFinite(fix.lat) &&
-        isFinite(fix.lng) &&
-        adminDistrictFeatures.length
-    ) {
-        title = getAdminFeatureTitle(
-            findAdminDistrictAt(L.latLng(fix.lat, fix.lng))
-        );
+    // 지역 미션(REGION_STAY_TARGETS)이 있는 시에서만 테두리를 켠다.
+    // 이전에는 아무 행정구역이나 해시 팔레트 색으로 테두리를 쳐서, 미션이 없는
+    // 지역에서도 빨간 테두리 등이 보였다. 또 "경기도 고양시 …"처럼 도 이름이
+    // 앞에 붙으면 키가 "경기도고양시"가 되어 미션 지역을 놓칠 수 있었다.
+    // 체류 뱃지 판정과 같은 resolveRegionStayCity를 써서 두 로직을 일치시킨다.
+    var city = "";
+    if (fix && isFinite(fix.lat) && isFinite(fix.lng)) {
+        city = resolveRegionStayCity(Number(fix.lat), Number(fix.lng), { remember:false }).city || "";
     }
 
-    var key = getRegionColorKey(title);
-    var badgeId = REGION_STAY_TARGETS[key];
+    var badgeId = city ? REGION_STAY_TARGETS[city] : "";
+    var completed =
+        !!badgeId &&
+        Array.isArray(badges) &&
+        badges.some(function(badge) {
+            return badge && badge.id === badgeId;
+        });
 
-   var completed =
-    !!badgeId &&
-    Array.isArray(badges) &&
-    badges.some(function(badge) {
-        return badge.id === badgeId;
-    });
-
-    var frameState = key + (completed ? ":completed" : ":active");
-
+    var frameState = (badgeId ? city : "") + (completed ? ":completed" : ":active");
     if (frameState === activeRegionEdgeKey) return;
     activeRegionEdgeKey = frameState;
 
-    if (!key || completed) {
+    if (!badgeId || completed) {
         frame.hidden = true;
         frame.style.borderColor = "transparent";
         frame.style.boxShadow = "none";
@@ -1636,11 +1696,10 @@ function updateRegionEdgeFrame(fix) {
         return;
     }
 
-    var color = getRegionEdgeColor(title);
-
+    var color = REGION_EDGE_COLORS[city] || getRegionEdgeColor(city);
     frame.style.borderColor = color;
     frame.style.boxShadow = "inset 0 0 18px " + color + "40";
-    frame.setAttribute("data-region", key);
+    frame.setAttribute("data-region", city);
     frame.hidden = false;
 }
 
@@ -1869,7 +1928,7 @@ function captureGpsIntegrity() {
 }
 function logGpsLayerChange(stage, snapshot) {
     var current = captureGpsIntegrity();
-    console.log("GPS " + stage, current.displayCount, current.distance, {
+    if (GILOA_DEBUG) console.log("GPS " + stage, current.displayCount, current.distance, {
         rawPoints:current.rawCount,
         persistedPoints:current.persistedCount
     });
@@ -2115,7 +2174,7 @@ function loadTodayGrowth() {
 function recordTodayGrowth(added) {
     var state = loadTodayGrowth();
     RPG_STAT_KEYS.forEach(function(key) { state.stats[key] = Math.max(0, Number(state.stats[key]) || 0) + Math.max(0, Number(added[key]) || 0); });
-    localStorage.setItem(DAILY_GROWTH_KEY, JSON.stringify(state));
+    safeStorageSet(DAILY_GROWTH_KEY, JSON.stringify(state));
 }
 function loadDailyTaskState() {
     var today = getDailyTaskDate();
@@ -2131,7 +2190,7 @@ function loadDailyTaskState() {
                         ? { id: "share_giloa", type: "share", icon: "↗", name: "길로아 알리기", target: 1 }
                         : mission;
                 });
-                localStorage.setItem(DAILY_TASK_KEY, JSON.stringify(saved));
+                safeStorageSet(DAILY_TASK_KEY, JSON.stringify(saved));
             }
             return saved;
         }
@@ -2144,7 +2203,7 @@ function loadDailyTaskState() {
         { id: "photo_1", type: "photo", icon: "◇", name: "사진 1장 남기기", target: 1 }
     ];
     var fresh = { date: today, startDistance: totalDistance, startPhotos: photos.length, missions: missions.slice(0, 3) };
-    localStorage.setItem(DAILY_TASK_KEY, JSON.stringify(fresh));
+    safeStorageSet(DAILY_TASK_KEY, JSON.stringify(fresh));
     return fresh;
 }
 function getDailyTaskProgress() {
@@ -2155,7 +2214,7 @@ function getDailyTaskProgress() {
         var current = 0;
         if (mission.type === "distance") current = Math.min(walked, mission.target);
         else if (mission.type === "photo") current = Math.min(photoCount, 1);
-        else if (mission.type === "share") current = localStorage.getItem(DAILY_SHARE_KEY) === state.date ? 1 : 0;
+        else if (mission.type === "share") current = safeStorageGet(DAILY_SHARE_KEY) === state.date ? 1 : 0;
         else if (mission.type === "photo_place") current = photos.some(function(p) { return p.placeId === mission.targetId || (p.lat && L.latLng(p.lat, p.lng).distanceTo([mission.targetLat, mission.targetLng]) <= 80); }) ? 1 : 0;
         else if (mission.type === "visit_place") current = visitStamps.some(function(v) { return v.visitKey && v.visitKey.indexOf(mission.targetId + ":") === 0; }) ? 1 : 0;
         return Object.assign({}, mission, { current: current, value: mission.type === "distance" ? Math.round(current) + "/" + mission.target + "m" : current + "/1" });
@@ -2185,8 +2244,7 @@ function updateDailyMissions() {
         var pct = Math.min(100, Math.round((task.current / task.target) * 100));
         var done = pct >= 100;
         var effect = done && completeDailyTask(task.id, 30) ? ' just-completed' : '';
-        // 공유는 하루에 몇 번이든 할 수 있어야 하므로 미션 완료 뒤에도 버튼을 계속 노출한다.
-        var shareAction = task.type === "share" ? '<button type="button" class="daily-share-action" onclick="shareGiloaToday()">' + escapeHtml((DAILY_SHARE_TEXT[currentLang] || DAILY_SHARE_TEXT.ko).action) + '</button>' : '';
+        var shareAction = task.type === "share" && !done ? '<button type="button" class="daily-share-action" onclick="shareGiloaToday()">' + escapeHtml((DAILY_SHARE_TEXT[currentLang] || DAILY_SHARE_TEXT.ko).action) + '</button>' : '';
         return '<div class="daily-task-item daily-task-action' + (done ? ' done' : '') + effect + '" data-task-id="' + escapeHtml(task.id) + '" data-task-type="' + escapeHtml(task.type) + '" role="button" tabindex="0"><div class="daily-task-icon">' + (done ? "✓" : task.icon) + '</div><div><div class="daily-task-name">' + escapeHtml(getDailyMissionName(task)) + '</div><div class="daily-task-track"><div class="daily-task-fill" style="width:' + pct + '%"></div></div></div><div class="daily-task-value">' + task.value + shareAction + '</div></div>';
     }).join("");
     listEl.querySelectorAll(".daily-task-action").forEach(function(item) {
@@ -2257,153 +2315,28 @@ function showTodayWalkingRoute() {
     if (bounds.isValid() && points.length > 1) map.fitBounds(bounds, { padding:[42, 110], maxZoom:18, animate:true });
     else map.setView([points[0].lat, points[0].lng], 17, { animate:true });
 }
-function getGiloaShareUi() { return GILOA_SHARE_UI[normalizeLang(currentLang)] || GILOA_SHARE_UI.ko; }
-// 공유 모드: "app"은 길로아 소개, "journey"는 오늘 내가 걸은 길.
-var giloaShareMode = "app";
-function setGiloaShareMode(mode) {
-    giloaShareMode = mode === "journey" ? "journey" : "app";
-    renderGiloaShareSheet();
-}
-function getJourneyShareMessage() {
-    var summary = getTodayJourneySummary(), t = getJourneyShareText();
-    var parts = [
-        t.distance + " " + (summary.distance / 1000).toFixed(1) + "km",
-        t.visits + " " + summary.visits.length,
-        t.photos + " " + summary.photos.length,
-        t.memories + " " + summary.memories.length
-    ];
-    return t.title + " — " + parts.join(" · ") + "\n" + t.footer;
-}
-function getGiloaShareMessage() {
-    if (giloaShareMode === "journey") return getJourneyShareMessage();
+function shareGiloaToday() {
     var copy = DAILY_SHARE_TEXT[currentLang] || DAILY_SHARE_TEXT.ko;
-    return copy.text;
-}
-function markDailyShareDone() {
-    localStorage.setItem(DAILY_SHARE_KEY, getDailyTaskDate());
-    updateDailyMissions();
-}
-// Capacitor WebView에서는 window.open이 막히는 경우가 있어 앵커 클릭으로 우회한다.
-function openExternalLink(url) {
-    var win = null;
-    try { win = window.open(url, "_blank", "noopener,noreferrer"); } catch (e) { win = null; }
-    if (win) return;
-    var anchor = document.createElement("a");
-    anchor.href = url; anchor.target = "_blank"; anchor.rel = "noopener noreferrer";
-    document.body.appendChild(anchor);
-    anchor.click();
-    document.body.removeChild(anchor);
-}
-function copyGiloaShareText() {
-    var message = getGiloaShareMessage() + "\n" + GILOA_STORE_URL;
-    var ui = getGiloaShareUi();
-    var done = function() { showCollectionToast(ui.copied); markDailyShareDone(); };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(message).then(done).catch(function() { window.prompt(ui.copyLink, message); markDailyShareDone(); });
-        return;
-    }
-    window.prompt(ui.copyLink, message);
-    markDailyShareDone();
-}
-// 인스타그램은 외부에서 글/링크를 미리 채워 넣는 공개 엔드포인트가 없다.
-// 그래서 문구를 클립보드에 넣고 앱(또는 웹)을 열어 붙여넣도록 안내한다.
-function shareGiloaToInstagram() {
-    var ui = getGiloaShareUi();
-    var message = getGiloaShareMessage() + "\n" + GILOA_STORE_URL;
-    var openInstagram = function() {
-        showCollectionToast(ui.igGuide);
-        markDailyShareDone();
-        setTimeout(function() { openExternalLink("https://www.instagram.com/"); }, 900);
+    var url = "https://giloa.kr/";
+    var message = copy.text + "\n" + url;
+    var complete = function() {
+        safeStorageSet(DAILY_SHARE_KEY, getDailyTaskDate());
+        updateDailyMissions();
     };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(message).then(openInstagram).catch(openInstagram);
+    if (navigator.share) {
+        navigator.share({ title: "Giloa", text: copy.text, url: url }).then(complete).catch(function() {});
         return;
     }
-    openInstagram();
-}
-function shareGiloaVia(targetId) {
-    if (targetId === "journeyImage") return shareTodayJourneyToInstagram();
-    if (targetId === "saveImage") {
-        showCollectionToast(getJourneyShareText().preparing);
-        return buildTodayJourneyShareImage().then(function(blob) { downloadJourneyShareImage(blob); markDailyShareDone(); })
-            .catch(function(error) { console.warn("Journey share image failed", error); copyGiloaShareText(); });
-    }
-    if (targetId === "system") return shareGiloaWithSystemSheet();
-    if (targetId === "copy") return copyGiloaShareText();
-    if (targetId === "instagram") return shareGiloaToInstagram();
-    var target = null;
-    GILOA_SHARE_TARGETS.forEach(function(entry) { if (entry.id === targetId) target = entry; });
-    if (!target) return;
-    openExternalLink(target.build(getGiloaShareMessage(), GILOA_STORE_URL));
-    // 외부 창에서 실제로 게시했는지는 확인할 수 없으므로, 공유 창을 연 시점에 완료 처리한다.
-    markDailyShareDone();
-    closeGiloaShare();
-}
-function shareGiloaWithSystemSheet() {
-    if (!navigator.share) return copyGiloaShareText();
-    // 이미 공유 창이 떠 있으면 navigator.share가 InvalidStateError로 거절된다.
-    // 사용자가 직접 취소한 AbortError와 달리, 그 밖의 실패는 복사로 대체한다.
-    navigator.share({ title: "Giloa", text: getGiloaShareMessage(), url: GILOA_STORE_URL })
-        .then(function() { markDailyShareDone(); closeGiloaShare(); })
-        .catch(function(error) {
-            if (error && (error.name === "AbortError" || error.name === "InvalidStateError")) return;
-            copyGiloaShareText();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(message).then(complete).catch(function() {
+            window.prompt(copy.action, message);
+            complete();
         });
-}
-function renderGiloaShareSheet() {
-    var grid = document.getElementById("giloa-share-grid");
-    if (!grid) return;
-    var ui = getGiloaShareUi();
-    var journey = giloaShareMode === "journey";
-    var buttons = [];
-    if (journey) {
-        // 오늘 걸은 길은 카드 이미지가 본편이다. 이미지 공유가 막힌 기기에서는 저장으로 대체한다.
-        buttons.push({ id: "journeyImage", label: ui.shareImage, mark: "◎", accent: "#b8ff40" });
-        buttons.push({ id: "saveImage", label: ui.saveImage, mark: "↓", accent: "#68ccff" });
-    } else if (navigator.share) {
-        buttons.push({ id: "system", label: ui.system, mark: "↗", accent: "#b8ff40" });
+        return;
     }
-    if (!journey) buttons.push({ id: "instagram", label: ui.instagram, mark: "IG", accent: "#ff9ad2" });
-    GILOA_SHARE_TARGETS.forEach(function(target) { buttons.push(target); });
-    buttons.push({ id: "copy", label: ui.copyLink, mark: "⧉", accent: "#68ccff" });
-    grid.innerHTML = buttons.map(function(button) {
-        return '<button type="button" class="giloa-share-btn" data-share-id="' + escapeHtml(button.id) + '" onclick="shareGiloaVia(\'' + escapeHtml(button.id) + '\')">'
-            + '<span class="giloa-share-mark" style="color:' + escapeHtml(button.accent) + '">' + escapeHtml(button.mark) + '</span>'
-            + '<span class="giloa-share-label">' + escapeHtml(button.label) + '</span></button>';
-    }).join("");
-    var modes = document.getElementById("giloa-share-modes");
-    if (modes) {
-        modes.innerHTML = [["app", ui.modeApp], ["journey", ui.modeJourney]].map(function(mode) {
-            return '<button type="button" class="giloa-share-mode' + (giloaShareMode === mode[0] ? " active" : "") + '"'
-                + ' aria-pressed="' + (giloaShareMode === mode[0] ? "true" : "false") + '"'
-                + ' onclick="setGiloaShareMode(\'' + mode[0] + '\')">' + escapeHtml(mode[1]) + '</button>';
-        }).join("");
-    }
-    var title = document.getElementById("giloa-share-title");
-    var intro = document.getElementById("giloa-share-copy");
-    var note = document.getElementById("giloa-share-note");
-    if (title) title.textContent = ui.title;
-    if (intro) intro.textContent = journey ? getJourneyShareMessage().split("\n")[0] : ui.intro;
-    if (note) note.textContent = journey ? ui.journeyNote : ui.note;
+    window.prompt(copy.action, message);
+    complete();
 }
-function openGiloaShare(event) {
-    if (event) event.preventDefault();
-    var modal = document.getElementById("giloa-share-sheet");
-    if (!modal) return copyGiloaShareText();
-    renderGiloaShareSheet();
-    modal.hidden = false;
-    modal.setAttribute("aria-hidden", "false");
-    var closeButton = modal.querySelector(".giloa-share-head button");
-    if (closeButton) setTimeout(function() { closeButton.focus(); }, 0);
-}
-function closeGiloaShare() {
-    var modal = document.getElementById("giloa-share-sheet");
-    if (!modal) return;
-    modal.hidden = true;
-    modal.setAttribute("aria-hidden", "true");
-}
-// 오늘의 할 일 "길로아 알리기" 버튼 진입점.
-function shareGiloaToday() { openGiloaShare(); }
 function toggleDailyTasks(forceOpen) {
     dailyTaskPanelOpen = typeof forceOpen === "boolean" ? forceOpen : !dailyTaskPanelOpen;
     var panel = document.getElementById("daily-task-panel");
@@ -2759,8 +2692,8 @@ function replayGiloaTutorial() {
 }
 function changeLanguageFromSettings(lang) {
     lang = normalizeLang(lang);
-    localStorage.setItem(LANGUAGE_PREFERENCE_KEY, lang);
-    localStorage.setItem(LANGUAGE_SELECTED_KEY, "1");
+    safeStorageSet(LANGUAGE_PREFERENCE_KEY, lang);
+    safeStorageSet(LANGUAGE_SELECTED_KEY, "1");
     toggleLang(lang);
     switchHelpTab("settings");
 }
@@ -2931,7 +2864,7 @@ async function inspectPhotoLocation(photoOrFile, sourceType, cameraFallbackDate,
     var photoLocation = await resolvePhotoLocation(photoOrFile, gps, sourceType, routeDate, capturedLocation);
     var fileName = photoOrFile && (photoOrFile.name || photoOrFile.path || photoOrFile.webPath || photoOrFile.uri) || "";
     var mimeType = photoOrFile && photoOrFile.type || "";
-    console.log("[GILOA PHOTO LOCATION]", {
+    if (GILOA_DEBUG) console.log("[GILOA PHOTO LOCATION]", {
         fileName: String(fileName),
         mimeType: String(mimeType),
         exifGps: gps,
@@ -3195,7 +3128,7 @@ async function importPhotosFromNativeUris(uris) {
                 var inspection = await inspectPhotoLocation(named, "gallery", null, null);
                 var takenDate = inspection.photoDate || new Date();
                 var location = inspection.location;
-                console.log("[GILOA EXIF DEBUG native]", {
+                if (GILOA_DEBUG) console.log("[GILOA EXIF DEBUG native]", {
                     uri: describeNativePhotoUri(uri),
                     mimeType: originalBlob.type || "",
                     size: originalBlob.size,
@@ -3341,7 +3274,7 @@ async function openPhotoInGallery(data) {
             var fullDataUrl = typeof fullImage === "string" ? fullImage : await blobToDataUrl(fullImage);
             if (bridge.openPhotoData(fullDataUrl, data.id || "photo")) return;
         }
-        if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+        if (window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform()) {
             var plugins = window.Capacitor.Plugins || {};
             if (sourceUri && plugins.Browser && typeof plugins.Browser.open === "function") {
                 if (browserWindow) browserWindow.close();
@@ -3914,7 +3847,7 @@ function focusStartupLocation() {
     // Restore saved journeys and finish language selection before requesting GPS.
     // This is a one-time map lookup per launch; recording keeps its own consent flow.
     if (startupLocationRequested || !giloaPersistentStateReady ||
-        !hasSavedIntroLanguage() || localStorage.getItem(INTRO_STORY_SEEN_KEY) !== "true") {
+        !hasSavedIntroLanguage() || safeStorageGet(INTRO_STORY_SEEN_KEY) !== "true") {
         return Promise.resolve(false);
     }
     startupLocationRequested = true;
@@ -4058,7 +3991,7 @@ var LOCATION_RECORDING_DISCLOSURE_TEXT = {
         title: "위치 기록을 시작할까요?",
         copy: "길로아는 사용자가 걸은 길을 지도에 기록하기 위해 위치정보를 사용합니다.",
         background: "기록을 시작하면 화면이 꺼지거나 다른 앱을 사용하는 동안에도 최대 8시간 동안 위치정보가 계속 기록됩니다.",
-        privacy: "위치 기록은 이 기기에만 저장되며 서버나 제3자에게 전송되지 않습니다. 오른쪽 아래 기록 버튼이나 Android 알림에서 언제든지 기록을 중단할 수 있습니다.",
+        privacy: "위치 기록은 먼저 이 기기에 저장됩니다. 사용자가 로그인한 경우에만 본인 전용 서버 공간에 동기화되며 제3자와 공유되지 않습니다. 오른쪽 아래 기록 버튼이나 Android 알림에서 언제든지 기록을 중단할 수 있습니다.",
         start: "8시간 기록 시작",
         cancel: "나중에"
     },
@@ -4067,7 +4000,7 @@ var LOCATION_RECORDING_DISCLOSURE_TEXT = {
         title: "Start location recording?",
         copy: "GILOA uses your location to save the path you walk on your map.",
         background: "After you start recording, your location will continue to be recorded for up to 8 hours while the screen is off or while you use another app.",
-        privacy: "Location records are stored only on this device and are not sent to a server or shared with third parties. You can stop recording at any time using the record button or the Android notification.",
+        privacy: "Location records are saved on this device first. Only signed-in users sync them to their private server space; they are not shared with third parties. You can stop recording at any time using the record button or the Android notification.",
         start: "Start 8-hour recording",
         cancel: "Not now"
     },
@@ -4076,7 +4009,7 @@ var LOCATION_RECORDING_DISCLOSURE_TEXT = {
         title: "位置記録を開始しますか？",
         copy: "GILOAは、歩いた道を地図に記録するために位置情報を使用します。",
         background: "記録を開始すると、画面が消えている間や他のアプリを使用している間も、最大8時間位置情報の記録が続きます。",
-        privacy: "位置記録はこの端末内だけに保存され、サーバーや第三者には送信されません。画面右下の記録ボタンまたはAndroidの通知から、いつでも記録を停止できます。",
+        privacy: "位置記録はまずこの端末に保存されます。ログインした場合のみ本人専用のサーバー領域へ同期され、第三者には共有されません。記録ボタンまたはAndroid通知からいつでも停止できます。",
         start: "8時間の記録を開始",
         cancel: "後で"
     },
@@ -4085,7 +4018,7 @@ var LOCATION_RECORDING_DISCLOSURE_TEXT = {
         title: "开始记录位置吗？",
         copy: "GILOA使用你的位置信息，在地图上记录你走过的路线。",
         background: "开始记录后，即使屏幕关闭或正在使用其他应用，位置信息也会继续记录，最长为8小时。",
-        privacy: "位置记录仅保存在此设备上，不会发送到服务器或提供给第三方。你可以随时通过右下角的记录按钮或Android通知停止记录。",
+        privacy: "位置记录会先保存在此设备。仅在用户登录后同步到其个人服务器空间，不会与第三方共享。你可以随时通过记录按钮或 Android 通知停止记录。",
         start: "开始8小时记录",
         cancel: "暂不"
     },
@@ -4094,7 +4027,7 @@ var LOCATION_RECORDING_DISCLOSURE_TEXT = {
         title: "¿Quieres iniciar el registro de ubicación?",
         copy: "GILOA utiliza tu ubicación para guardar en el mapa el camino que recorres.",
         background: "Después de iniciar el registro, tu ubicación continuará registrándose durante un máximo de 8 horas aunque la pantalla esté apagada o utilices otra aplicación.",
-        privacy: "Los registros de ubicación se guardan únicamente en este dispositivo y no se envían a ningún servidor ni se comparten con terceros. Puedes detener el registro en cualquier momento mediante el botón de grabación o la notificación de Android.",
+        privacy: "Los registros se guardan primero en este dispositivo. Solo se sincronizan con el espacio privado del usuario cuando inicia sesión y no se comparten con terceros. Puedes detener el registro en cualquier momento.",
         start: "Iniciar registro de 8 horas",
         cancel: "Ahora no"
     },
@@ -4103,7 +4036,7 @@ var LOCATION_RECORDING_DISCLOSURE_TEXT = {
         title: "Démarrer l’enregistrement de la position ?",
         copy: "GILOA utilise votre position pour enregistrer sur la carte le chemin que vous parcourez.",
         background: "Après le démarrage, votre position continuera à être enregistrée pendant 8 heures maximum, même lorsque l’écran est éteint ou que vous utilisez une autre application.",
-        privacy: "Les données de position sont enregistrées uniquement sur cet appareil. Elles ne sont ni envoyées à un serveur ni partagées avec des tiers. Vous pouvez arrêter l’enregistrement à tout moment avec le bouton situé en bas à droite ou depuis la notification Android.",
+        privacy: "Les données sont d’abord enregistrées sur cet appareil. Elles ne sont synchronisées avec l’espace serveur privé qu’après connexion et ne sont pas partagées avec des tiers. Vous pouvez arrêter l’enregistrement à tout moment.",
         start: "Démarrer l’enregistrement de 8 heures",
         cancel: "Plus tard"
     }
@@ -4294,7 +4227,7 @@ function showAutoRecordingNotice() {
     }
 }
 
-function toggleFog() { isFogEnabled = !isFogEnabled; localStorage.setItem(FOG_ENABLED_KEY, String(isFogEnabled)); syncFogButton(); scheduleRender(); }
+function toggleFog() { isFogEnabled = !isFogEnabled; safeStorageSet(FOG_ENABLED_KEY, String(isFogEnabled)); syncFogButton(); scheduleRender(); }
 function getBackgroundGeolocationPlugin() {
     return window.Capacitor && window.Capacitor.Plugins ? window.Capacitor.Plugins.BackgroundGeolocation : null;
 }
@@ -4562,7 +4495,7 @@ function handlePosition(position, options) {
     var latlng = L.latLng(position.coords.latitude, position.coords.longitude);
     var heading = position.coords.heading;
     var prevPos = currentPos;
-    if (isFinite(heading)) playerHeading = heading;
+    if (typeof heading === "number" && isFinite(heading)) playerHeading = heading;
     else if (prevPos && prevPos.distanceTo(latlng) > 2) playerHeading = bearingBetween(prevPos, latlng);
     currentPos = latlng;
     if (!playerMarker) {
@@ -4593,7 +4526,7 @@ function handlePosition(position, options) {
     // accuracy circle and tutorial. A late geolocation timeout must not undo
     // this accepted position in the tutorial UI.
     if (hasValidCurrentLocation()) {
-        console.log("[GILOA LOCATION READY]", currentPos);
+        if (GILOA_DEBUG) console.log("[GILOA LOCATION READY]", currentPos);
         window.dispatchEvent(new CustomEvent("giloa:location-ready", { detail:{ lat:currentPos.lat, lng:currentPos.lng, accuracy:currentAccuracy } }));
         updateRegionStayProgress(currentPos, currentAccuracy, currentPositionTimestamp);
     }
@@ -4837,6 +4770,9 @@ if (
     toFixTime <= fromFixTime
 ) return false;
 
+// endTime can represent a merged stay; it is not evidence of a new GPS fix.
+if (toFixTime - fromFixTime > PATH_MAX_FIX_GAP_MS) return false;
+
 var fromEndTime = Number(fromPoint.endTime);
 var departureTime =
     isFinite(fromEndTime) &&
@@ -4913,7 +4849,7 @@ function checkStayBonus(latlng, now) {
     stayBonusPlaces.push({ lat: stayBonusAnchor.lat, lng: stayBonusAnchor.lng }); stayBonusLevelBoost += 1; saveBonusState(); updateStats();
     recStatusBox.textContent = getStatusText("stay_bonus_done"); setTimeout(function() { if (isRecording) recStatusBox.textContent = getStatusText("rec_active"); }, 4000);
 }
-function saveBonusState() { localStorage.setItem("giloa-stay-bonus", JSON.stringify({ boost: stayBonusLevelBoost, places: stayBonusPlaces })); }
+function saveBonusState() { safeStorageSet("giloa-stay-bonus", JSON.stringify({ boost: stayBonusLevelBoost, places: stayBonusPlaces })); }
 function loadBonusState() { try { var raw = localStorage.getItem("giloa-stay-bonus"); if (!raw) return; var data = JSON.parse(raw); stayBonusLevelBoost = isFinite(data.boost) ? data.boost : 0; stayBonusPlaces = Array.isArray(data.places) ? data.places.filter(function(p) { return isFinite(p.lat) && isFinite(p.lng); }) : []; } catch (e) { console.warn("보너스 상태 불러오기 실패", e); } }
 function calculateRecordedDistance(points, sinceMs) { var dist = 0; for (var i = 1; i < points.length; i++) { if ((!sinceMs || Number(points[i].startTime) >= sinceMs) && shouldConnectStoredPathPoints(points[i - 1], points[i])) dist += L.latLng(points[i].lat, points[i].lng).distanceTo([points[i - 1].lat, points[i - 1].lng]); } return dist; }
 function calcTodayDistance() { return calculateRecordedDistance(pathCoordinates, new Date().setHours(0, 0, 0, 0)); }
@@ -5011,6 +4947,8 @@ function updatePhotoList() {
         var hasPhotoLocation = isValidPhotoCoordinate(p.lat, p.lng);
         item.setAttribute("aria-label", hasPhotoLocation ? photoText.mapView : photoText.assignLocation);
         var img = document.createElement("img");
+        img.loading = "lazy";
+        img.decoding = "async";
         img.src = getPhotoDisplaySrc(p);
         img.alt = earlyMemoryDateText(p, true) || photoText.photoAlt;
         var date = document.createElement("div");
@@ -5226,7 +5164,7 @@ function closeGiloaSources() {
     modal.hidden = true;
     modal.setAttribute("aria-hidden", "true");
 }
-document.addEventListener("keydown", function(event) { if (event.key === "Escape") { closeGiloaSources(); closeGiloaInfoPage(); closeGiloaShare(); } });
+document.addEventListener("keydown", function(event) { if (event.key === "Escape") { closeGiloaSources(); closeGiloaInfoPage(); } });
 function openGiloaInfoPage(key, event) {
     if (event) event.preventDefault();
     if (key === "about") return openGiloaStoryHub(event);
@@ -5367,8 +5305,16 @@ function toggleLocationRecording() {
 var persistentStateDirty = false;
 var lastCheckpointAt = 0;
 function markJourneyStateDirty() { persistentStateDirty = true; }
-function scheduleSave() {
+function scheduleSave(options) {
+    options = options || {};
     markJourneyStateDirty();
+    if (options.immediate) {
+        if (saveTimer !== null) { clearTimeout(saveTimer); saveTimer = null; }
+        if (!giloaPersistentStateReady) return;
+        compactPathData();
+        persistState();
+        return;
+    }
     if (saveTimer !== null) return;
     var delay = Math.max(SAVE_DELAY_MS, CHECKPOINT_INTERVAL_MS - Math.max(0, Date.now() - lastCheckpointAt));
     saveTimer = setTimeout(function() {
@@ -5918,6 +5864,7 @@ function persistState(options) {
         var durableSaved = persistDurableStorageSnapshot();
         persistentStateDirty = false;
         lastCheckpointAt = Date.now();
+        if (window.GiloaCloud && typeof window.GiloaCloud.scheduleSync === "function") window.GiloaCloud.scheduleSync();
         if (GILOA_PERSISTENCE_DEBUG) console.log("[GILOA CHECKPOINT] " + JSON.stringify({ path:pathCoordinates.length, rawGps:rawGpsPoints.length, distance:totalDistance, photos:photos.length, timestamp:lastCheckpointAt, durable:durableSaved }));
         return true;
     } catch (e) {
@@ -6009,16 +5956,25 @@ function saveSpecialPlacePin() {
         return;
     }
     if (!specialPlaceEditorCoords) return;
-    var pin = {
+    var pin = specialPlaceEditorCoords.pendingPin || {
         id: createSpecialPlaceId(),
         latitude: specialPlaceEditorCoords.latitude,
         longitude: specialPlaceEditorCoords.longitude,
         note: note,
         createdAt: new Date().toISOString()
     };
-    specialPlacePins.push(pin);
+    // A cloud repaint may have recreated the pending pin object meanwhile.
+    pin = specialPlacePins.find(function(saved) { return saved.id === pin.id; }) || pin;
+    pin.note = note;
+    specialPlaceEditorCoords.pendingPin = pin;
+    if (!specialPlacePins.some(function(saved) { return saved.id === pin.id; })) specialPlacePins.push(pin);
+    markJourneyStateDirty();
+    if (!persistState()) {
+        var saveError = document.getElementById("special-place-error");
+        if (saveError) saveError.textContent = t.pin_save_failed;
+        return;
+    }
     createSpecialPlaceMarker(pin);
-    persistState();
     closeSpecialPlaceEditor();
     showCollectionToast(t.pin_saved);
     showGiloReaction("memory", "", { force:true });
@@ -6268,6 +6224,9 @@ async function processPhoto(img, now, lat, lng, options) {
         }
         hasLocation = isValidPhotoCoordinate(data.lat, data.lng);
     }
+    // Commit photo metadata immediately. Large camera images can make Android
+    // reclaim the WebView before the normal delayed checkpoint runs.
+    scheduleSave({ immediate:true });
     awardPhotoImagePrediction(data, imageMission);
     showGiloReaction("photo");
     if (window.GiloaHiddenMissions) window.GiloaHiddenMissions.onPhoto(data);
@@ -6276,7 +6235,7 @@ async function processPhoto(img, now, lat, lng, options) {
     if (hasLocation) createPhotoMarker(data, options.openPopup !== false);
     if (!options.deferUi) {
         updateStats();
-        scheduleSave();
+        scheduleSave({ immediate:true });
         updatePhotoList();
     }
     try {
@@ -6967,7 +6926,7 @@ async function handlePhotos(event) {
                 var inspection = await inspectPhotoLocation(originalBlob, sourceType, cameraFallbackDate, cameraCaptureLocation);
                 var takenDate = inspection.photoDate || cameraFallbackDate || new Date();
                 var location = inspection.location;
-                console.log("[GILOA EXIF DEBUG]", {
+                if (GILOA_DEBUG) console.log("[GILOA EXIF DEBUG]", {
                     fileName: file && file.name || "",
                     mimeType: originalBlob && originalBlob.type || file && file.type || "",
                     nativeUri: describeNativePhotoUri(sourceUri),
@@ -7123,6 +7082,35 @@ function rememberPhotoDisplayObjectUrl(photo, blob) {
         return true;
     } catch (_) { return false; }
 }
+var photoPreviewRecoveryQueue = Promise.resolve();
+var photoPreviewRecoveryPending = new Map();
+function queuePhotoPreviewRecovery(photo, row) {
+    if (!photo || !photo.id || photoHasImageData(photo)) return Promise.resolve(false);
+    var pending = photoPreviewRecoveryPending.get(photo.id);
+    if (pending) return pending;
+    var task = photoPreviewRecoveryQueue.then(async function() {
+        while (typeof document !== "undefined" && document.hidden) {
+            await new Promise(function(resolve) { setTimeout(resolve, 5000); });
+        }
+        // A photo deleted while waiting must not recreate its durable image row.
+        if (photos.indexOf(photo) === -1 || photoHasImageData(photo)) return false;
+        return hydratePhotoImageFromOriginal(photo, row);
+    }).catch(function(error) {
+        console.warn("Photo preview recovery failed", error);
+        return false;
+    }).then(function(recovered) {
+        photoPreviewRecoveryPending.delete(photo.id);
+        if (recovered) { updatePhotoList(); scheduleSave(); }
+        return recovered;
+    });
+    photoPreviewRecoveryPending.set(photo.id, task);
+    photoPreviewRecoveryQueue = task.catch(function(error) {
+        console.warn("Photo preview refresh failed", error);
+    }).then(function() {
+        return new Promise(function(resolve) { setTimeout(resolve, 1000); });
+    });
+    return task;
+}
 async function hydratePhotoImageFromOriginal(photo, row) {
     if (!photo || photoHasImageData(photo)) return false;
     var original = row && row.originalBlob && row.originalBlob.size ? row.originalBlob : null;
@@ -7198,7 +7186,7 @@ async function recoverPhotoLocationFromExif(photo, options) {
     var existing = findPhotoMarker(photo.id);
     if (existing) { photoClusterGroup.removeLayer(existing); forgetPhotoMarker(photo.id); }
     createPhotoMarker(photo, false);
-    scheduleSave();
+    if (!options.deferSave) scheduleSave();
     return true;
 }
 async function reReadPhotoLocation(photo) {
@@ -7231,35 +7219,155 @@ function getReadableImagePredictionLabel(label) {
     return photoText.photoAnalysis;
 }
 function renderStoredMarkers() { memories.forEach(function(m) { createMemoryMarker(m, false); }); }
+// Read-only route-date lookup; no continuous work or changes to stored GPS.
+function findRouteDatesAt(latlng) {
+    var hits = [], nearest = Infinity;
+    var press = map.latLngToContainerPoint(latlng);
+    var projected = new WeakMap();
+    function project(point) {
+        var cached = projected.get(point);
+        if (!cached) { cached = map.latLngToContainerPoint([point.lat,point.lng]); projected.set(point,cached); }
+        return cached;
+    }
+    [pathCoordinates, rawGpsPoints].forEach(function(points) {
+        (points || []).forEach(function(point, index) {
+            if (!point || !isValidPhotoCoordinate(point.lat, point.lng)) return;
+            var b = project(point), a = b;
+            var previous = index ? points[index - 1] : null;
+            if (previous && isValidPhotoCoordinate(previous.lat, previous.lng)) a = project(previous);
+            else previous = null;
+            // Reject distant segments before GPS distance/session checks.
+            if (press.x < Math.min(a.x,b.x)-14 || press.x > Math.max(a.x,b.x)+14 ||
+                press.y < Math.min(a.y,b.y)-14 || press.y > Math.max(a.y,b.y)+14) return;
+            if (previous && !shouldConnectStoredPathPoints(previous,point)) { a = b; previous = null; }
+            var dx = b.x-a.x, dy = b.y-a.y, length = dx*dx+dy*dy;
+            var t = length ? Math.max(0,Math.min(1,((press.x-a.x)*dx+(press.y-a.y)*dy)/length)) : 0;
+            var x = a.x+dx*t, y = a.y+dy*t;
+            if (Math.hypot(press.x-x,press.y-y) > 14) return;
+            var distance = map.distance(latlng,map.containerPointToLatLng([x,y]));
+            if (!isFinite(distance) || distance > 35) return;
+            nearest = Math.min(nearest,distance);
+            hits.push({distance:distance, start:Number(previous ? (previous.endTime || previous.timestamp || previous.startTime) : (point.startTime || point.timestamp)), end:Number(point.endTime || point.timestamp || point.startTime)});
+        });
+    });
+    var days = new Map();
+    hits.forEach(function(hit) {
+        if (hit.distance > nearest+5) return;
+        var valid = false;
+        [hit.start,hit.end].forEach(function(stamp) {
+            if (!isFinite(stamp) || stamp <= 0) return;
+            var date = new Date(stamp);
+            if (isNaN(date.getTime())) return;
+            valid = true;
+            var key = date.getFullYear()+"-"+date.getMonth()+"-"+date.getDate();
+            if (!days.has(key)) days.set(key,stamp);
+        });
+        if (!valid) days.set("unknown",null);
+    });
+    return Array.from(days.values()).sort(function(a,b) { return (b || 0)-(a || 0); });
+}
+function showRouteDatesAt(latlng) {
+    if (typeof pendingPhotoLocationChoice !== "undefined" && pendingPhotoLocationChoice) return false;
+    var dates = findRouteDatesAt(latlng);
+    if (!dates.length) return false;
+    var words = {ko:["이 길을 지난 날짜","날짜 정보 없음"],en:["Dates on this route","Date unavailable"],ja:["この道を通った日","日付情報なし"],zh:["经过这条路的日期","无日期信息"],es:["Fechas en esta ruta","Fecha no disponible"],fr:["Dates de passage","Date indisponible"]};
+    var lang = typeof currentLang === "string" ? currentLang : "ko", text = words[lang] || words.ko;
+    var box = document.createElement("div"); box.className = "route-dates-popup";
+    var title = document.createElement("strong"); title.textContent = text[0]; box.appendChild(title);
+    var list = document.createElement("ul");
+    dates.forEach(function(stamp) {
+        var item = document.createElement("li");
+        item.textContent = stamp === null ? text[1] : new Date(stamp).toLocaleDateString(lang,{year:"numeric",month:"2-digit",day:"2-digit"});
+        list.appendChild(item);
+    });
+    box.appendChild(list);
+    L.popup({closeButton:true,closeOnClick:true,maxWidth:280}).setLatLng(latlng).setContent(box).openOn(map);
+    return true;
+}
+function initRouteDatesLongPress() {
+    var container = map.getContainer();
+    if (container.dataset.routeDatesBound === "1") return;
+    container.dataset.routeDatesBound = "1";
+    var timer = null, origin = null, held = false, suppressUntil = 0;
+    function cancel() { if (timer !== null) clearTimeout(timer); timer = null; origin = null; }
+    function excluded(target) { return target && target.closest && target.closest(".leaflet-marker-icon,.leaflet-control,.leaflet-popup,.leaflet-interactive,button,input,a"); }
+    container.addEventListener("pointerdown",function(event) {
+        if (event.isPrimary === false) { cancel(); return; }
+        cancel(); held = false; suppressUntil = 0;
+        if (event.button !== 0 || excluded(event.target)) return;
+        if (typeof pendingPhotoLocationChoice !== "undefined" && pendingPhotoLocationChoice) return;
+        origin = {x:event.clientX,y:event.clientY,id:event.pointerId};
+        var latlng = map.mouseEventToLatLng(event);
+        timer = setTimeout(function() { timer = null; held = showRouteDatesAt(latlng); if (held) suppressUntil = Date.now()+1500; },650);
+    },{passive:true});
+    window.addEventListener("pointermove",function(event) {
+        if (origin && event.pointerId === origin.id && Math.hypot(event.clientX-origin.x,event.clientY-origin.y) > 10) cancel();
+    },{passive:true});
+    window.addEventListener("pointerup",function() { if (held) suppressUntil = Date.now()+450; held = false; cancel(); },{passive:true});
+    window.addEventListener("pointercancel",function() { held = false; cancel(); },{passive:true});
+    window.addEventListener("blur",cancel);
+    map.on("dragstart zoomstart",cancel);
+    container.addEventListener("click",function(event) {
+        if (Date.now() < suppressUntil && !excluded(event.target)) { event.preventDefault(); event.stopImmediatePropagation(); suppressUntil = 0; }
+    },true);
+    container.addEventListener("contextmenu",function(event) {
+        if (excluded(event.target)) return;
+        if (origin || held) { event.preventDefault(); return; }
+        if (showRouteDatesAt(map.mouseEventToLatLng(event))) { event.preventDefault(); event.stopPropagation(); }
+    });
+}
+initRouteDatesLongPress();
 var PHOTO_LOCATION_MIGRATION_KEY = "giloa-photo-location-migration-v1";
-var PHOTO_LOCATION_RECOVERY_BATCH = 5;
+var PHOTO_LOCATION_RECOVERY_BATCH = 3;
 var photoLocationRecoveryRunning = false;
+var photoLocationRecoveryTimer = null;
 function scheduleDeferredPhotoLocationRecovery() {
-    if (photoLocationRecoveryRunning) return;
-    if (safeStorageGet(PHOTO_LOCATION_MIGRATION_KEY) === "done") return;
-    // Never block the first paint: a handful of photos are inspected well after startup.
-    setTimeout(function() { migratePhotoLocations(); }, 2500);
+    if (photoLocationRecoveryRunning || photoLocationRecoveryTimer !== null) return;
+    if (!photos.some(function(p) { return p && !isValidPhotoCoordinate(p.lat, p.lng) && !p._exifRecoveryTried; })) return;
+    // Start after first paint; inspect all pending photos in yielding batches.
+    photoLocationRecoveryTimer = setTimeout(function() {
+        photoLocationRecoveryTimer = null;
+        migratePhotoLocations();
+    }, 5000);
 }
 async function migratePhotoLocations(options) {
     options = options || {};
     if (photoLocationRecoveryRunning) return 0;
-    if (!options.force && safeStorageGet(PHOTO_LOCATION_MIGRATION_KEY) === "done") return 0;
+    // A past migration flag cannot describe photos imported since that migration.
     photoLocationRecoveryRunning = true;
     var recovered = 0;
+    var dirty = false;
     try {
-        var targets = photos.filter(function(p) { return p && !isValidPhotoCoordinate(p.lat, p.lng) && !p._exifRecoveryTried; });
-        var limit = options.force ? targets.length : Math.min(targets.length, PHOTO_LOCATION_RECOVERY_BATCH);
+        var targets = photos.filter(function(p) { return p && !isValidPhotoCoordinate(p.lat, p.lng) && (options.force || !p._exifRecoveryTried); });
+        var limit = targets.length;
         for (var i = 0; i < limit; i++) {
-            var restored = await recoverPhotoLocationFromExif(targets[i], { silent: true });
-            if (restored) recovered += 1;
-            await new Promise(function(resolve) { setTimeout(resolve, 120); });
+            // Photo repair can wait while the app is hidden; GPS recording is independent.
+            while (typeof document !== "undefined" && document.hidden) {
+                await new Promise(function(resolve) { setTimeout(resolve, 5000); });
+            }
+            if (photos.indexOf(targets[i]) === -1) continue;
+            var restored = false;
+            try {
+                restored = await recoverPhotoLocationFromExif(targets[i], { silent: true, force: !!options.force, deferSave: true });
+            } catch (photoError) {
+                console.warn("Photo location recovery skipped a failed photo", photoError);
+            }
+            if (restored) { recovered += 1; dirty = true; }
+            var batchEnd = (i + 1) % PHOTO_LOCATION_RECOVERY_BATCH === 0;
+            if (batchEnd && dirty) { persistState(); updatePhotoList(); dirty = false; }
+            if (i + 1 < limit) {
+                await new Promise(function(resolve) { setTimeout(resolve, batchEnd ? 5000 : 1000); });
+            }
         }
-        if (recovered > 0) { persistState(); updatePhotoList(); }
         if (targets.length <= limit) safeStorageSet(PHOTO_LOCATION_MIGRATION_KEY, "done");
     } catch (error) {
         console.warn("\uc0ac\uc9c4 \uc704\uce58 \ubcf5\uad6c \uc2e4\ud328", error);
     } finally {
-        photoLocationRecoveryRunning = false;
+        try {
+            if (dirty) { persistState(); updatePhotoList(); }
+        } finally {
+            photoLocationRecoveryRunning = false;
+        }
     }
     return recovered;
 }
@@ -7292,8 +7400,8 @@ function renderStoredPhotoMarkers() {
                 // Preview recovery must not depend on the photo having coordinates.
                 // A located photo showed its image while an unlocated one was stuck
                 // with the placeholder forever, even though both can be repaired.
-                hydratePhotoImageFromOriginal(p, img).then(function(recovered) {
-                    if (recovered) { updatePhotoList(); scheduleSave(); }
+                queuePhotoPreviewRecovery(p, img).catch(function(error) {
+                    console.warn("Photo preview update failed", error);
                 });
             }
         });
@@ -7598,15 +7706,13 @@ function closeGiloaGuideTutorial(markDone) {
         wrap.setAttribute("aria-hidden", "true");
     }
     removeTutorialTarget();
-if (markDone) {
-    localStorage.setItem(TUTORIAL_DONE_KEY, "1");
-}
+if (markDone) safeStorageSet(TUTORIAL_DONE_KEY, "1");
 }
 
 function openGiloaGuideTutorial(force) {
     var wrap = document.getElementById("giloa-tutorial");
     if (!wrap) return;
-    var completed = localStorage.getItem(TUTORIAL_DONE_KEY);
+    var completed = safeStorageGet(TUTORIAL_DONE_KEY);
     if (!force && (completed === "1" || completed === "true")) return;
     tutorialStepIndex = 0;
     tutorialRecordCompleted = false;
@@ -7803,7 +7909,7 @@ var introStoryState={
 var giloaStoryOpenedFromHelp = false;
 function introStoryText(){return INTRO_SCREEN_I18N[normalizeLang(currentLang)]||INTRO_SCREEN_I18N.ko;}
 function onboardingText(){return ONBOARDING_I18N[normalizeLang(currentLang)]||ONBOARDING_I18N.ko;}
-function hasSavedIntroLanguage(){var raw=localStorage.getItem(LANGUAGE_PREFERENCE_KEY);return localStorage.getItem(LANGUAGE_SELECTED_KEY)==="1"&&["ko","en","ja","zh","fr","es"].indexOf(raw)>=0;}
+function hasSavedIntroLanguage(){var raw=safeStorageGet(LANGUAGE_PREFERENCE_KEY);return safeStorageGet(LANGUAGE_SELECTED_KEY)==="1"&&["ko","en","ja","zh","fr","es"].indexOf(raw)>=0;}
 function setOnboardingText(id,value){var element=document.getElementById(id);if(element)element.textContent=value||"";}
 function renderGiloaOnboarding(){
     var words=onboardingText(),language=normalizeLang(currentLang),select=document.getElementById("gsi-language-select"),visual=document.getElementById("gsi-world-visual");
@@ -7821,7 +7927,7 @@ function openGiloaFeatureGuide(event){
 function closeGiloaFeatureGuide(event){if(event){event.preventDefault();event.stopPropagation();}var guide=document.getElementById("gsi-feature-guide");if(guide){guide.hidden=true;guide.setAttribute("aria-hidden","true");}return false;}
 function selectIntroLanguage(languageCode){
     var language=normalizeLang(languageCode);if(["ko","en","ja","zh","fr","es"].indexOf(language)<0)return;
-    localStorage.setItem(LANGUAGE_PREFERENCE_KEY,language);localStorage.setItem(LANGUAGE_SELECTED_KEY,"1");currentLang=language;applyUILang(language);syncLanguageButtons(language);
+    safeStorageSet(LANGUAGE_PREFERENCE_KEY,language);safeStorageSet(LANGUAGE_SELECTED_KEY,"1");currentLang=language;applyUILang(language);syncLanguageButtons(language);
     if(introStoryState.mode==="story")renderIntroStory();else renderGiloaOnboarding();
 }
 function showGiloaOnboarding(){
@@ -7835,7 +7941,7 @@ function showGiloaOnboarding(){
     document.querySelectorAll("[data-gsi-guide-close]").forEach(function(element){element.onclick=closeGiloaFeatureGuide;});
     root.onclick=function(event){if(event.target===root||event.target.classList.contains("gsi-glow"))finishGiloaOnboarding();};
     try {
-        if(hasSavedIntroLanguage()){currentLang=normalizeLang(localStorage.getItem(LANGUAGE_PREFERENCE_KEY));applyUILang(currentLang);}
+        if(hasSavedIntroLanguage()){currentLang=normalizeLang(safeStorageGet(LANGUAGE_PREFERENCE_KEY));applyUILang(currentLang);}
         renderGiloaOnboarding();
     } catch (error) {
         console.warn("showGiloaOnboarding text render failed", error && error.message);
@@ -7844,7 +7950,7 @@ function showGiloaOnboarding(){
 }
 function startMapTutorial(){if(typeof window.startGiloaTutorial==="function")window.startGiloaTutorial();}
 function finishGiloaOnboarding(){
-    var root=document.getElementById("giloa-story-intro"),language=normalizeLang(currentLang);localStorage.setItem(LANGUAGE_PREFERENCE_KEY,language);localStorage.setItem(LANGUAGE_SELECTED_KEY,"1");localStorage.setItem(FIRST_MEETING_DONE_KEY,"1");localStorage.setItem(INTRO_STORY_SEEN_KEY,"true");introStoryState.active=false;introStoryState.mode="";
+    var root=document.getElementById("giloa-story-intro"),language=normalizeLang(currentLang);safeStorageSet(LANGUAGE_PREFERENCE_KEY,language);safeStorageSet(LANGUAGE_SELECTED_KEY,"1");safeStorageSet(FIRST_MEETING_DONE_KEY,"1");safeStorageSet(INTRO_STORY_SEEN_KEY,"true");introStoryState.active=false;introStoryState.mode="";
     closeGiloaFeatureGuide();if(root){root.className="gsi";root.setAttribute("aria-hidden","true");}document.body.classList.remove("gsi-active");if(typeof map!=="undefined"&&map&&map.invalidateSize)setTimeout(function(){map.invalidateSize();},60);setTimeout(startMapTutorial,120);
     runInitStep("startup location", focusStartupLocation);
 }
@@ -7978,12 +8084,12 @@ function startFirstLaunchExperience() {
     }
 
     currentLang = normalizeLang(
-        localStorage.getItem(LANGUAGE_PREFERENCE_KEY)
+        safeStorageGet(LANGUAGE_PREFERENCE_KEY)
     );
     applyUILang(currentLang);
 
     // 언어는 선택했지만 인트로를 아직 완료하지 않은 경우
-    if (localStorage.getItem(INTRO_STORY_SEEN_KEY) !== "true") {
+    if (safeStorageGet(INTRO_STORY_SEEN_KEY) !== "true") {
         return showGiloaOnboarding();
     }
 
@@ -8032,10 +8138,10 @@ function prepareGuideCharacterImage() {
 function runInitStep(name, action) {
     try {
         var result = action();
-        if (result && typeof result.catch === "function") return result.catch(function(error) { console.warn("Init step failed: " + name, error && error.message); });
+        if (result && typeof result.catch === "function") return result.catch(function(error) { console.error("Init step failed: " + name, error); });
         return Promise.resolve(result);
     } catch (error) {
-        console.warn("Init step failed: " + name, error && error.message);
+        console.error("Init step failed: " + name, error);
         return Promise.resolve();
     }
 }
@@ -8055,7 +8161,7 @@ function runJourneyDataIntegrityCheck() {
     return report;
 }
 async function initializePersistentJourneyState() {
-    console.log("[GILOA RESTORE] start");
+    if (GILOA_PERSISTENCE_DEBUG) console.log("[GILOA RESTORE] start");
     // Fast phase: Android durable mirror + localStorage are synchronous/local and
     // can be restored before the first usable frame. Do not wait for IndexedDB
     // or the native GPS bridge before letting the user see and pan the map.
@@ -8070,11 +8176,12 @@ async function initializePersistentJourneyState() {
      restoreNativeRecordingSession();
 }
     var nativeResult = await consumeNativeRouteTrackingPoints({ deferPersist:true });
+    var recoveredOrphanedPhotos = await recoverOrphanedPhotoRows();
     var mergedBefore = Math.max(localPathCount, indexedDbResult.count, nativeResult.count, durablePathCount);
     var mergedCount = Math.max(pathCoordinates.length, rawGpsPoints.length);
     if (GILOA_PERSISTENCE_DEBUG) {
         console.log("[GILOA RESTORE] " + JSON.stringify({ localStoragePath:localPathCount, indexedDBGps:indexedDbResult.count, nativeGps:nativeResult.count, durableBackupPath:durablePathCount }));
-        console.log("[GILOA RESTORE] " + JSON.stringify({ mergedGps:mergedCount, duplicateRemoved:Math.max(0, localPathCount + indexedDbResult.count + nativeResult.count - mergedCount), invalidRemoved:0 }));
+        console.log("[GILOA RESTORE] " + JSON.stringify({ mergedGps:mergedCount, duplicateRemoved:Math.max(0, localPathCount + indexedDbResult.count + nativeResult.count - mergedCount), invalidRemoved:0, recoveredPhotos:recoveredOrphanedPhotos }));
     }
     var saved = persistState({ restoreCommit:true });
     if (saved && nativeResult.canAcknowledge && nativeResult.throughTime) acknowledgeNativeRouteTrackingPoints(getNativeRouteTrackingBridge(), nativeResult.throughTime);
@@ -8093,7 +8200,7 @@ async function initializePersistentJourneyState() {
 }
     runJourneyDataIntegrityCheck();
     if (GILOA_PERSISTENCE_DEBUG) console.log("[GILOA RESTORE] " + JSON.stringify({ distance:(totalDistance / 1000).toFixed(2) + "km", photos:photos.length, memories:memories.length, visits:Array.isArray(visitStamps) ? visitStamps.length : 0, sourceMaximum:mergedBefore }));
-    console.log("[GILOA RESTORE] COMPLETE");
+    if (GILOA_PERSISTENCE_DEBUG) console.log("[GILOA RESTORE] COMPLETE");
     return localLoaded || mergedCount > 0;
 }
 async function init() {
@@ -8114,6 +8221,7 @@ async function init() {
     // frozen map. initializePersistentJourneyState() remains the source of truth.
     await new Promise(function(resolve) { setTimeout(resolve, 0); });
     await runInitStep("saved journey", initializePersistentJourneyState);
+    runInitStep("cloud sync", function() { return window.GiloaCloud && window.GiloaCloud.init ? window.GiloaCloud.init() : null; });
     if (isNativeRouteTrackingActive()) {
         restoreNativeRecordingSession();
         isRecording = true;
@@ -8160,13 +8268,17 @@ if (
 ) {
     window.GiloaBoot.markInteractive();
 }
+    document.documentElement.dataset.giloaReady = "true";
+    window.dispatchEvent(new Event("giloa:ready"));
 }
 window.addEventListener("pagehide", function() {
     persistState();
 });
 var giloaPersistentStateReady = false;
 var giloaLastHiddenAt = 0;
-function refreshAfterAppResume() {
+var giloaResumeRefreshTimer = null;
+var giloaResumeMergePromise = null;
+function performRefreshAfterAppResume() {
     // Android/WebView can return with a stale/black compositor surface.
     requestAnimationFrame(function() {
         try {
@@ -8193,7 +8305,8 @@ function refreshAfterAppResume() {
             restoreNativeRecordingSession();
         }
 
-        consumeNativeRouteTrackingPoints().then(function(result) {
+        if (giloaResumeMergePromise) return;
+        giloaResumeMergePromise = consumeNativeRouteTrackingPoints().then(function(result) {
             if (!result || !result.count) return;
 
             compactPathData();
@@ -8201,8 +8314,19 @@ function refreshAfterAppResume() {
             scheduleRender();
         }).catch(function(error) {
             console.warn("Resume route merge failed", error);
+        }).finally(function() {
+            giloaResumeMergePromise = null;
         });
     }
+}
+function refreshAfterAppResume() {
+    // pageshow, focus and visibilitychange normally arrive together. Coalesce
+    // them so route recovery and map repaint run once instead of racing 2–3 times.
+    if (giloaResumeRefreshTimer !== null) return;
+    giloaResumeRefreshTimer = setTimeout(function() {
+        giloaResumeRefreshTimer = null;
+        performRefreshAfterAppResume();
+    }, 120);
 }
 
 window.addEventListener("giloa:app-resume", refreshAfterAppResume);
@@ -8226,19 +8350,43 @@ window.addEventListener("online", function() {
     if (mapLayerSettings.restroom && typeof fetchRestroomsForCurrentArea === "function") fetchRestroomsForCurrentArea({ force: true });
     if (mapLayerSettings.library && typeof fetchLibraries === "function") fetchLibraries();
 });
-map.whenReady(function() { setTimeout(init, 0); });
+(function scheduleGiloaInitialization() {
+    var domReady = document.readyState !== "loading";
+    var mapReady = false;
+    var started = false;
+    function maybeStart() {
+        if (started || !domReady || !mapReady) return;
+        started = true;
+        // DOMContentLoaded fires only after every deferred script in index.html
+        // has run, so tutorial and auxiliary modules are now consistently ready.
+        setTimeout(function() {
+            init().catch(function(error) {
+                console.error("GILOA initialization failed", error);
+                if (window.GiloaBoot && typeof window.GiloaBoot.hide === "function") window.GiloaBoot.hide();
+            });
+        }, 0);
+    }
+    if (!domReady) document.addEventListener("DOMContentLoaded", function() { domReady = true; maybeStart(); }, { once:true });
+    try {
+        map.whenReady(function() { mapReady = true; maybeStart(); });
+    } catch (error) {
+        console.error("Map readiness check failed", error);
+        mapReady = true;
+    }
+    maybeStart();
+})();
 
 // TourAPI 愿愿묕옙? 異붿쿇
 var TOUR_API_KEY = window.GILOA_TOUR_API_KEY || "";
 
-// 승인된 서비스: Kor/Eng/Jpn/Cht(중문 번체)/Spn(서어)/Fre(불어)
+// TourAPI has no French endpoint. French cards use English data.
 var TOUR_API_BASES = {
     ko: "KorService2",
     en: "EngService2",
     ja: "JpnService2",
-    zh: "ChtService2",
-    es: "SpnService2",
-    fr: "FreService2"
+    zh: "ChsService2",
+    es: "EngService2",
+    fr: "EngService2"
 };
 
 function getTourApiBase(lang) {
@@ -8346,7 +8494,11 @@ function toggleTourLiked(item) {
 }
 // 지도 이동 후 보이는 영역을 놓치지 않도록 충분히 짧게 유지한다.
 var TOUR_SEARCH_MOVE_M = 120;
-var TOUR_REVALIDATE_MS = 15 * 60 * 1000;
+var TOUR_REVALIDATE_MS = 24 * 60 * 60 * 1000;
+var TOUR_FESTIVAL_REVALIDATE_MS = 15 * 60 * 1000;
+var TOUR_AREA_CACHE_PREFIX = "giloa-api-area-v1:";
+var tourAreaMemoryCache = {};
+var festivalRefreshPromiseByLang = {};
 var tourSearchStateByLang = {};
 var tourRefreshPromiseByLang = {};
 var tourHydratedByLang = {};
@@ -8525,6 +8677,7 @@ function getVisibleTourMarkerItems() {
     return tourItems.filter(function(item) {
         var typeId = String(item && item.contenttypeid);
         if (typeId === "39") return !!mapLayerSettings.restaurant;
+        if (typeId === "38") return !!mapLayerSettings.shopping;
         if (typeId === "32") return !!mapLayerSettings.lodging;
         return !!mapLayerSettings.tourism;
     }).filter(isNearbyMapLayerTourItem).sort(function(a, b) {
@@ -8561,6 +8714,89 @@ function getTourImage(item) {
 }
 function getLastTourCacheKey(lang) {
     return TOUR_LAST_CACHE_PREFIX + (lang || currentLang || "ko");
+}
+function writeApiCacheStorage(key, serialized) {
+    // Bound optional API caches independently of permanent journey storage.
+    if (serialized.length > 256 * 1024) return false;
+    try {
+        var entries = [];
+        var total = serialized.length;
+        for (var i = 0; i < localStorage.length; i++) {
+            var otherKey = localStorage.key(i);
+            if (!otherKey || otherKey === key || (otherKey.indexOf(TOUR_AREA_CACHE_PREFIX) !== 0 && otherKey !== TRANSLATE_CACHE_KEY)) continue;
+            var value = localStorage.getItem(otherKey) || "";
+            var savedAt = 0;
+            try {
+                var rows = JSON.parse(value);
+                if (Array.isArray(rows) && rows.length) savedAt = Number(rows[rows.length - 1].savedAt) || 0;
+            } catch (_) {}
+            entries.push({ key:otherKey, length:value.length, savedAt:savedAt });
+            total += value.length;
+        }
+        entries.sort(function(a, b) { return a.savedAt - b.savedAt; });
+        while (total > 512 * 1024 && entries.length) {
+            var removed = entries.shift();
+            localStorage.removeItem(removed.key);
+            total -= removed.length;
+        }
+        while (true) {
+            try { localStorage.setItem(key, serialized); return true; }
+            catch (_) {
+                if (!entries.length) return false;
+                localStorage.removeItem(entries.shift().key);
+            }
+        }
+    } catch (_) { return false; }
+}
+function readTourAreaRecords(kind, lang) {
+    var key = TOUR_AREA_CACHE_PREFIX + kind + ":" + lang;
+    if (tourAreaMemoryCache[key]) return tourAreaMemoryCache[key];
+    try {
+        var saved = JSON.parse(localStorage.getItem(key) || "[]");
+        tourAreaMemoryCache[key] = Array.isArray(saved) ? saved.filter(function(record) {
+            return normalizeTourCacheRecord(record) && Number(record.radius) > 0 &&
+                record.items.every(function(item) { return item && typeof item === "object"; });
+        }).slice(-24) : [];
+    } catch (_) { tourAreaMemoryCache[key] = []; }
+    return tourAreaMemoryCache[key];
+}
+function readTourAreaCache(kind, center, lang, radius) {
+    var maxAge = kind === "festival" ? TOUR_FESTIVAL_REVALIDATE_MS : TOUR_REVALIDATE_MS;
+    var records = readTourAreaRecords(kind, lang);
+    for (var i = records.length - 1; i >= 0; i--) {
+        var record = records[i];
+        var age = Date.now() - Number(record.lastFetchedAt);
+        if (!isFinite(age) || age < 0 || age >= maxAge || Number(record.radius) < radius) continue;
+        if (kind === "festival" && record.day !== getTodayString()) continue;
+        if (getTourSearchDistance(center, record.center) >= TOUR_SEARCH_MOVE_M) continue;
+        return record;
+    }
+    return null;
+}
+function writeTourAreaCache(kind, center, lang, radius, items, fetchedAt) {
+    var key = TOUR_AREA_CACHE_PREFIX + kind + ":" + lang;
+    var records = readTourAreaRecords(kind, lang).filter(function(record) {
+        return getTourSearchDistance(center, record.center) >= TOUR_SEARCH_MOVE_M || Number(record.radius) !== radius;
+    });
+    records.push({ center:{ lat:center.lat, lng:center.lng }, radius:radius,
+        savedAt:Date.now(), lastFetchedAt:fetchedAt || Date.now(), day:getTodayString(), items:items });
+    tourAreaMemoryCache[key] = records.slice(-24);
+    var serialized = JSON.stringify(tourAreaMemoryCache[key]);
+    while (serialized.length > 256 * 1024 && tourAreaMemoryCache[key].length > 1) {
+        tourAreaMemoryCache[key].shift();
+        serialized = JSON.stringify(tourAreaMemoryCache[key]);
+    }
+    writeApiCacheStorage(key, serialized);
+}
+function applyTourAreaCache(record, lang) {
+    tourItems = record.items;
+    markTourItemsSource(tourItems.filter(function(item) { return !item._sourceLang; }), lang);
+    tourSearchStateByLang[lang] = { center:record.center, radius:record.radius,
+        lastFetchedAt:record.lastFetchedAt, itemCount:record.items.length };
+    renderTourCards();
+    updateTourSummary();
+    addTourMarkers();
+    translateTourItemsForLang(lang, tourItems);
 }
 function normalizeTourCacheRecord(record) {
     if (!record || !Array.isArray(record.items)) return null;
@@ -8705,8 +8941,18 @@ function fetchFestivals(options) {
     var center = options.center || getMapSearchCenter();
     var today = getTodayString();
     var requestLang = currentLang;
-    var requestSeq = ++festivalRequestSeq;
     var radiusM = options.radius || getMapSearchRadius();
+    var cached = !options.force && readTourAreaCache("festival", center, requestLang, radiusM);
+    if (cached) {
+        festivalItems = cached.items;
+        markTourItemsSource(festivalItems.filter(function(item) { return !item._sourceLang; }), requestLang);
+        translateTourItemsForLang(requestLang, festivalItems);
+        updateFestivalBadge();
+        if (tourPanelOpen) renderFestivalStrip();
+        return Promise.resolve();
+    }
+    if (festivalRefreshPromiseByLang[requestLang]) return festivalRefreshPromiseByLang[requestLang];
+    var requestSeq = ++festivalRequestSeq;
     var buildUrl = function(lang) { return getTourEndpoint("searchFestival2", lang) + "?serviceKey=" + TOUR_API_KEY + "&eventStartDate=" + today + "&mapX=" + center.lng.toFixed(6) + "&mapY=" + center.lat.toFixed(6) + "&radius=" + radiusM + "&numOfRows=100&pageNo=1&MobileOS=ETC&MobileApp=Giloa&_type=json&arrange=E"; };
     beginTourApiLoading();
     var festivalRequest;
@@ -8716,7 +8962,7 @@ function fetchFestivals(options) {
         endTourApiLoading();
         return Promise.reject(error);
     }
-    return festivalRequest.then(function(data) {
+    var pending = festivalRequest.then(function(data) {
         if (requestSeq !== festivalRequestSeq || requestLang !== currentLang) return;
         var body = data && data.response && data.response.body;
         var header = data && data.response && data.response.header;
@@ -8725,13 +8971,19 @@ function fetchFestivals(options) {
         if (body && body.items && body.items.item) { items = Array.isArray(body.items.item) ? body.items.item : [body.items.item]; }
         festivalItems = items; markTourItemsSource(festivalItems, data._giloaSourceLang || requestLang); translateTourItemsForLang(currentLang, festivalItems);
         writeFestivalCache(center, requestLang, festivalItems);
+        writeTourAreaCache("festival", center, requestLang, radiusM, festivalItems, Date.now());
         updateFestivalBadge();
         if (tourPanelOpen) renderFestivalStrip();
     }).catch(function(err) {
         if (requestSeq !== festivalRequestSeq || requestLang !== currentLang) return;
         console.warn("Festival API request failed");
         throw err;
-    }).finally(endTourApiLoading);
+    }).finally(function() {
+        endTourApiLoading();
+        if (festivalRefreshPromiseByLang[requestLang] === pending) delete festivalRefreshPromiseByLang[requestLang];
+    });
+    festivalRefreshPromiseByLang[requestLang] = pending;
+    return pending;
 }
 
 function updateFestivalBadge() {
@@ -8774,47 +9026,6 @@ function renderFestivalStrip() {
     refreshGpsVisualsAfterPlaceLayerChange("festival-refresh", gpsBefore);
 }
 
-var LOCGO_HUB_ENDPOINT = "https://apis.data.go.kr/B551011/LocgoHubTarService1";
-function fetchLocgoHubItems(center, radiusM) {
-    var url = LOCGO_HUB_ENDPOINT + "/locationBasedList1?serviceKey=" + TOUR_API_KEY +
-        "&numOfRows=500&pageNo=1&MobileOS=ETC&MobileApp=Giloa&_type=json&listYN=Y&arrange=E" +
-        "&mapX=" + center.lng.toFixed(6) + "&mapY=" + center.lat.toFixed(6) + "&radius=" + radiusM;
-    return fetch(url, { cache: "no-store" }).then(function(res) {
-        if (!res.ok) throw new Error("LocgoHubTarService1 HTTP " + res.status);
-        return res.json();
-    }).then(function(data) {
-        var body = data && data.response && data.response.body;
-        var items = body && body.items && body.items.item;
-        items = Array.isArray(items) ? items : (items ? [items] : []);
-        return items.filter(function(it) {
-            return it && it.contentid && isFinite(parseFloat(it.mapx)) && isFinite(parseFloat(it.mapy));
-        }).map(function(it) {
-            return {
-                contentid: "locgo:" + it.contentid, title: it.title || "", mapx: it.mapx, mapy: it.mapy,
-                addr1: it.addr1 || "", contenttypeid: it.contenttypeid || "12",
-                firstimage: it.firstimage || "", firstimage2: it.firstimage2 || "", _giloaSource: "locgo"
-            };
-        });
-    }).catch(function(error) { console.warn("LocgoHubTarService1 request failed", error && error.message); return []; });
-}
-// 한국관광공사 TourAPI 결과와 겹치지 않는 지점만 지자체 중심 관광지 데이터를 더해준다.
-function mergeLocgoHubTour(center, radiusM, requestSeq) {
-    if (!mapLayerSettings.tourism) return;
-    fetchLocgoHubItems(center, radiusM).then(function(extra) {
-        if (!extra.length || requestSeq !== tourRequestSeq || !mapLayerSettings.tourism) return;
-        var seen = new Set(tourItems.map(function(t) { return Number(t.mapx).toFixed(4) + "," + Number(t.mapy).toFixed(4); }));
-        var added = false;
-        extra.forEach(function(item) {
-            var key = Number(item.mapx).toFixed(4) + "," + Number(item.mapy).toFixed(4);
-            if (seen.has(key)) return;
-            seen.add(key); tourItems.push(item); added = true;
-        });
-        if (added) {
-            markTourItemsSource([tourItems[tourItems.length - 1]], currentLang);
-            renderTourCards(); addTourMarkers(); translateTourItemsForLang(currentLang, tourItems);
-        }
-    });
-}
 function fetchTourSpots(options) {
     options = options || {};
     var center = options.center || getMapSearchCenter();
@@ -8856,11 +9067,13 @@ function fetchTourSpots(options) {
         });
         if (nextItems.length || !options.keepExisting) tourItems = nextItems;
         markTourItemsSource(tourItems, data._giloaSourceLang || requestLang);
-        if (nextItems.length) writeTourCache(center, requestLang, tourItems, Date.now());
+        if (nextItems.length) {
+            writeTourCache(center, requestLang, tourItems, Date.now());
+            writeTourAreaCache("spots", center, requestLang, radiusM, tourItems, Date.now());
+        }
         var visibleItems = getVisibleTourItems();
         if (visibleItems.length === 0) { emptyEl.style.display = ""; countEl.textContent = ""; renderTourCards(); return nextItems.length > 0; }
         countEl.textContent = formatTourCount(visibleItems.length); renderTourCards(); translateTourItemsForLang(currentLang, tourItems);
-        mergeLocgoHubTour(center, radiusM, requestSeq);
         return nextItems.length > 0;
     }).catch(function(err) {
         if (requestSeq !== tourRequestSeq || requestLang !== currentLang) return;
@@ -8885,7 +9098,9 @@ function tourResponseHasItems(data) {
 
 function fetchTourJsonWithFallback(buildUrl, lang) {
     lang = normalizeLang(lang);
-    var apiRequestLang = lang;
+    // French is rendered through translation, but the official TourAPI only
+    // publishes Korean/English/Japanese/Chinese services.
+    var apiRequestLang = lang === "fr" ? "en" : lang;
     var languageOrder = [apiRequestLang];
     if (languageOrder.indexOf("ko") < 0) languageOrder.push("ko");
     if (languageOrder.indexOf("en") < 0) languageOrder.push("en");
@@ -9820,118 +10035,6 @@ function refreshFishingForMap() {
     }).catch(function(error) { console.warn("Fishing data load failed", error && error.message); return false; });
 }
 
-// ---- 고캠핑(한국관광공사) ----
-var CAMPING_API_ENDPOINT = "https://apis.data.go.kr/B551011/GoCamping";
-var CAMPING_API_KEY = window.GILOA_CAMPING_API_KEY || TOUR_API_KEY || "";
-var CAMPING_COLOR = "#22c55e";
-var campingItems = null;
-var campingMarkers = [];
-var campingLayerGroup = L.layerGroup().addTo(map);
-var campingRequestSeq = 0;
-var campingMissingKeyWarned = false;
-function getCampingText() {
-    var all = {
-        ko: { label: "캠핑장", address: "주소", type: "야영장 유형", facilities: "부대시설", phone: "전화번호" },
-        en: { label: "Campsite", address: "Address", type: "Type", facilities: "Facilities", phone: "Phone" },
-        ja: { label: "キャンプ場", address: "住所", type: "種類", facilities: "付帯施設", phone: "電話番号" },
-        zh: { label: "露营地", address: "地址", type: "类型", facilities: "配套设施", phone: "电话" },
-        es: { label: "Camping", address: "Dirección", type: "Tipo", facilities: "Instalaciones", phone: "Teléfono" },
-        fr: { label: "Camping", address: "Adresse", type: "Type", facilities: "Équipements", phone: "Téléphone" }
-    };
-    return all[normalizeLang(currentLang)] || all.ko;
-}
-function buildCampingRequestUrl(center, radiusM, pageNo) {
-    var key = String(CAMPING_API_KEY || "").trim();
-    var encodedKey = /%[0-9a-f]{2}/i.test(key) ? key : encodeURIComponent(key);
-    return CAMPING_API_ENDPOINT + "/locationBasedList?serviceKey=" + encodedKey +
-        "&numOfRows=500&pageNo=" + (pageNo || 1) + "&MobileOS=ETC&MobileApp=Giloa&_type=json" +
-        "&mapX=" + center.lng.toFixed(6) + "&mapY=" + center.lat.toFixed(6) + "&radius=" + radiusM;
-}
-function normalizeCampingItem(record) {
-    var lat = Number(record && record.mapY);
-    var lng = Number(record && record.mapX);
-    if (!record || !isFinite(lat) || !isFinite(lng)) return null;
-    return {
-        id: String((record.contentId != null ? record.contentId : "") || (record.facltNm || "") + "|" + lat + "|" + lng),
-        name: String(record.facltNm || ""),
-        address: String(record.addr1 || ""),
-        type: String(record.induty || ""),
-        facilities: String(record.sbrsCl || ""),
-        phone: String(record.tel || ""),
-        lat: lat, lng: lng
-    };
-}
-function fetchCampingPage(center, radiusM, pageNo) {
-    return fetch(buildCampingRequestUrl(center, radiusM, pageNo), { cache: "no-store" }).then(function(response) {
-        if (!response.ok) throw new Error("GoCamping API HTTP " + response.status);
-        return response.json();
-    });
-}
-function extractCampingRows(data) {
-    var body = data && data.response && data.response.body;
-    var items = body && body.items && body.items.item;
-    if (Array.isArray(items)) return items;
-    if (items && typeof items === "object") return [items];
-    return [];
-}
-function loadCampingData(center, radiusM) {
-    if (!CAMPING_API_KEY) {
-        if (!campingMissingKeyWarned) console.warn("Camping layer disabled: window.GILOA_CAMPING_API_KEY is not configured.");
-        campingMissingKeyWarned = true;
-        return Promise.resolve([]);
-    }
-    return fetchCampingPage(center, radiusM, 1).then(function(data) {
-        var rows = extractCampingRows(data);
-        var seen = new Set();
-        campingItems = rows.map(normalizeCampingItem).filter(function(item) {
-            if (!item) return false;
-            if (seen.has(item.id)) return false;
-            seen.add(item.id); return true;
-        });
-        return campingItems;
-    }).catch(function(error) {
-        console.warn("GoCamping data load failed", error && error.message);
-        campingItems = campingItems || [];
-        return campingItems;
-    });
-}
-function clearCampingMarkers() { campingMarkers = []; campingLayerGroup.clearLayers(); }
-function showCampingPopup(item) {
-    var text = getCampingText(); var details = [];
-    if (item.address) details.push([text.address, item.address]);
-    if (item.type) details.push([text.type, item.type]);
-    if (item.facilities) details.push([text.facilities, item.facilities]);
-    var detailHtml = details.map(function(detail) { return "<br><small><b>" + escapeHtml(detail[0]) + ":</b> " + escapeHtml(detail[1]) + "</small>"; }).join("");
-    var tel = item.phone ? "<br><small><b>" + escapeHtml(text.phone) + ":</b> <a href='tel:" + escapeHtml(item.phone) + "' style='color:" + CAMPING_COLOR + ";'>" + escapeHtml(item.phone) + "</a></small>" : "";
-    setSelectedDestination(item.lat, item.lng, item.name || text.label);
-    var likeKey = getMapPlaceLikeKey("camping", [item.name, item.lat, item.lng]);
-    var popup = L.popup({ className: "tour-popup" }).setLatLng([item.lat, item.lng]).setContent("<b>" + escapeHtml(item.name || text.label) + "</b><br><span class='tour-popup-tag' style='color:" + CAMPING_COLOR + ";border-color:" + CAMPING_COLOR + ";background:rgba(34,197,94,.18);'>🏕️ " + escapeHtml(text.label) + "</span>" + detailHtml + tel + buildMapPlaceLikeButton(likeKey)).openOn(map);
-    trackPublicPlacePopup(popup, function() { showCampingPopup(item); });
-}
-function renderCampingMarkers() {
-    clearCampingMarkers();
-    if (!mapLayerSettings.camping || !Array.isArray(campingItems)) return;
-    var text = getCampingText(); var center = getMapSearchCenter(); var bounds = map.getBounds().pad(0.12);
-    campingItems.filter(function(item) {
-        return bounds.contains([item.lat, item.lng]) && isWithinMapSearchCenter(item.lat, item.lng, getMapSearchRadius());
-    }).map(function(item) {
-        item._distance = center.distanceTo([item.lat, item.lng]); return item;
-    }).sort(function(a, b) { return a._distance - b._distance; }).slice(0, MAP_VIEWPORT_MARKER_LIMIT).forEach(function(item) {
-        var likeKey = getMapPlaceLikeKey("camping", [item.name, item.lat, item.lng]);
-        var icon = L.divIcon({ className: "library-map-marker-wrap camping-map-marker-wrap", html: "<div class='library-map-marker camping-map-marker" + (likedTourKeys.has(likeKey) ? " state-liked" : "") + "' data-place-like-key='" + escapeHtml(likeKey) + "'><span class='camping-map-icon' aria-hidden='true'>🏕️</span><span class='library-map-label camping-map-label'>" + escapeHtml(item.name || text.label) + "</span><span class='place-liked-star'>★</span></div>", iconSize: [76, 28], iconAnchor: [10, 14] });
-        var marker = L.marker([item.lat, item.lng], { pane: "campingPane", icon: icon, title: text.label + " - " + (item.name || "") }).addTo(campingLayerGroup);
-        marker.on("click", function() { showCampingPopup(item); }); campingMarkers.push(marker);
-    });
-}
-function refreshCampingForMap() {
-    if (!mapLayerSettings.camping) return Promise.resolve(false);
-    var requestSeq = ++campingRequestSeq;
-    return loadCampingData(getMapSearchCenter(), getMapSearchRadius()).then(function() {
-        if (requestSeq !== campingRequestSeq || !mapLayerSettings.camping) return false;
-        renderCampingMarkers(); return true;
-    }).catch(function(error) { console.warn("Camping data load failed", error && error.message); return false; });
-}
-
 // ---- 怨듭쨷?붿옣??(?댁옣 ?쒖슱 ?곗씠??+ 移댁뭅??吏?ㅼ퐫?? ----
 function loadRestroomGeoCache() {
     try { restroomGeoCache = JSON.parse(localStorage.getItem(RESTROOM_GEOCODE_CACHE_KEY) || "{}"); }
@@ -10260,10 +10363,12 @@ function refreshTourData(options) {
     if (tourRefreshPromiseByLang[lang]) return tourRefreshPromiseByLang[lang];
     var center = getMapSearchCenter();
     var radius = getMapSearchRadius();
+    var areaCache = !options.force && readTourAreaCache("spots", center, lang, radius);
+    if (areaCache && tourItems !== areaCache.items) applyTourAreaCache(areaCache, lang);
     if (!options.force && !shouldRefreshTourData(center, lang, radius)) {
         updateTourSummary();
         renderTourCards();
-        return Promise.resolve(false);
+        return fetchFestivals({ center:center, radius:radius }).then(function() { return false; }).catch(function() { return false; });
     }
     var requestCenter = { lat: center.lat, lng: center.lng };
     setTourRefreshing(true);
@@ -10271,7 +10376,7 @@ function refreshTourData(options) {
         tourSearchStateByLang[lang] = { center: requestCenter, radius:radius, lastFetchedAt: Date.now(), itemCount: hasFreshItems ? tourItems.length : 0 };
         return !!hasFreshItems;
     }).catch(function() { return false; });
-    var festivalsPromise = fetchFestivals({ center: requestCenter, radius:radius, keepExisting: true }).then(function() {
+    var festivalsPromise = fetchFestivals({ center: requestCenter, radius:radius, keepExisting: true, force:options.force }).then(function() {
         return true;
     }).catch(function() { return false; });
     var refreshPromise = Promise.all([spotsPromise, festivalsPromise]).then(function(results) {
@@ -10357,9 +10462,9 @@ function toggleMapLayerPanel() {
 // Sidebar grouping only: the existing per-layer settings and actions remain authoritative.
 var MAP_LAYER_GROUPS = {
     discovery: ["tourism"],
-    food: ["restaurant"],
+    food: ["restaurant", "shopping"],
     convenience: ["restroom", "parking", "library", "lodging", "community"],
-    activity: ["durunubi", "fishing", "camping"]
+    activity: ["durunubi", "fishing"]
 };
 var MAP_LAYER_MENU_ICONS = {
     discovery: '<path d="M3 9l9-6 9 6H3zm2 3v7m5-7v7m4-7v7m5-7v7M3 21h18"/>',
@@ -10369,9 +10474,9 @@ var MAP_LAYER_MENU_ICONS = {
     restroom: '<circle cx="7" cy="5" r="2"/><circle cx="17" cy="5" r="2"/><path d="M4 10h6v6H4zm2 6v5m3-5v5m8-11l-4 7h8l-4-7zm-1 7v4m3-4v4"/>',
     parking: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 18V7h4a3 3 0 010 6H9"/>',
     library: '<path d="M12 6C8 3 5 4 3 5v15c3-2 6-1 9 1 3-2 6-3 9-1V5c-2-1-5-2-9 1zm0 0v15"/>',
+    shopping: '<path d="M5 7h14l-1 14H6L5 7zm3 0a4 4 0 018 0M9 12h.01M15 12h.01"/>',
     lodging: '<path d="M3 21V4m0 12h18v5m-18-9h18v4M7 12V8h5v4m0 0V8h6v4"/>',
     fishing: '<path d="M4 21L15 3h5v10a3 3 0 01-6 0m0 0v-2"/>',
-    camping: '<path d="M4 20L12 4l8 16H4zm4 0l4-8 4 8M2 20h20"/>',
     community: '<path d="M3 10l9-7 9 7v11H3V10zm6 11v-7h6v7"/>'
 };
 function mapLayerMenuIcon(key) {
@@ -10433,7 +10538,7 @@ function initMapLayerGroups() {
             var dot = row.querySelector(".map-layer-dot");
             if (dot) {
                 dot.className = "map-layer-menu-icon";
-                dot.innerHTML = mapLayerMenuIcon(key === "tourism" ? "discovery" : key === "restaurant" ? "food" : key === "durunubi" ? "activity" : key);
+                dot.innerHTML = mapLayerMenuIcon(key === "tourism" ? "discovery" : key === "restaurant" || key === "shopping" ? "food" : key === "durunubi" ? "activity" : key);
             }
             details.appendChild(row);
         });
@@ -10454,7 +10559,7 @@ function applyMapLayerChange(key) {
     logGpsLayerChange("BEFORE layer-" + key, gpsBefore);
     if (key === "tourism") {
         addTourMarkers();
-        if (mapLayerSettings.tourism) refreshTourData({ force:true });
+        if (mapLayerSettings.tourism) refreshTourData();
     } else if (key === "library") {
         if (mapLayerSettings.library) {
             if (librariesLoaded) { renderLibraryMarkers(); translateLibraryItemsForLang(currentLang); }
@@ -10480,12 +10585,9 @@ function applyMapLayerChange(key) {
     } else if (key === "fishing") {
         if (mapLayerSettings.fishing) refreshFishingForMap();
         else { fishingRequestSeq += 1; clearFishingMarkers(); }
-    } else if (key === "camping") {
-        if (mapLayerSettings.camping) refreshCampingForMap();
-        else { campingRequestSeq += 1; clearCampingMarkers(); }
-    } else if (key === "restaurant" || key === "lodging") {
+    } else if (key === "restaurant" || key === "shopping" || key === "lodging") {
         addTourMarkers();
-        if (mapLayerSettings[key]) refreshTourData({ force:true });
+        if (mapLayerSettings[key]) refreshTourData();
     } else if (key === "durunubi") {
         if (mapLayerSettings.durunubi) refreshDurunubiForMap(true);
         else clearDurunubiRoutes();
@@ -10661,7 +10763,6 @@ function refreshMapCenteredLayerMarkers() {
     }
     if (mapLayerSettings.parking) refreshParkingForMap();
     if (mapLayerSettings.fishing) refreshFishingForMap();
-    if (mapLayerSettings.camping) refreshCampingForMap();
     updateFestivalBadge();
     renderTourCards();
 }
@@ -10669,7 +10770,6 @@ function initMapLayerUI() {
     Object.keys(MAP_LAYER_DEFAULTS).forEach(function(key) { syncMapLayerToggleUI(key); });
     if (mapLayerSettings.parking) refreshParkingForMap();
     if (mapLayerSettings.fishing) refreshFishingForMap();
-    if (mapLayerSettings.camping) refreshCampingForMap();
     addTourMarkers();
 }
 initMapLayerUI();
@@ -11121,17 +11221,58 @@ function googleTranslate(text, sourceLang, targetLang) {
     });
 }
 
-var translateMemoryCache = {};
+var translateMemoryCache = Object.create(null);
+var translatePendingCache = Object.create(null);
+var TRANSLATE_CACHE_KEY = "giloa-api-translations-v1";
+var TRANSLATE_CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+var translateSavedRecords = null;
+function loadTranslateCache() {
+    if (translateSavedRecords) return;
+    try {
+        var saved = JSON.parse(localStorage.getItem(TRANSLATE_CACHE_KEY) || "[]");
+        translateSavedRecords = Array.isArray(saved) ? saved.filter(function(row) {
+            var age = row && Date.now() - Number(row.savedAt);
+            return row && typeof row.key === "string" && typeof row.value === "string" && row.value && age >= 0 && age < TRANSLATE_CACHE_MAX_AGE_MS;
+        }).slice(-500) : [];
+    } catch (_) { translateSavedRecords = []; }
+    translateSavedRecords.forEach(function(row) { translateMemoryCache[row.key] = row.value; });
+}
+function saveTranslateCache(key, value) {
+    translateMemoryCache[key] = value;
+    translateSavedRecords = translateSavedRecords.filter(function(row) { return row.key !== key; });
+    translateSavedRecords.push({ key:key, value:value, savedAt:Date.now() });
+    if (translateSavedRecords.length > 500) {
+        var removed = translateSavedRecords.shift();
+        delete translateMemoryCache[removed.key];
+    }
+    var serialized = JSON.stringify(translateSavedRecords);
+    while (serialized.length > 128 * 1024 && translateSavedRecords.length > 1) {
+        delete translateMemoryCache[translateSavedRecords.shift().key];
+        serialized = JSON.stringify(translateSavedRecords);
+    }
+    writeApiCacheStorage(TRANSLATE_CACHE_KEY, serialized);
+}
 function getTranslateCacheKey(text, sourceLang, targetLang) {
     return [sourceLang || "ko", targetLang || "en", text || ""].join("|");
 }
 function varcoTranslate(text, sourceLang, targetLang) {
     if (!text) return Promise.resolve("");
     if (normalizeLang(sourceLang) === normalizeLang(targetLang)) return Promise.resolve(text);
+    loadTranslateCache();
     var cacheKey = getTranslateCacheKey(text, sourceLang, targetLang);
+    var saved = translateSavedRecords.find(function(row) { return row.key === cacheKey; });
+    if (saved && Date.now() - saved.savedAt >= TRANSLATE_CACHE_MAX_AGE_MS) delete translateMemoryCache[cacheKey];
     if (translateMemoryCache[cacheKey]) return Promise.resolve(translateMemoryCache[cacheKey]);
+    if (translatePendingCache[cacheKey]) return translatePendingCache[cacheKey];
+    var pending = requestVarcoTranslation(text, sourceLang, targetLang).then(function(translated) {
+        if (typeof translated === "string" && translated && translated !== text) saveTranslateCache(cacheKey, translated);
+        return translated;
+    }).finally(function() { delete translatePendingCache[cacheKey]; });
+    translatePendingCache[cacheKey] = pending;
+    return pending;
+}
+function requestVarcoTranslation(text, sourceLang, targetLang) {
     return googleTranslate(text, sourceLang, targetLang).then(function(translated) {
-        translateMemoryCache[cacheKey] = translated;
         return translated;
     }).catch(function() {
         if (!VARCO_API_KEY) return text;
@@ -11143,7 +11284,6 @@ function varcoTranslate(text, sourceLang, targetLang) {
             if (/^\s*</.test(raw)) throw new Error("VARCO returned HTML");
             var data = JSON.parse(raw);
             var translated = data.target_text || (data.result && data.result.target_text) || (data.data && data.data.target_text) || (data.output && data.output.text) || text;
-            translateMemoryCache[cacheKey] = translated;
             return translated;
         }).catch(function() { return text; });
     });
@@ -11232,22 +11372,22 @@ Object.assign(UI_TEXT.zh, {
 });
 Object.assign(UI_TEXT.ko, {
     map_layer_title: "지도 표시", map_layer_library: "도서관", map_layer_restaurant: "음식점",
-    map_layer_lodging: "숙박", map_layer_restroom: "화장실", map_layer_parking: "주차장", map_layer_fishing:"낚시터", map_layer_camping:"캠핑장", map_layer_community: "주민회관",
+    map_layer_lodging: "숙박", map_layer_restroom: "화장실", map_layer_parking: "주차장", map_layer_fishing:"낚시터", map_layer_community: "주민회관",
     map_layer_durunubi:"공식 탐방로", map_layer_durunubi_source:"한국관광공사 · 한국등산·트레킹지원센터", map_layer_coming_soon: "준비중"
 });
 Object.assign(UI_TEXT.en, {
     map_layer_title: "Map Display", map_layer_library: "Library", map_layer_restaurant: "Restaurant",
-    map_layer_lodging: "Lodging", map_layer_restroom: "Restroom", map_layer_parking: "Parking", map_layer_fishing:"Fishing spot", map_layer_camping:"Campsite", map_layer_community: "Community Center",
+    map_layer_lodging: "Lodging", map_layer_restroom: "Restroom", map_layer_parking: "Parking", map_layer_fishing:"Fishing spot", map_layer_community: "Community Center",
     map_layer_durunubi:"Official Trails", map_layer_durunubi_source:"Korea Tourism Organization · Korea Mountaineering Support Center", map_layer_coming_soon: "Coming soon"
 });
 Object.assign(UI_TEXT.ja, {
     map_layer_title: "地図表示", map_layer_library: "図書館", map_layer_restaurant: "飲食店",
-    map_layer_lodging: "宿泊", map_layer_restroom: "トイレ", map_layer_parking: "駐車場", map_layer_fishing:"釣り場", map_layer_camping:"キャンプ場", map_layer_community: "住民センター",
+    map_layer_lodging: "宿泊", map_layer_restroom: "トイレ", map_layer_parking: "駐車場", map_layer_fishing:"釣り場", map_layer_community: "住民センター",
     map_layer_durunubi:"公式トレイル", map_layer_durunubi_source:"韓国観光公社・韓国登山トレッキング支援センター", map_layer_coming_soon: "準備中"
 });
 Object.assign(UI_TEXT.zh, {
     map_layer_title: "地图显示", map_layer_library: "图书馆", map_layer_restaurant: "餐厅",
-    map_layer_lodging: "住宿", map_layer_restroom: "卫生间", map_layer_parking: "停车场", map_layer_fishing:"钓鱼场", map_layer_camping:"露营地", map_layer_community: "社区中心",
+    map_layer_lodging: "住宿", map_layer_restroom: "卫生间", map_layer_parking: "停车场", map_layer_fishing:"钓鱼场", map_layer_community: "社区中心",
     map_layer_durunubi:"官方步道", map_layer_durunubi_source:"韩国观光公社 · 韩国登山徒步支援中心", map_layer_coming_soon: "即将推出"
 });
 Object.assign(UI_TEXT.ko, {
@@ -11308,7 +11448,7 @@ Object.assign(UI_TEXT.es, {
     hud_next_short:"Siguiente", daily_tag:"Tareas", daily_title:"Tareas de hoy", daily_close:"Cerrar tareas", daily_kicker:"HOY CON GILO", daily_copy:"Da un paseo tranquilo y deja la huella de hoy.", daily_reset:"Se reinicia cada día a medianoche", daily_completed:"completadas", daily_mission_walk:"Recorre {distance} por un camino nuevo", daily_mission_photo:"Guarda 1 foto", daily_mission_visit:"Visita {place}", daily_mission_photo_place:"Haz una foto en {place}", daily_nearby_place:"un lugar cercano",
     journey_kicker:"Viaje de hoy", journey_stats:"{distance}km · {visits} descubrimientos · {photos} fotos · racha de {streak} días", journey_latest:"Último descubrimiento: {place}", journey_empty:"Todavía no hay descubrimientos hoy. Busca una experiencia nueva a tu alrededor.", journey_log_stats:"Distancia {distance}km · {visits} lugares · {photos} fotos · {stays} estancias", journey_log_places:"Descubrimientos de hoy · {places}", journey_log_wait:"Esperando el primer descubrimiento de hoy.",
     gpx_format:"GPX", gpx_export:"Exportar ruta", gpx_time:"Tiempo", gpx_recent:"Reciente", gpx_hour_short:"h", gpx_recent_route:"Ruta de las últimas {hours} horas", gpx_name_placeholder:"Nombre de la ruta (p. ej., paseo junto al río)", gpx_save:"Guardar esta ruta", gpx_saved:"Abrir rutas guardadas", gpx_import:"Importar archivo", gpx_empty:"No hay rutas guardadas.", gpx_showing:"Visible", gpx_route:"Ruta", gpx_points:"puntos", gpx_delete:"Eliminar",
-    map_layer_title:"Capas del mapa", map_layer_library:"Biblioteca", map_layer_restaurant:"Restaurante", map_layer_lodging:"Alojamiento", map_layer_restroom:"Baño", map_layer_parking:"Aparcamiento", map_layer_fishing:"Zona de pesca", map_layer_camping:"Camping", map_layer_community:"Centro comunitario", map_layer_coming_soon:"Próximamente", special_place:"Lugar especial", special_place_placeholder:"Escribe algo sobre este lugar", save_pin:"Guardar", cancel_pin:"Cancelar", empty_pin_note:"Escribe una nota.", pin_saved:"Lugar especial guardado.",
+    map_layer_title:"Capas del mapa", map_layer_library:"Biblioteca", map_layer_restaurant:"Restaurante", map_layer_lodging:"Alojamiento", map_layer_restroom:"Baño", map_layer_parking:"Aparcamiento", map_layer_fishing:"Zona de pesca", map_layer_community:"Centro comunitario", map_layer_coming_soon:"Próximamente", special_place:"Lugar especial", special_place_placeholder:"Escribe algo sobre este lugar", save_pin:"Guardar", cancel_pin:"Cancelar", empty_pin_note:"Escribe una nota.", pin_saved:"Lugar especial guardado.",
     help_tab_market:"Precios locales", help_tab_settings:"Ajustes", help_language_title:"Idioma", focus_location:"Ir a mi ubicación", photo_camera:"Hacer una foto", photo_gallery:"Elegir de la galería", market_title:"Guía de precios locales", market_description:"Muestra precios habituales de la zona como referencia.", market_meal:"Comidas", market_cafe:"Cafés", market_necessities:"Productos básicos", market_transport:"Transporte", market_source:"Precios de referencia basados en datos públicos.", market_loading:"Cargando precios locales.", market_empty:"No hay información de precios para esta zona.", market_updated:"Actualizado", market_current_area:"Zona actual"
 });
 UI_TEXT.fr = {
@@ -11321,10 +11461,16 @@ UI_TEXT.fr = {
     hud_next_short:"Suivant", daily_tag:"Tâches", daily_title:"Tâches du jour", daily_close:"Fermer les tâches", daily_kicker:"AUJOURD’HUI AVEC GILO", daily_copy:"Faites une petite marche et laissez la trace d’aujourd’hui.", daily_reset:"Réinitialisation chaque jour à minuit", daily_completed:"terminées", daily_mission_walk:"Parcourir {distance} sur un nouveau chemin", daily_mission_photo:"Enregistrer 1 photo", daily_mission_visit:"Visiter {place}", daily_mission_photo_place:"Prendre une photo à {place}", daily_nearby_place:"un lieu proche", badge_earned:"Badge obtenu !",
     journey_kicker:"Voyage du jour", journey_stats:"{distance}km · {visits} découvertes · {photos} photos · série de {streak} jours", journey_latest:"Dernière découverte : {place}", journey_empty:"Aucune découverte aujourd’hui. Cherchez une nouvelle expérience autour de vous.", journey_log_stats:"Distance {distance}km · {visits} lieux · {photos} photos · {stays} arrêts", journey_log_places:"Découvertes du jour · {places}", journey_log_wait:"En attente de la première découverte du jour.",
     gpx_format:"GPX", gpx_export:"Exporter le parcours", gpx_time:"Temps", gpx_recent:"Récent", gpx_hour_short:"h", gpx_recent_route:"Parcours des {hours} dernières heures", gpx_name_placeholder:"Nom du parcours (ex. promenade au bord de l’eau)", gpx_save:"Enregistrer ce parcours", gpx_saved:"Ouvrir les parcours enregistrés", gpx_import:"Importer un fichier", gpx_empty:"Aucun parcours enregistré.", gpx_showing:"Affiché", gpx_route:"Parcours", gpx_points:"points", gpx_delete:"Supprimer",
-    map_layer_title:"Couches de carte", map_layer_library:"Bibliothèque", map_layer_restaurant:"Restaurant", map_layer_lodging:"Hébergement", map_layer_restroom:"Toilettes", map_layer_parking:"Parking", map_layer_fishing:"Site de pêche", map_layer_camping:"Camping", map_layer_community:"Centre communautaire", map_layer_coming_soon:"Bientôt", special_place:"Lieu spécial", special_place_placeholder:"Écrivez quelque chose sur ce lieu", save_pin:"Enregistrer", cancel_pin:"Annuler", empty_pin_note:"Écrivez une note.", pin_saved:"Lieu spécial enregistré.",
+    map_layer_title:"Couches de carte", map_layer_library:"Bibliothèque", map_layer_restaurant:"Restaurant", map_layer_lodging:"Hébergement", map_layer_restroom:"Toilettes", map_layer_parking:"Parking", map_layer_fishing:"Site de pêche", map_layer_community:"Centre communautaire", map_layer_coming_soon:"Bientôt", special_place:"Lieu spécial", special_place_placeholder:"Écrivez quelque chose sur ce lieu", save_pin:"Enregistrer", cancel_pin:"Annuler", empty_pin_note:"Écrivez une note.", pin_saved:"Lieu spécial enregistré.",
     help_tab_market:"Prix locaux", help_tab_settings:"Réglages", help_language_title:"Langue", focus_location:"Aller à ma position", photo_camera:"Prendre une photo", photo_gallery:"Choisir dans la galerie", market_title:"Guide des prix locaux", market_description:"Affiche des prix habituels dans cette zone à titre indicatif.", market_meal:"Repas", market_cafe:"Cafés", market_necessities:"Produits essentiels", market_transport:"Transport", market_source:"Prix de référence basés sur des données publiques.", market_loading:"Chargement des prix locaux.", market_empty:"Aucune information de prix pour cette zone.", market_updated:"Mis à jour", market_current_area:"Zone actuelle"
 };
 Object.assign(UI_TEXT.fr, { map_layer_durunubi:"Itinéraires officiels", map_layer_durunubi_source:"Office du tourisme de Corée · Centre coréen de randonnée" });
+Object.assign(UI_TEXT.ko, { map_layer_shopping:"쇼핑" });
+Object.assign(UI_TEXT.en, { map_layer_shopping:"Shopping" });
+Object.assign(UI_TEXT.ja, { map_layer_shopping:"ショッピング" });
+Object.assign(UI_TEXT.zh, { map_layer_shopping:"购物" });
+Object.assign(UI_TEXT.es, { map_layer_shopping:"Compras" });
+Object.assign(UI_TEXT.fr, { map_layer_shopping:"Shopping" });
 Object.assign(UI_TEXT.ko, { map_group_discovery:"볼거리", map_group_food:"먹고·쇼핑", map_group_convenience:"여행 편의", map_group_activity:"활동", map_group_mixed:"일부", map_group_on:"켜짐", map_group_off:"꺼짐" });
 Object.assign(UI_TEXT.en, { map_group_discovery:"See & Discover", map_group_food:"Eat & Shop", map_group_convenience:"Travel Essentials", map_group_activity:"Activities", map_group_mixed:"Some", map_group_on:"On", map_group_off:"Off" });
 Object.assign(UI_TEXT.ja, { map_group_discovery:"見どころ", map_group_food:"食事・ショッピング", map_group_convenience:"旅行の便利情報", map_group_activity:"アクティビティ", map_group_mixed:"一部", map_group_on:"オン", map_group_off:"オフ" });
@@ -11337,18 +11483,24 @@ Object.assign(UI_TEXT.ja, { map_layer_tourism:"観光スポット" });
 Object.assign(UI_TEXT.zh, { map_layer_tourism:"旅游景点" });
 Object.assign(UI_TEXT.es, { map_layer_tourism:"Destinos" });
 Object.assign(UI_TEXT.fr, { map_layer_tourism:"Destinations" });
+Object.assign(UI_TEXT.ko, { pin_save_failed:"저장하지 못했습니다. 입력한 내용은 유지됩니다. 다시 저장해 주세요." });
+Object.assign(UI_TEXT.en, { pin_save_failed:"Could not save. Your note is kept. Please try saving again." });
+Object.assign(UI_TEXT.ja, { pin_save_failed:"保存できませんでした。入力内容は保持されています。もう一度保存してください。" });
+Object.assign(UI_TEXT.zh, { pin_save_failed:"无法保存。输入内容已保留，请重试。" });
+Object.assign(UI_TEXT.es, { pin_save_failed:"No se pudo guardar. Se conserva tu nota. Intenta guardar de nuevo." });
+Object.assign(UI_TEXT.fr, { pin_save_failed:"Enregistrement impossible. Votre note est conservée. Réessayez." });
 Object.assign(UI_TEXT.ko, { journey_delete_save_failed:"삭제를 저장하지 못했습니다. 원본은 유지됩니다. 저장 공간을 확인한 뒤 다시 시도해 주세요." });
 Object.assign(UI_TEXT.en, { journey_delete_save_failed:"The deletion could not be saved. The original is kept. Check available storage and try again." });
 Object.assign(UI_TEXT.ja, { journey_delete_save_failed:"削除を保存できませんでした。元のデータは保持されます。空き容量を確認して再試行してください。" });
 Object.assign(UI_TEXT.zh, { journey_delete_save_failed:"无法保存删除操作。原始数据已保留。请检查存储空间后重试。" });
 Object.assign(UI_TEXT.es, { journey_delete_save_failed:"No se pudo guardar la eliminación. Se conserva el original. Comprueba el espacio disponible e inténtalo de nuevo." });
 Object.assign(UI_TEXT.fr, { journey_delete_save_failed:"La suppression n’a pas pu être enregistrée. L’original est conservé. Vérifiez l’espace disponible et réessayez." });
-Object.assign(UI_TEXT.ko, { help_tutorial_replay:"길로 부르기" });
-Object.assign(UI_TEXT.en, { help_tutorial_replay:"Call Gilo" });
-Object.assign(UI_TEXT.ja, { help_tutorial_replay:"ギロを呼ぶ" });
-Object.assign(UI_TEXT.zh, { help_tutorial_replay:"呼叫Gilo" });
-Object.assign(UI_TEXT.es, { help_tutorial_replay:"Llamar a Gilo" });
-Object.assign(UI_TEXT.fr, { help_tutorial_replay:"Appeler Gilo" });
+Object.assign(UI_TEXT.ko, { help_tutorial_replay:"키 설명" });
+Object.assign(UI_TEXT.en, { help_tutorial_replay:"Button Guide" });
+Object.assign(UI_TEXT.ja, { help_tutorial_replay:"ボタンの説明" });
+Object.assign(UI_TEXT.zh, { help_tutorial_replay:"按钮说明" });
+Object.assign(UI_TEXT.es, { help_tutorial_replay:"Guía de botones" });
+Object.assign(UI_TEXT.fr, { help_tutorial_replay:"Guide des boutons" });
 Object.assign(UI_TEXT.ko, { help_story_replay:"길로아 이야기 다시 보기" });
 Object.assign(UI_TEXT.en, { help_story_replay:"Replay the GILOA Story" });
 Object.assign(UI_TEXT.ja, { help_story_replay:"GILOAの物語をもう一度見る" });
@@ -11368,7 +11520,9 @@ function applyHelpLang(t) {
     setText("htab-ask", t.help_tab_ask);
     setText("htab-info", t.help_tab_info);
     setText("htab-market", t.help_tab_market);
-    setText("htab-settings", t.help_language_title);
+    setText("htab-settings-label", t.help_language_title);
+    var languageTab = document.getElementById("htab-settings");
+    if (languageTab) languageTab.setAttribute("aria-label", t.help_language_title === "Language" ? "Language" : t.help_language_title + " · Language");
     setText("help-tutorial-replay", t.help_tutorial_replay);
     setText("help-story-replay", t.help_story_replay);
     setHtml("help-ask-copy", t.help_ask_copy);
@@ -11447,11 +11601,11 @@ function applyUILang(lang) {
     if (el("map-layer-name-tourism")) el("map-layer-name-tourism").textContent = t.map_layer_tourism;
     if (el("map-layer-name-library")) el("map-layer-name-library").textContent = t.map_layer_library;
     if (el("map-layer-name-restaurant")) el("map-layer-name-restaurant").textContent = t.map_layer_restaurant;
+    if (el("map-layer-name-shopping")) el("map-layer-name-shopping").textContent = t.map_layer_shopping;
     if (el("map-layer-name-lodging")) el("map-layer-name-lodging").textContent = t.map_layer_lodging;
     if (el("map-layer-name-restroom")) el("map-layer-name-restroom").textContent = t.map_layer_restroom;
     if (el("map-layer-name-parking")) el("map-layer-name-parking").textContent = t.map_layer_parking;
     if (el("map-layer-name-fishing")) el("map-layer-name-fishing").textContent = t.map_layer_fishing;
-    if (el("map-layer-name-camping")) el("map-layer-name-camping").textContent = t.map_layer_camping;
     if (el("map-layer-name-durunubi")) el("map-layer-name-durunubi").textContent = t.map_layer_durunubi;
     if (el("map-layer-source-durunubi")) el("map-layer-source-durunubi").textContent = t.map_layer_durunubi_source;
     if (el("map-layer-name-community")) el("map-layer-name-community").textContent = t.map_layer_community;
@@ -11499,13 +11653,13 @@ function applyUILang(lang) {
     if (mapLayerSettings.restroom) renderRestroomMarkers();
     if (mapLayerSettings.parking) renderParkingMarkers(Object.keys(parkingTileCache));
     if (mapLayerSettings.fishing) renderFishingMarkers();
-    if (mapLayerSettings.camping) renderCampingMarkers();
     if (mapLayerSettings.durunubi && durunubiVisibleBundle) renderNearbyDurunubiRoutes();
     updateDailyMissions();
     refreshGiloDialogueLanguage();
     if (typeof applySupplementalStaticLanguage === "function") applySupplementalStaticLanguage();
     if (typeof refreshEarlyLanguageUI === "function") refreshEarlyLanguageUI();
     if (typeof refreshCollectionLanguageUI === "function") refreshCollectionLanguageUI();
+    if (window.GiloaCloud && typeof window.GiloaCloud.applyLanguage === "function") window.GiloaCloud.applyLanguage();
     if (typeof ONBOARDING_I18N !== "undefined" && ONBOARDING_I18N) renderGiloaOnboarding();
     if (typeof introStoryState !== "undefined" && introStoryState && introStoryState.active && introStoryState.mode === "story") renderIntroStory();
     refreshPublicPlacePopupLanguage();
@@ -11514,7 +11668,7 @@ function applyUILang(lang) {
 function toggleLang(lang) {
     lang = normalizeLang(lang);
     currentLang = lang;
-    localStorage.setItem(LANGUAGE_PREFERENCE_KEY, lang);
+    safeStorageSet(LANGUAGE_PREFERENCE_KEY, lang);
     updateGiloLoadingMessage(giloLoadingMessageKey);
     syncLanguageButtons(lang);
     applyUILang(lang);
@@ -11533,7 +11687,7 @@ function toggleLang(lang) {
         translateTourItemsForLang("fr", tourItems);
         translateTourItemsForLang("fr", festivalItems);
     }
-    refreshTourData({ force:true, forceHydrate:true });
+    refreshTourData({ forceHydrate:true });
     setTimeout(function() { refreshLibraryMarkerLabels(lang); }, 50);
 }
 
@@ -11875,7 +12029,7 @@ function loadCollection() {
 }
 
 function saveCollection() {
-    localStorage.setItem(COLLECTION_KEY, JSON.stringify({ badges: badges, visitStamps: visitStamps, items: items }));
+    safeStorageSet(COLLECTION_KEY, JSON.stringify({ badges: badges, visitStamps: visitStamps, items: items }));
 }
 
 function earnBadge(badgeId) {
@@ -12038,75 +12192,19 @@ function completeExperience(item, method) {
     updateJourneyHud();
     return true;
 }
-function getAutomaticVisitCandidates() {
-    var candidates = [];
-    function add(items, layerType) {
-        if (!mapLayerSettings[layerType]) return;
-        (items || []).forEach(function(item) {
-            if (!item) return;
-            var point = getImageMissionLatLng(item);
-            if (!point) return;
-            var copy = Object.assign({}, item);
-            copy._giloaVisitLayerType = layerType;
-            candidates.push(copy);
-        });
-    }
-
-    // 지도에 실제 표시되는 장소만 자동 방문 후보로 사용한다.
-    // 화장실과 주차장은 지도 표시 여부와 관계없이 자동 방문 기록에서 제외한다.
-    add(tourItems, "tourism");
-    add(festivalItems, "tourism");
-    if (typeof libraryItems !== "undefined") add(libraryItems, "library");
-    if (typeof fishingItems !== "undefined") add(fishingItems, "fishing");
-    if (typeof campingItems !== "undefined") add(campingItems, "camping");
-
-    return candidates.filter(function(item) {
-        var type = String(item.contenttypeid || item.contentTypeId || "");
-        if (type === "39" && !mapLayerSettings.restaurant) return false;
-        if (type === "32" && !mapLayerSettings.lodging) return false;
-        return item._giloaVisitLayerType !== "restroom" && item._giloaVisitLayerType !== "parking";
-    });
-}
-
 function checkNearbyVisitCompletion(options) {
     options = options || {};
-
-    // 사용자가 위치 기록을 꺼 둔 동안에는 자동 방문 판정을 전혀 하지 않는다.
-    // 기록을 다시 켜면 30분 체류 시간도 처음부터 다시 센다.
-    if (!isRecording) {
-        visitCandidate = { contentId:"", enteredAt:0, item:null };
-        return false;
-    }
-
-    // 50m 방문 판정이므로 GPS 오차가 50m보다 크면 체류 시간을 인정하지 않는다.
-    if (!currentPos || currentAccuracy > 50) {
-        visitCandidate = { contentId:"", enteredAt:0, item:null };
-        return false;
-    }
-
-    var nearby = getAutomaticVisitCandidates().filter(function(item) {
+    if (!currentPos || currentAccuracy > 50) return false;
+    var nearby = (tourItems || []).concat(festivalItems || []).filter(function(item) {
         var point = getImageMissionLatLng(item);
-        return point && currentPos.distanceTo(point) <= 50;
-    }).sort(function(a, b) {
-        return currentPos.distanceTo(getImageMissionLatLng(a)) - currentPos.distanceTo(getImageMissionLatLng(b));
-    })[0];
-
-    if (!nearby) {
-        visitCandidate = { contentId:"", enteredAt:0, item:null };
-        return false;
-    }
-
+        return point && currentPos.distanceTo(point) <= AUTO_VISIT_RADIUS_M;
+    }).sort(function(a, b) { return currentPos.distanceTo(getImageMissionLatLng(a)) - currentPos.distanceTo(getImageMissionLatLng(b)); })[0];
+    if (!nearby) { visitCandidate = { contentId: "", enteredAt: 0, item: null }; return false; }
     var id = getTourItemId(nearby);
-    if (!id) return false;
-
-    if (visitCandidate.contentId !== id) {
-        visitCandidate = { contentId:id, enteredAt:Date.now(), item:nearby };
-        return false;
-    }
-
-    // 같은 장소 포인트 50m 안에서 연속 30분 + 위치 기록 ON일 때만 방문 완료.
-    if (Date.now() - visitCandidate.enteredAt < 30 * 60 * 1000) return false;
-    return completeExperience(nearby, collectionUiText("stay_complete"));
+    if (visitCandidate.contentId !== id) visitCandidate = { contentId: id, enteredAt: Date.now(), item: nearby };
+    var stayedLongEnough = Date.now() - visitCandidate.enteredAt >= AUTO_VISIT_REQUIRED_MS;
+    if (options.method === "photo" || stayedLongEnough) return completeExperience(nearby, options.method === "photo" ? "photo" : "stay");
+    return false;
 }
 
 function showDiscoveryReward(options) {
@@ -12165,131 +12263,7 @@ function renderTodayJourneyRecap() {
     document.getElementById("journey-recap-trait").textContent = (words.stats[topKey] || RPG_STAT_LABELS[topKey]) + " +" + topAmount;
     document.getElementById("journey-recap-message").textContent = collectionUiText("recap_" + topKey);
     var image = document.getElementById("journey-recap-gilo"); if (image) image.src = encodeURI(GILO_SCENE_IMAGES.trip_end);
-    syncJourneyShareButtonLanguage();
 }
-
-var GILOA_JOURNEY_SHARE_TEXT = {
-    ko:{button:"인스타그램에 공유", title:"오늘의 대동여지도", distance:"걸은 거리", visits:"새로운 발견", photos:"사진", memories:"기억", footer:"나만의 지도를 만들어 보세요", preparing:"공유 이미지를 만들고 있어요…", saved:"공유 이미지를 만들었어요. Instagram을 선택해 주세요.", unsupported:"이 기기에서는 이미지 직접 공유가 어려워 이미지를 저장합니다."},
-    en:{button:"Share to Instagram", title:"Today's Journey Map", distance:"Distance", visits:"Discoveries", photos:"Photos", memories:"Memories", footer:"Make your own map", preparing:"Creating your share image…", saved:"Your share image is ready. Choose Instagram.", unsupported:"Direct image sharing is unavailable here, so the image will be saved."},
-    ja:{button:"Instagramでシェア", title:"今日の旅の地図", distance:"歩いた距離", visits:"新しい発見", photos:"写真", memories:"思い出", footer:"自分だけの地図を作ろう", preparing:"シェア画像を作成中…", saved:"画像を作成しました。Instagramを選んでください。", unsupported:"この端末では画像の直接共有が難しいため、画像を保存します。"},
-    zh:{button:"分享到 Instagram", title:"今日旅程地图", distance:"步行距离", visits:"新发现", photos:"照片", memories:"回忆", footer:"制作属于你的地图", preparing:"正在生成分享图片…", saved:"分享图片已生成，请选择 Instagram。", unsupported:"此设备不支持直接分享图片，将保存图片。"},
-    es:{button:"Compartir en Instagram", title:"Mapa del viaje de hoy", distance:"Distancia", visits:"Descubrimientos", photos:"Fotos", memories:"Recuerdos", footer:"Crea tu propio mapa", preparing:"Creando la imagen para compartir…", saved:"Imagen lista. Elige Instagram.", unsupported:"No se puede compartir la imagen directamente; se guardará."},
-    fr:{button:"Partager sur Instagram", title:"Carte du voyage du jour", distance:"Distance", visits:"Découvertes", photos:"Photos", memories:"Souvenirs", footer:"Créez votre propre carte", preparing:"Création de l’image de partage…", saved:"Image prête. Choisissez Instagram.", unsupported:"Le partage direct d’image n’est pas disponible ; l’image sera enregistrée."}
-};
-function getJourneyShareText() { return GILOA_JOURNEY_SHARE_TEXT[normalizeLang(currentLang)] || GILOA_JOURNEY_SHARE_TEXT.ko; }
-
-function roundRectPath(ctx, x, y, w, h, r) {
-    r = Math.max(0, Math.min(r, w / 2, h / 2));
-    ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
-    ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
-}
-function canvasToBlobPromise(canvas) {
-    return new Promise(function(resolve, reject) {
-        try { canvas.toBlob(function(blob) { blob ? resolve(blob) : reject(new Error("PNG creation failed")); }, "image/png", 0.96); }
-        catch (error) { reject(error); }
-    });
-}
-function loadShareImage(src) {
-    return new Promise(function(resolve) {
-        if (!src) { resolve(null); return; }
-        var image = new Image();
-        image.onload = function(){ resolve(image); };
-        image.onerror = function(){ resolve(null); };
-        image.src = src;
-    });
-}
-function buildTodayJourneyShareImage() {
-    var summary = getTodayJourneySummary(), t = getJourneyShareText(), growth = loadTodayGrowth(), words = getRpgText();
-    var topKey = RPG_STAT_KEYS.slice().sort(function(a,b){ return Number(growth.stats[b]||0)-Number(growth.stats[a]||0); })[0];
-    var topAmount = Number(growth.stats[topKey]) || 0;
-    var canvas = document.createElement("canvas"), w = 1080, h = 1920;
-    canvas.width=w; canvas.height=h; var ctx=canvas.getContext("2d");
-    var giloSrc = encodeURI(GILO_SCENE_IMAGES.trip_end || "");
-    return loadShareImage(giloSrc).then(function(gilo) {
-        var bg=ctx.createLinearGradient(0,0,w,h); bg.addColorStop(0,"#1a2035"); bg.addColorStop(1,"#08101f");
-        ctx.fillStyle=bg; ctx.fillRect(0,0,w,h);
-        var glow=ctx.createRadialGradient(820,320,20,820,320,560); glow.addColorStop(0,"rgba(79,195,247,.28)"); glow.addColorStop(1,"rgba(79,195,247,0)");
-        ctx.fillStyle=glow; ctx.fillRect(0,0,w,h);
-
-        ctx.fillStyle="#4fc3f7"; ctx.beginPath(); ctx.arc(92,108,14,0,Math.PI*2); ctx.fill();
-        ctx.fillStyle="#fff"; ctx.font="900 44px sans-serif"; ctx.fillText("GILOA",126,124);
-        ctx.fillStyle="rgba(255,255,255,.62)"; ctx.font="700 25px sans-serif"; ctx.fillText("MY DAEDONGYEOJIDO",82,174);
-
-        ctx.fillStyle="#fff"; ctx.font="900 68px sans-serif"; ctx.fillText(t.title,82,300);
-        ctx.fillStyle="rgba(255,255,255,.66)"; ctx.font="600 30px sans-serif";
-        ctx.fillText(new Date().toLocaleDateString(currentLang||"ko",{year:"numeric",month:"long",day:"numeric",weekday:"long"}),82,354);
-
-        if (gilo) {
-            var maxW=560,maxH=560, ratio=Math.min(maxW/gilo.width,maxH/gilo.height);
-            var iw=gilo.width*ratio, ih=gilo.height*ratio;
-            ctx.drawImage(gilo, w-iw-38, 390, iw, ih);
-        }
-
-        // Abstract route/map panel: uses today's route geometry but intentionally omits base-map labels for privacy.
-        roundRectPath(ctx,70,560,940,570,44); ctx.fillStyle="rgba(7,15,31,.88)"; ctx.fill();
-        ctx.strokeStyle="rgba(79,195,247,.25)"; ctx.lineWidth=3; ctx.stroke();
-        var todayStart=new Date(); todayStart.setHours(0,0,0,0);
-        var pts=(pathCoordinates||[]).filter(function(p){return p && Number(p.endTime||p.startTime)>=todayStart.getTime() && isFinite(p.lat)&&isFinite(p.lng);});
-        if (pts.length>1) {
-            var minLat=Math.min.apply(null,pts.map(function(p){return p.lat;})), maxLat=Math.max.apply(null,pts.map(function(p){return p.lat;}));
-            var minLng=Math.min.apply(null,pts.map(function(p){return p.lng;})), maxLng=Math.max.apply(null,pts.map(function(p){return p.lng;}));
-            var latSpan=Math.max(.0001,maxLat-minLat), lngSpan=Math.max(.0001,maxLng-minLng);
-            ctx.strokeStyle="#4fc3f7"; ctx.lineWidth=10; ctx.lineCap="round"; ctx.lineJoin="round"; ctx.beginPath();
-            pts.forEach(function(p,i){var x=125+(p.lng-minLng)/lngSpan*830; var y=1070-(p.lat-minLat)/latSpan*450; if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}); ctx.stroke();
-            ctx.fillStyle="#fff"; var first=pts[0], last=pts[pts.length-1];
-            [first,last].forEach(function(p){var x=125+(p.lng-minLng)/lngSpan*830;var y=1070-(p.lat-minLat)/latSpan*450;ctx.beginPath();ctx.arc(x,y,13,0,Math.PI*2);ctx.fill();});
-        } else {
-            ctx.fillStyle="rgba(79,195,247,.15)"; ctx.beginPath(); ctx.arc(540,840,150,0,Math.PI*2); ctx.fill();
-            ctx.fillStyle="#4fc3f7"; ctx.beginPath(); ctx.arc(540,840,18,0,Math.PI*2); ctx.fill();
-        }
-
-        var stats=[
-            [(summary.distance/1000).toFixed(1)+" km",t.distance],
-            [String(summary.visits.length),t.visits],
-            [String(summary.photos.length),t.photos],
-            [String(summary.memories.length),t.memories]
-        ];
-        stats.forEach(function(row,i){var x=70+(i%2)*475,y=1180+Math.floor(i/2)*205;roundRectPath(ctx,x,y,455,170,28);ctx.fillStyle="rgba(255,255,255,.055)";ctx.fill();ctx.strokeStyle="rgba(255,255,255,.10)";ctx.lineWidth=2;ctx.stroke();ctx.fillStyle="#fff";ctx.font="900 52px sans-serif";ctx.fillText(row[0],x+30,y+70);ctx.fillStyle="rgba(255,255,255,.55)";ctx.font="700 26px sans-serif";ctx.fillText(row[1],x+30,y+118);});
-
-        roundRectPath(ctx,70,1605,940,130,28); ctx.fillStyle="rgba(79,195,247,.10)";ctx.fill();ctx.strokeStyle="rgba(79,195,247,.35)";ctx.stroke();
-        ctx.fillStyle="#4fc3f7";ctx.font="800 26px sans-serif";ctx.fillText((words.stats[topKey]||RPG_STAT_LABELS[topKey])+" +"+topAmount,102,1660);
-        ctx.fillStyle="#fff";ctx.font="700 30px sans-serif";ctx.fillText(t.footer,102,1705);
-        ctx.fillStyle="rgba(255,255,255,.58)";ctx.font="700 26px sans-serif";ctx.fillText("Google Play · com.giloa.app",82,1800); ctx.font="600 21px sans-serif"; ctx.fillText("https://play.google.com/store/apps/details?id=com.giloa.app",82,1842);
-        return canvasToBlobPromise(canvas);
-    });
-}
-function downloadJourneyShareImage(blob) {
-    var url=URL.createObjectURL(blob), a=document.createElement("a"); a.href=url; a.download="GILOA-today-"+getDailyTaskDate()+".png";
-    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(url);},1500);
-}
-function shareTodayJourneyToInstagram() {
-    // 공유 자체는 하루 횟수 제한 없음. 일일 미션 보상만 최초 1회 처리한다.
-    var t=getJourneyShareText(); showCollectionToast(t.preparing);
-    buildTodayJourneyShareImage().then(function(blob){
-        var file=new File([blob],"GILOA-today-"+getDailyTaskDate()+".png",{type:"image/png"});
-        var shareData={title:"GILOA",text:getJourneyShareMessage()+"\n"+GILOA_STORE_URL,url:GILOA_STORE_URL,files:[file]};
-        if (navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))) {
-            // Instagram은 이미지 파일과 함께 전달된 URL/본문을 버릴 수 있으므로
-            // 링크를 클립보드에도 복사해 사용자가 스토리/DM에 바로 붙여넣을 수 있게 한다.
-            var copyPromise = navigator.clipboard && navigator.clipboard.writeText
-                ? navigator.clipboard.writeText(GILOA_STORE_URL).catch(function(){})
-                : Promise.resolve();
-            return copyPromise.then(function() {
-                return navigator.share(shareData);
-            }).then(function(){
-                // 공유는 무제한. 오늘의 '길로아 알리기' 미션만 최초 공유 시 완료된다.
-                markDailyShareDone();
-                showCollectionToast(t.saved);
-            });
-        }
-        showCollectionToast(t.unsupported); downloadJourneyShareImage(blob);
-    }).catch(function(error){ console.warn("Journey share image failed",error); copyGiloaShareText(); });
-}
-function syncJourneyShareButtonLanguage() {
-    var button=document.getElementById("journey-recap-share-instagram");
-    if (button) button.textContent=getJourneyShareText().button;
-}
-
 function showTodayJourneyRecap() {
     var recap = document.getElementById("journey-recap"); if (!recap) return;
     renderTodayJourneyRecap();
@@ -12317,7 +12291,7 @@ function renderDailyTravelLog(summary) {
     document.getElementById("daily-travel-log-places").textContent = summary.visits.length ? formatUiTemplate(t.journey_log_places,{places:summary.visits.slice(0,3).map(getVisitDisplayName).join(" · ")}) : t.journey_log_wait;
 }
 function completeDailyTask(taskId, reward) {
-    var state = loadDailyTaskState(); state.rewarded = state.rewarded || []; if (state.rewarded.indexOf(taskId) >= 0) return false; state.rewarded.push(taskId); localStorage.setItem(DAILY_TASK_KEY, JSON.stringify(state)); completedTaskEffects.add(taskId); setTimeout(function(){ completedTaskEffects.delete(taskId); }, 1200); showGiloReaction(state.rewarded.length >= 3 ? "daily" : "mission", "", { force:true, reward:"+" + reward + " EXP" }); return true;
+    var state = loadDailyTaskState(); state.rewarded = state.rewarded || []; if (state.rewarded.indexOf(taskId) >= 0) return false; state.rewarded.push(taskId); safeStorageSet(DAILY_TASK_KEY, JSON.stringify(state)); completedTaskEffects.add(taskId); setTimeout(function(){ completedTaskEffects.delete(taskId); }, 1200); showGiloReaction(state.rewarded.length >= 3 ? "daily" : "mission", "", { force:true, reward:"+" + reward + " EXP" }); return true;
 }
 function updateTimeAtmosphere() {
     var overlay = document.getElementById("time-atmosphere"); if (!overlay) return; var hour = new Date().getHours(); var period = hour >= 4 && hour < 7 ? "dawn" : hour >= 7 && hour < 17 ? "day" : hour >= 17 && hour < 20 ? "sunset" : "night"; overlay.className = period;
@@ -13259,7 +13233,6 @@ var STATIC_EXTRA_I18N = (function() {
         sourceRestrooms:["서울 열린데이터광장 · 카카오맵","Seoul Open Data Plaza · KakaoMap","ソウル開放データ広場 · KakaoMap","首尔开放数据广场 · KakaoMap","Datos abiertos de Seúl · KakaoMap","Données ouvertes de Séoul · KakaoMap"],
         sourceParking:["공공데이터포털 · 전국주차장정보표준데이터","Korea Public Data Portal · National Parking Information Standard Data","韓国公共データポータル · 全国駐車場情報標準データ","韩国公共数据门户 · 全国停车场信息标准数据","Portal de datos públicos de Corea · Datos nacionales normalizados de aparcamientos","Portail des données publiques de Corée · Données nationales normalisées sur les parkings"],
         sourceFishing:["행정안전부 · 전국 낚시터정보","Ministry of the Interior and Safety · National Fishing Site Information","韓国行政安全部 · 全国釣り場情報","韩国行政安全部 · 全国垂钓场信息","Ministerio del Interior y Seguridad de Corea · Información nacional de lugares de pesca","Ministère coréen de l’Intérieur et de la Sécurité · Informations nationales sur les sites de pêche"],
-        sourceCamping:["한국관광공사 · 고캠핑","Korea Tourism Organization · GoCamping","韓国観光公社 · GoCamping","韩国观光公社 · GoCamping","Organización de Turismo de Corea · GoCamping","Office du tourisme coréen · GoCamping"],
         sourceTrails:["한국관광공사 두루누비 · 한국등산·트레킹지원센터 국가숲길","Korea Tourism Organization Durunubi · Korea Mountaineering Support Center National Forest Trails","韓国観光公社ドゥルヌビ · 韓国登山・トレッキング支援センター国家森林トレイル","韩国观光公社 Durunubi · 韩国登山徒步支援中心国家森林步道","Durunubi de la Organización de Turismo de Corea · Senderos forestales nacionales del Centro Coreano de Montañismo","Durunubi de l’Office du tourisme de Corée · Sentiers forestiers nationaux du Centre coréen de randonnée"],
         sourceTourismTypes:["관광지 · 음식점 · 숙박 · 축제 · 관광사진","Sights · Restaurants · Lodging · Festivals · Tourism photos","観光地 · 飲食店 · 宿泊 · 祭り · 観光写真","景点 · 餐厅 · 住宿 · 节庆 · 旅游照片","Lugares · Restaurantes · Alojamiento · Festivales · Fotos turísticas","Sites · Restaurants · Hébergements · Festivals · Photos touristiques"],
         sourceTrailsType:["공식 탐방로","Official trails","公式トレイル","官方步道","Rutas oficiales","Itinéraires officiels"],

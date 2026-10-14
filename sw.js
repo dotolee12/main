@@ -1,5 +1,5 @@
-var APP_CACHE = "giloa-app-shell-v233";
-var RUNTIME_CACHE = "giloa-runtime-v76";
+var APP_CACHE = "giloa-app-shell-v240";
+var RUNTIME_CACHE = "giloa-runtime-v77";
 var TILE_CACHE = "giloa-map-tiles-v5";
 var TILE_CACHE_MAX = 300;
 var RUNTIME_CACHE_MAX = 180;
@@ -9,12 +9,14 @@ var RUNTIME_CACHE_MAX = 180;
 // 설치 단계에서 미리 내려받을 필요가 없다. 이전에는 ~90개 파일을 설치 시점에
 // 순차로 요청해 첫 실행/업데이트 시 체감 버퍼링이 커졌었다.
 var CORE_ASSETS = [
-  "./index.html", "./manifest.json", "./style.css", "./time-trace.css", "./tutorial.css", "./map-bootstrap.js",
-  "./region-stay-core.js", "./script.js", "./time-trace.js", "./hidden-missions.obfuscated.js", "./tutorial.js", "./config.js",
+  "./index.html", "./manifest.json", "./style.css", "./map-bootstrap.js", "./region-stay-core.js", "./script.js", "./supabase-sync.js", "./medical-layers.js",
+  "./vendor/leaflet.css", "./vendor/leaflet.js", "./vendor/MarkerCluster.css", "./vendor/MarkerCluster.Default.css", "./vendor/leaflet.markercluster.js"
+];
+var OPTIONAL_CORE_ASSETS = [
+  "./time-trace.css", "./tutorial.css", "./time-trace.js", "./hidden-missions.obfuscated.js", "./tutorial.js", "./config.js",
   // HUD 아바타에 항상 즉시 표시되는 유일한 이미지이므로 core로 유지한다.
   "./gilo many appearance/gilo-tutorial-welcome-transparent.png",
-  "./vendor/leaflet.css", "./vendor/MarkerCluster.css", "./vendor/MarkerCluster.Default.css",
-  "./vendor/leaflet.js", "./vendor/leaflet.markercluster.js", "./vendor/heic2any.min.js", "./vendor/exifr.full.umd.js"
+  "./vendor/heic2any.min.js", "./vendor/exifr.full.umd.js"
 ];
 
 function trimCache(cacheName, maximum) {
@@ -36,15 +38,27 @@ function cacheCoreAssets(cache) {
   }, Promise.resolve());
 }
 
+function cacheOptionalCoreAssets(cache) {
+  return OPTIONAL_CORE_ASSETS.reduce(function(chain, asset) {
+    return chain.then(function() {
+      return cache.add(new Request(asset, { cache: "reload" })).catch(function(error) {
+        console.warn("Optional offline asset was not cached:", asset, error && error.message);
+      });
+    });
+  }, Promise.resolve());
+}
+
 function fetchWithTimeout(request, timeoutMs) {
   return new Promise(function(resolve, reject) {
     var settled = false;
+    var controller = typeof AbortController === "function" ? new AbortController() : null;
     var timer = setTimeout(function() {
       if (settled) return;
       settled = true;
+      if (controller) controller.abort();
       reject(new Error("Network timeout"));
     }, timeoutMs);
-    fetch(request).then(function(response) {
+    fetch(request, controller ? { signal: controller.signal } : undefined).then(function(response) {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
@@ -58,6 +72,16 @@ function fetchWithTimeout(request, timeoutMs) {
   });
 }
 
+function replaceCachedAsset(cache, request, response) {
+  var requestedUrl = new URL(request.url);
+  return cache.keys().then(function(keys) {
+    return Promise.all(keys.filter(function(key) {
+      var cachedUrl = new URL(key.url);
+      return cachedUrl.origin === requestedUrl.origin && cachedUrl.pathname === requestedUrl.pathname;
+    }).map(function(key) { return cache.delete(key); }));
+  }).then(function() { return cache.put(request, response); });
+}
+
 function requireSuccessfulResponse(response) {
   if (!response || !response.ok) throw new Error("Network response was not successful");
   return response;
@@ -68,7 +92,9 @@ function cachedResponseOrError(cached) {
 }
 
 self.addEventListener("install", function(event) {
-  event.waitUntil(caches.open(APP_CACHE).then(cacheCoreAssets).then(function() { return self.skipWaiting(); }));
+  event.waitUntil(caches.open(APP_CACHE).then(function(cache) {
+    return cacheCoreAssets(cache).then(function() { return cacheOptionalCoreAssets(cache); });
+  }).then(function() { return self.skipWaiting(); }));
 });
 
 self.addEventListener("activate", function(event) {
@@ -123,7 +149,7 @@ self.addEventListener("fetch", function(event) {
     event.respondWith(caches.open(APP_CACHE).then(function(cache) {
       return fetchWithTimeout(event.request, 3500).then(function(response) {
         requireSuccessfulResponse(response);
-        event.waitUntil(cache.put(event.request, response.clone()));
+        event.waitUntil(replaceCachedAsset(cache, event.request, response.clone()));
         return response;
       }).catch(function() {
         return cache.match(event.request, { ignoreSearch: true }).then(cachedResponseOrError);
