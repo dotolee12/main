@@ -1,4 +1,4 @@
-var APP_CACHE = "giloa-app-shell-v241";
+var APP_CACHE = "giloa-app-shell-v242";
 var RUNTIME_CACHE = "giloa-runtime-v77";
 var TILE_CACHE = "giloa-map-tiles-v5";
 var TILE_CACHE_MAX = 300;
