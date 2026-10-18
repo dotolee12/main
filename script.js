@@ -8667,7 +8667,9 @@ var PLACE_ICON_DRAWINGS = {
     restroom: '<circle cx="7" cy="5" r="2"/><circle cx="17" cy="5" r="2"/><path d="M4 10h6v6H4zm2 6v5m3-5v5m8-11l-4 7h8l-4-7zm-1 7v4m3-4v4"/>',
     trail: '<path d="M3 20l6-12 4 7 3-5 5 10H3zM16 3v3m-2-1h4"/>',
     fishing: '<circle cx="8" cy="4.5" r="2.5"></circle><path d="M8 7v8.1a5.4 5.4 0 0 0 10.8 0v-4.4l-3.8 4.1"></path>',
-    community: '<path d="M3 10l9-7 9 7v11H3V10zm6 11v-7h6v7"/>'
+    community: '<path d="M3 10l9-7 9 7v11H3V10zm6 11v-7h6v7"/>',
+    hospital: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M12 8v8M8 12h8"/>',
+    pharmacy: '<path d="M7 5h10v14H7zM10 5V3h4v2M10 10h4M12 12v4M10 14h4"/>'
 };
 function placeIconSvg(iconKey, label, className) {
     var safeLabel = escapeHtml(String(label || ""));
@@ -10509,15 +10511,19 @@ var MAP_LAYER_ICON_KEYS = {
     lodging: "lodging",
     durunubi: "trail",
     fishing: "fishing",
-    community: "community"
+    community: "community",
+    hospital: "hospital",
+    pharmacy: "pharmacy"
 };
 var MAP_LAYER_GROUP_ICON_ITEMS = {
     discovery: [{ icon:"attraction", typeId:"12", layer:"tourism" }, { icon:"culture", typeId:"14", layer:"tourism" }, { icon:"leports", typeId:"28", layer:"tourism" }],
     food: [{ icon:"restaurant", layer:"restaurant" }, { icon:"shopping", layer:"shopping" }],
-    convenience: [{ icon:"restroom", layer:"restroom" }, { icon:"parking", layer:"parking" }, { icon:"library", layer:"library" }, { icon:"lodging", layer:"lodging" }],
+    convenience: [{ icon:"restroom", layer:"restroom" }, { icon:"parking", layer:"parking" }, { icon:"library", layer:"library" }, { icon:"lodging", layer:"lodging" }, { icon:"community", layer:"community" }, { icon:"hospital", layer:"hospital" }, { icon:"pharmacy", layer:"pharmacy" }],
     activity: [{ icon:"trail", layer:"durunubi" }, { icon:"fishing", layer:"fishing" }]
 };
 function getMapLayerItemLabel(key) {
+    var text = UI_TEXT[currentLang] || UI_TEXT.ko;
+    if (text["map_layer_" + key]) return text["map_layer_" + key];
     var name = document.getElementById("map-layer-name-" + key);
     return name ? name.textContent.trim() : key;
 }

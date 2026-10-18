@@ -46,11 +46,11 @@ html,body{background:#1a2035;margin:0;height:100%;width:100%;overflow:hidden}
 <!-- 큰 벤더/앱 스크립트를 head 단계에서 미리 프리로드하여, 본문 파싱이 끝날 때까지
      기다리지 않고 CSS와 동시에 다운로드가 시작되도록 한다. (버퍼링 단축) -->
 <link rel="preload" as="script" href="./vendor/leaflet.js?v=app-local-9">
-<link rel="preload" as="script" href="./script.js?v=app-local-217">
+<link rel="preload" as="script" href="./script.js?v=app-local-218">
 <link rel="stylesheet" href="./vendor/leaflet.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.Default.css?v=app-local-9">
-<link rel="stylesheet" href="./style.css?v=app-local-168">
+<link rel="stylesheet" href="./style.css?v=app-local-169">
 <!-- 튜토리얼/타임트레이스 CSS는 첫 화면에 필요하지 않으므로 렌더 차단 없이
      비동기로 불러온다 (media=print 트릭 후 onload에서 all로 전환). -->
 <link rel="stylesheet" href="./time-trace.css?v=app-local-1" media="print" onload="this.media='all'">
@@ -850,16 +850,16 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <script src="./vendor/leaflet.markercluster.js?v=app-local-9" defer></script>
 <script src="./vendor/exifr.full.umd.js?v=7.1.3" defer></script>
 <script src="./region-stay-core.js?v=app-local-1" defer></script>
-<script src="./script.js?v=app-local-217" defer></script>
+<script src="./script.js?v=app-local-218" defer></script>
 <script src="./supabase-sync.js?v=app-local-3" defer></script>
-<script src="./medical-layers.js?v=1" defer></script>
+<script src="./medical-layers.js?v=2" defer></script>
 <script src="./time-trace.js?v=app-local-1" defer></script>
 <script src="./hidden-missions.obfuscated.js?v=app-local-1" defer></script>
 <script src="./tutorial.js?v=app-local-134" defer></script>
 <script>
 if (window.location.protocol !== "file:" && "serviceWorker" in navigator && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
     window.addEventListener("load", function() {
-    navigator.serviceWorker.register("./sw.js?v=app-local-206", { updateViaCache: "none" })
+    navigator.serviceWorker.register("./sw.js?v=app-local-207", { updateViaCache: "none" })
             .then(function(registration) { console.log("SW 등록 완료"); return registration.update(); })
             .catch(function(e) { console.warn("SW 등록 실패", e); });
     });
