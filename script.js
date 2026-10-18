@@ -8650,6 +8650,36 @@ var TOUR_TYPE_LABELS = {
 };
 function getTourTypeName(contentTypeId) { var names = TOUR_TYPE_NAMES[currentLang] || TOUR_TYPE_NAMES.ko; return names[String(contentTypeId)] || names["12"]; }
 function getTourTypeLabel(contentTypeId) { var labels = TOUR_TYPE_LABELS[currentLang] || TOUR_TYPE_LABELS.ko; return labels[String(contentTypeId)] || labels.default; }
+// One monochrome line-icon vocabulary is shared by the layer menu, map tags,
+// nearby cards and detail popups. Keep the fishing drawing in this single
+// source so the menu and marker can never drift apart.
+var PLACE_ICON_DRAWINGS = {
+    attraction: '<path d="M3 9l9-6 9 6"/><path d="M5 9v10m4-7v7m6-7v7m4-10v10M3 21h18M8 9h8"/>',
+    culture: '<path d="M4 21V8l8-5 8 5v13M8 21v-7h8v7M7 10h.01M12 10h.01M17 10h.01"/>',
+    leports: '<circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M6 17l4-8h4l4 8m-8-8-2-3H5m5 11 4-8m0 0 3-2"/>',
+    restaurant: '<path d="M5 3v7m3-7v7M3 3v5a3 3 0 006 0V3M6 11v10M17 3v18m0-18c-4 3-4 9 0 9"/>',
+    shopping: '<path d="M5 8h14l-1 13H6L5 8zM8 8a4 4 0 018 0"/>',
+    festival: '<path d="M4 21V7m0 0c4-3 7 3 11 0v8c-4 3-7-3-11 0M18 4v4m-2-2h4"/>',
+    course: '<circle cx="5" cy="18" r="2"/><circle cx="19" cy="6" r="2"/><path d="M7 18c6 0 3-8 9-8h1"/>',
+    lodging: '<path d="M3 21V5m0 11h18v5m-18-9h18v4M7 12V8h5v4m0 0V8h6v4"/>',
+    library: '<path d="M12 6C8 3 5 4 3 5v15c3-2 6-1 9 1 3-2 6-3 9-1V5c-2-1-5-2-9 1zm0 0v15"/>',
+    parking: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 18V7h4a3 3 0 010 6H9"/>',
+    restroom: '<circle cx="7" cy="5" r="2"/><circle cx="17" cy="5" r="2"/><path d="M4 10h6v6H4zm2 6v5m3-5v5m8-11l-4 7h8l-4-7zm-1 7v4m3-4v4"/>',
+    trail: '<path d="M3 20l6-12 4 7 3-5 5 10H3zM16 3v3m-2-1h4"/>',
+    fishing: '<circle cx="8" cy="4.5" r="2.5"></circle><path d="M8 7v8.1a5.4 5.4 0 0 0 10.8 0v-4.4l-3.8 4.1"></path>',
+    community: '<path d="M3 10l9-7 9 7v11H3V10zm6 11v-7h6v7"/>'
+};
+function placeIconSvg(iconKey, label, className) {
+    var safeLabel = escapeHtml(String(label || ""));
+    var drawing = PLACE_ICON_DRAWINGS[iconKey] || PLACE_ICON_DRAWINGS.attraction;
+    return '<svg class="place-type-icon' + (className ? " " + className : "") + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="' + safeLabel + '" title="' + safeLabel + '"><title>' + safeLabel + '</title>' + drawing + '</svg>';
+}
+function getTourIconKey(contentTypeId) {
+    return ({ "12":"attraction", "14":"culture", "15":"festival", "25":"course", "28":"leports", "32":"lodging", "38":"shopping", "39":"restaurant" })[String(contentTypeId)] || "attraction";
+}
+function placeTypeTagHtml(iconKey, label, styleText) {
+    return "<span class='tour-popup-tag'" + (styleText ? " style='" + styleText + "'" : "") + ">" + placeIconSvg(iconKey, label, "place-type-icon-small") + "<span>" + escapeHtml(label) + "</span></span>";
+}
 var TOUR_TYPE_META = {
     "25": { label: "Course", color: "#ef4444", fill: "rgba(239,68,68,0.18)", border: "rgba(239,68,68,0.55)" },
     "28": { label: "Leports", color: "#38bdf8", fill: "rgba(56,189,248,0.18)", border: "rgba(56,189,248,0.55)" },
@@ -9006,7 +9036,7 @@ function renderFestivalStrip() {
     var center = getMapSearchCenter();
     nearbyItems.forEach(function(item) {
         var card = document.createElement("div"); card.className = "festival-card"; applyTourTypeVars(card, getTourTypeMeta("15"));
-        var typeEl = document.createElement("div"); typeEl.className = "tour-card-type"; typeEl.textContent = getTourTypeName("15");
+        var typeEl = document.createElement("div"); typeEl.className = "tour-card-type"; typeEl.innerHTML = placeIconSvg("festival", getTourTypeName("15"), "place-type-icon-small") + "<span>" + escapeHtml(getTourTypeName("15")) + "</span>";
         var nameEl = document.createElement("div"); nameEl.className = "festival-card-name"; nameEl.textContent = getTourDisplayTitle(item) || getTourTypeName("15");
         var dateEl = document.createElement("div"); dateEl.className = "festival-card-date";
         var start = item.eventstartdate || ""; var end = item.eventenddate || "";
@@ -9263,7 +9293,7 @@ function buildTourPopupHtml(item, detailLines, isLoading) {
     var loadingText = words.loading;
     var noDetailText = words.noDetails;
     var tel = item.tel ? "<br><a href='tel:" + item.tel + "' style='color:#4db8ff;font-size:12px;'>" + telLabel + " " + escapeHtml(item.tel) + "</a>" : "";
-    var tag = "<span class='tour-popup-tag' style='color:" + meta.color + ";border-color:" + meta.border + ";background:" + meta.fill + ";'>" + escapeHtml(typeName) + "</span>";
+    var tag = placeTypeTagHtml(getTourIconKey(item.contenttypeid), typeName, "color:" + meta.color + ";border-color:" + meta.border + ";background:" + meta.fill + ";");
     var detailHtml = "";
     if (isLoading) detailHtml = "<div class='tour-popup-detail loading'>" + escapeHtml(loadingText) + "</div>";
     else if (detailLines && detailLines.length) {
@@ -9322,7 +9352,8 @@ function renderTourCards() {
             var imageEl = makeTourImage(item, "tour-card-image");
             var infoEl = document.createElement("div"); infoEl.className = "tour-card-info";
             var nameEl = document.createElement("div"); nameEl.className = "tour-card-name"; nameEl.textContent = getTourDisplayTitle(item) || (UI_TEXT[currentLang] || UI_TEXT.ko).empty_tour;
-            var typeEl = document.createElement("div"); typeEl.className = "tour-card-type"; typeEl.textContent = getTourTypeName(item.contenttypeid) || meta.label;
+            var typeName = getTourTypeName(item.contenttypeid) || meta.label;
+            var typeEl = document.createElement("div"); typeEl.className = "tour-card-type"; typeEl.innerHTML = placeIconSvg(getTourIconKey(item.contenttypeid), typeName, "place-type-icon-small") + "<span>" + escapeHtml(typeName) + "</span>";
             var addrEl = document.createElement("div"); addrEl.className = "tour-card-addr"; addrEl.textContent = getTourDisplayAddr(item) || "";
             var distEl = document.createElement("div"); distEl.className = "tour-card-dist";
             var distM = center.distanceTo([parseFloat(item.mapy), parseFloat(item.mapx)]);
@@ -9517,7 +9548,7 @@ function addTourMarkers() {
     logGpsLayerChange("BEFORE tour-refresh", before);
     tourMarkerLayer.clearLayers();
     tourMarkers = [];
-    getVisibleTourMarkerItems().forEach(function(item, index) { var lat = parseFloat(item.mapy); var lng = parseFloat(item.mapx); if (!isFinite(lat) || !isFinite(lng)) return; var meta = getTourTypeMeta(item.contenttypeid); var state = getTourMarkerState(item, index); var liked = isTourLiked(item); var likeKey = getTourLikeKey(item); var classes = [state.visited ? "state-visited" : "", state.selected ? "state-selected" : "", state.nearby ? "state-nearby" : "", state.discoverable ? "state-discoverable" : "", liked ? "state-liked" : ""].filter(Boolean).join(" "); var badge = liked ? "★" : state.visited ? "✓" : state.missionAvailable ? "📷" : state.discoverable ? "◎" : ""; var icon = L.divIcon({ className: "tour-map-marker-wrap", html: "<div class='tour-map-marker " + classes + "' data-place-like-key='" + escapeHtml(likeKey) + "' style='--tour-color:" + meta.color + ";--tour-fill:" + meta.fill + ";--tour-border:" + meta.border + ";'><span class='tour-map-dot'></span><span class='tour-map-label'>" + escapeHtml(meta.label) + "</span>" + (badge ? "<span class='tour-map-badge'>" + badge + "</span>" : "") + "</div>", iconSize: [84, 30], iconAnchor: [10, 15] }); var marker = L.marker([lat, lng], { pane: "tourPane", icon: icon, title: (getTourTypeName(item.contenttypeid) || meta.label) + " - " + (getTourDisplayTitle(item) || "") }).addTo(tourMarkerLayer); marker._tourItem = item; marker.on("click", function() { focusTourItemBelowPanel(item); }); tourMarkers.push(marker); });
+    getVisibleTourMarkerItems().forEach(function(item, index) { var lat = parseFloat(item.mapy); var lng = parseFloat(item.mapx); if (!isFinite(lat) || !isFinite(lng)) return; var meta = getTourTypeMeta(item.contenttypeid); var typeName = getTourTypeName(item.contenttypeid) || meta.label; var state = getTourMarkerState(item, index); var liked = isTourLiked(item); var likeKey = getTourLikeKey(item); var classes = [state.visited ? "state-visited" : "", state.selected ? "state-selected" : "", state.nearby ? "state-nearby" : "", state.discoverable ? "state-discoverable" : "", liked ? "state-liked" : ""].filter(Boolean).join(" "); var badge = liked ? "★" : state.visited ? "✓" : state.missionAvailable ? "📷" : state.discoverable ? "◎" : ""; var icon = L.divIcon({ className: "tour-map-marker-wrap", html: "<div class='tour-map-marker " + classes + "' data-place-like-key='" + escapeHtml(likeKey) + "' style='--tour-color:" + meta.color + ";--tour-fill:" + meta.fill + ";--tour-border:" + meta.border + ";'><span class='tour-map-type-icon'>" + placeIconSvg(getTourIconKey(item.contenttypeid), typeName, "place-type-icon-marker") + "</span><span class='tour-map-label'>" + escapeHtml(meta.label) + "</span>" + (badge ? "<span class='tour-map-badge'>" + badge + "</span>" : "") + "</div>", iconSize: [84, 30], iconAnchor: [10, 15] }); var marker = L.marker([lat, lng], { pane: "tourPane", icon: icon, title: typeName + " - " + (getTourDisplayTitle(item) || "") }).addTo(tourMarkerLayer); marker._tourItem = item; marker.on("click", function() { focusTourItemBelowPanel(item); }); tourMarkers.push(marker); });
     refreshGpsVisualsAfterPlaceLayerChange("tour-refresh", before);
 }
 
@@ -9605,7 +9636,7 @@ function renderLibraryMarkers(lang) {
         var likeKey = getMapPlaceLikeKey("library", [item.LBRRY_SEQ_NO || item.LBRRY_NAME, lat, lng]);
         var icon = L.divIcon({
             className: "library-map-marker-wrap",
-            html: "<div class='library-map-marker" + (likedTourKeys.has(likeKey) ? " state-liked" : "") + "' data-place-like-key='" + escapeHtml(likeKey) + "'><span class='library-map-dot'></span><span class='library-map-label'>" + escapeHtml(label) + "</span><span class='place-liked-star'>★</span></div>",
+            html: "<div class='library-map-marker" + (likedTourKeys.has(likeKey) ? " state-liked" : "") + "' data-place-like-key='" + escapeHtml(likeKey) + "'><span class='map-place-icon'>" + placeIconSvg("library", label, "place-type-icon-marker") + "</span><span class='library-map-label'>" + escapeHtml(label) + "</span><span class='place-liked-star'>★</span></div>",
             iconSize: [92, 28], iconAnchor: [10, 14]
         });
         var marker = L.marker([lat, lng], { pane: "libraryPane", icon: icon, title: label + " - " + getLibraryDisplayName(item) }).addTo(libraryMarkerLayer);
@@ -9623,7 +9654,7 @@ function showLibraryPopup(item) {
     setSelectedDestination(lat, lng, name || label);
     var tel = item.TEL_NO ? "<br><a href='tel:" + item.TEL_NO + "' style='color:#4ade80;font-size:12px;'>" + escapeHtml(getTourUiText().phone) + " " + escapeHtml(item.TEL_NO) + "</a>" : "";
     var time = item.OP_TIME ? "<br><small>" + escapeHtml(item.OP_TIME) + "</small>" : "";
-    var tag = "<span class='tour-popup-tag' style='color:#60a5fa;border-color:rgba(37,99,235,0.75);background:rgba(37,99,235,0.22);'>" + escapeHtml(label) + "</span>";
+    var tag = placeTypeTagHtml("library", label, "color:#60a5fa;border-color:rgba(37,99,235,0.75);background:rgba(37,99,235,0.22);");
     var likeKey = getMapPlaceLikeKey("library", [item.LBRRY_SEQ_NO || item.LBRRY_NAME, lat, lng]);
     var popup = L.popup({ className: "tour-popup" }).setLatLng([lat, lng]).setContent("<b>" + escapeHtml(name) + "</b><br>" + tag + "<br><small>" + escapeHtml(addr) + "</small>" + time + tel + buildMapPlaceLikeButton(likeKey)).openOn(map);
     trackPublicPlacePopup(popup, function() { showLibraryPopup(item); });
@@ -9773,7 +9804,8 @@ function showParkingPopup(item) {
     var tel = item.t ? "<br><a href='tel:" + escapeHtml(item.t) + "' style='color:#4ade80;font-size:12px;'>" + escapeHtml(item.t) + "</a>" : "";
     setSelectedDestination(item.y, item.x, item.n || text.label);
     var likeKey = getMapPlaceLikeKey("parking", [item.i || item.n, item.y, item.x]);
-    var popup = L.popup({ className:"tour-popup" }).setLatLng([item.y, item.x]).setContent("<b>" + escapeHtml(item.n || text.label) + "</b><br><span class='tour-popup-tag' style='color:" + PARKING_COLOR + ";border-color:" + PARKING_COLOR + ";background:rgba(167,139,250,.18);'>" + escapeHtml(text.label) + "</span>" + (address ? "<br><small>" + escapeHtml(address) + "</small>" : "") + (details.length ? "<br><small>" + escapeHtml(details.join(" · ")) + "</small>" : "") + tel + buildMapPlaceLikeButton(likeKey)).openOn(map);
+    var parkingTag = placeTypeTagHtml("parking", text.label, "color:" + PARKING_COLOR + ";border-color:" + PARKING_COLOR + ";background:rgba(167,139,250,.18);");
+    var popup = L.popup({ className:"tour-popup" }).setLatLng([item.y, item.x]).setContent("<b>" + escapeHtml(item.n || text.label) + "</b><br>" + parkingTag + (address ? "<br><small>" + escapeHtml(address) + "</small>" : "") + (details.length ? "<br><small>" + escapeHtml(details.join(" · ")) + "</small>" : "") + tel + buildMapPlaceLikeButton(likeKey)).openOn(map);
     trackPublicPlacePopup(popup, function() { showParkingPopup(item); });
 }
 function renderParkingMarkers(tileIds) {
@@ -9787,7 +9819,7 @@ function renderParkingMarkers(tileIds) {
     }); });
     items.sort(function(a, b) { return a._distance - b._distance; }).slice(0, MAP_VIEWPORT_MARKER_LIMIT).forEach(function(item) {
         var likeKey = getMapPlaceLikeKey("parking", [item.i || item.n, item.y, item.x]);
-        var icon = L.divIcon({ className:"library-map-marker-wrap parking-map-marker-wrap", html:"<div class='library-map-marker" + (likedTourKeys.has(likeKey) ? " state-liked" : "") + "' data-place-like-key='" + escapeHtml(likeKey) + "' style='--tour-color:" + PARKING_COLOR + ";'><span class='library-map-dot' style='background:" + PARKING_COLOR + ";'></span><span class='library-map-label'>" + escapeHtml(text.label) + "</span><span class='place-liked-star'>★</span></div>", iconSize:[76,28], iconAnchor:[10,14] });
+        var icon = L.divIcon({ className:"library-map-marker-wrap parking-map-marker-wrap", html:"<div class='library-map-marker" + (likedTourKeys.has(likeKey) ? " state-liked" : "") + "' data-place-like-key='" + escapeHtml(likeKey) + "' style='--tour-color:" + PARKING_COLOR + ";'><span class='map-place-icon'>" + placeIconSvg("parking", text.label, "place-type-icon-marker") + "</span><span class='library-map-label'>" + escapeHtml(text.label) + "</span><span class='place-liked-star'>★</span></div>", iconSize:[76,28], iconAnchor:[10,14] });
         var marker = L.marker([item.y, item.x], { pane:"parkingPane", icon:icon, title:text.label + " - " + (item.n || "") }).addTo(parkingLayerGroup);
         marker.on("click", function() { showParkingPopup(item); }); parkingMarkers.push(marker);
     });
@@ -10007,7 +10039,8 @@ function showFishingPopup(item) {
     var tel = item.phone ? "<br><small><b>" + escapeHtml(text.phone) + ":</b> <a href='tel:" + escapeHtml(item.phone) + "' style='color:" + FISHING_COLOR + ";'>" + escapeHtml(item.phone) + "</a></small>" : "";
     setSelectedDestination(item.lat, item.lng, item.name || text.label);
     var likeKey = getMapPlaceLikeKey("fishing", [item.name, item.lat, item.lng]);
-    var popup = L.popup({ className:"tour-popup" }).setLatLng([item.lat, item.lng]).setContent("<b>" + escapeHtml(item.name || text.label) + "</b><br><span class='tour-popup-tag' style='color:" + FISHING_COLOR + ";border-color:" + FISHING_COLOR + ";background:rgba(56,189,248,.18);'>🎣 " + escapeHtml(text.label) + "</span>" + detailHtml + tel + buildMapPlaceLikeButton(likeKey)).openOn(map);
+    var fishingTag = placeTypeTagHtml("fishing", text.label, "color:" + FISHING_COLOR + ";border-color:" + FISHING_COLOR + ";background:rgba(56,189,248,.18);");
+    var popup = L.popup({ className:"tour-popup" }).setLatLng([item.lat, item.lng]).setContent("<b>" + escapeHtml(item.name || text.label) + "</b><br>" + fishingTag + detailHtml + tel + buildMapPlaceLikeButton(likeKey)).openOn(map);
     trackPublicPlacePopup(popup, function() { showFishingPopup(item); });
 }
 function renderFishingMarkers() {
@@ -10019,7 +10052,7 @@ function renderFishingMarkers() {
     }).map(function(item) {
         item._distance = center.distanceTo([item.lat, item.lng]); return item;
     }).sort(function(a, b) { return a._distance - b._distance; }).slice(0, MAP_VIEWPORT_MARKER_LIMIT).forEach(function(item) {
-        var hookSvg = "<svg viewBox='0 0 24 24' aria-hidden='true'><circle cx='8' cy='4.5' r='2.5'></circle><path d='M8 7v8.1a5.4 5.4 0 0 0 10.8 0v-4.4l-3.8 4.1'></path></svg>";
+        var hookSvg = placeIconSvg("fishing", text.label, "place-type-icon-marker");
         var likeKey = getMapPlaceLikeKey("fishing", [item.name, item.lat, item.lng]);
         var icon = L.divIcon({ className:"library-map-marker-wrap fishing-map-marker-wrap", html:"<div class='library-map-marker fishing-map-marker" + (likedTourKeys.has(likeKey) ? " state-liked" : "") + "' data-place-like-key='" + escapeHtml(likeKey) + "'><span class='fishing-map-icon'>" + hookSvg + "</span><span class='library-map-label fishing-map-label'>" + escapeHtml(text.label) + "</span><span class='place-liked-star'>★</span></div>", iconSize:[76,28], iconAnchor:[10,14] });
         var marker = L.marker([item.lat, item.lng], { pane:"fishingPane", icon:icon, title:text.label + " - " + (item.name || "") }).addTo(fishingLayerGroup);
@@ -10251,7 +10284,7 @@ function createRestroomMarker(item) {
     var likeKey = getMapPlaceLikeKey("restroom", [item._giloaKey || item.name || item.addr, item.lat, item.lng]);
     var icon = L.divIcon({
         className: "library-map-marker-wrap restroom-map-marker-wrap",
-        html: "<div class='library-map-marker" + (likedTourKeys.has(likeKey) ? " state-liked" : "") + "' data-place-like-key='" + escapeHtml(likeKey) + "' style='--tour-color:" + RESTROOM_MARKER_COLOR + ";'><span class='library-map-dot' style='background:" + RESTROOM_MARKER_COLOR + ";'></span><span class='library-map-label'>" + escapeHtml(label) + "</span><span class='place-liked-star'>★</span></div>",
+        html: "<div class='library-map-marker" + (likedTourKeys.has(likeKey) ? " state-liked" : "") + "' data-place-like-key='" + escapeHtml(likeKey) + "' style='--tour-color:" + RESTROOM_MARKER_COLOR + ";'><span class='map-place-icon'>" + placeIconSvg("restroom", label, "place-type-icon-marker") + "</span><span class='library-map-label'>" + escapeHtml(label) + "</span><span class='place-liked-star'>★</span></div>",
         iconSize: [76, 28], iconAnchor: [10, 14]
     });
     var marker = L.marker([item.lat, item.lng], { pane: "restroomPane", icon: icon, title: label + " - " + (item.name || "") }).addTo(restroomMarkerLayer);
@@ -10275,7 +10308,7 @@ function renderRestroomMarkers() {
 function showRestroomPopup(item) {
     var label = getRestroomLabel();
     setSelectedDestination(item.lat, item.lng, item.name || label);
-    var tag = "<span class='tour-popup-tag' style='color:" + RESTROOM_MARKER_COLOR + ";border-color:" + RESTROOM_MARKER_COLOR + ";background:rgba(163,230,53,0.18);'>" + escapeHtml(label) + "</span>";
+    var tag = placeTypeTagHtml("restroom", label, "color:" + RESTROOM_MARKER_COLOR + ";border-color:" + RESTROOM_MARKER_COLOR + ";background:rgba(163,230,53,0.18);");
     var tel = item.tel ? "<br><a href='tel:" + item.tel + "' style='color:#4ade80;font-size:12px;'>" + escapeHtml(getTourUiText().phone) + " " + escapeHtml(item.tel) + "</a>" : "";
     var openTypes = {"고객 이용":getTourUiText().customers,"유료":getTourUiText().paid,"공중화장실":getTourUiText().publicRestroom};
     var extra = [openTypes[item.openType] || item.openType, item.hours].filter(Boolean).join(" - ");
@@ -10466,21 +10499,40 @@ var MAP_LAYER_GROUPS = {
     convenience: ["restroom", "parking", "library", "lodging", "community"],
     activity: ["durunubi", "fishing"]
 };
-var MAP_LAYER_MENU_ICONS = {
-    discovery: '<path d="M3 9l9-6 9 6H3zm2 3v7m5-7v7m4-7v7m5-7v7M3 21h18"/>',
-    food: '<path d="M5 3v7m3-7v7M3 3v5a3 3 0 006 0V3M6 11v10M17 3v18m0-18c-4 3-4 9 0 9"/>',
-    convenience: '<rect x="4" y="5" width="16" height="16" rx="3"/><path d="M9 5V3h6v2m-3 5v6m-3-3h6"/>',
-    activity: '<path d="M3 20l6-12 4 7 3-5 5 10H3zM16 3v3m-2-1h4"/>',
-    restroom: '<circle cx="7" cy="5" r="2"/><circle cx="17" cy="5" r="2"/><path d="M4 10h6v6H4zm2 6v5m3-5v5m8-11l-4 7h8l-4-7zm-1 7v4m3-4v4"/>',
-    parking: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 18V7h4a3 3 0 010 6H9"/>',
-    library: '<path d="M12 6C8 3 5 4 3 5v15c3-2 6-1 9 1 3-2 6-3 9-1V5c-2-1-5-2-9 1zm0 0v15"/>',
-    shopping: '<path d="M5 7h14l-1 14H6L5 7zm3 0a4 4 0 018 0M9 12h.01M15 12h.01"/>',
-    lodging: '<path d="M3 21V4m0 12h18v5m-18-9h18v4M7 12V8h5v4m0 0V8h6v4"/>',
-    fishing: '<path d="M4 21L15 3h5v10a3 3 0 01-6 0m0 0v-2"/>',
-    community: '<path d="M3 10l9-7 9 7v11H3V10zm6 11v-7h6v7"/>'
+var MAP_LAYER_ICON_KEYS = {
+    tourism: "attraction",
+    restaurant: "restaurant",
+    shopping: "shopping",
+    restroom: "restroom",
+    parking: "parking",
+    library: "library",
+    lodging: "lodging",
+    durunubi: "trail",
+    fishing: "fishing",
+    community: "community"
 };
-function mapLayerMenuIcon(key) {
-    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (MAP_LAYER_MENU_ICONS[key] || MAP_LAYER_MENU_ICONS.discovery) + '</svg>';
+var MAP_LAYER_GROUP_ICON_ITEMS = {
+    discovery: [{ icon:"attraction", typeId:"12", layer:"tourism" }, { icon:"culture", typeId:"14", layer:"tourism" }, { icon:"leports", typeId:"28", layer:"tourism" }],
+    food: [{ icon:"restaurant", layer:"restaurant" }, { icon:"shopping", layer:"shopping" }],
+    convenience: [{ icon:"restroom", layer:"restroom" }, { icon:"parking", layer:"parking" }, { icon:"library", layer:"library" }, { icon:"lodging", layer:"lodging" }],
+    activity: [{ icon:"trail", layer:"durunubi" }, { icon:"fishing", layer:"fishing" }]
+};
+function getMapLayerItemLabel(key) {
+    var name = document.getElementById("map-layer-name-" + key);
+    return name ? name.textContent.trim() : key;
+}
+function getMapLayerGroupIconLabel(item) {
+    return item.typeId ? getTourTypeName(item.typeId) : getMapLayerItemLabel(item.layer);
+}
+function mapLayerMenuIcon(key, label) {
+    return placeIconSvg(MAP_LAYER_ICON_KEYS[key] || "attraction", label || getMapLayerItemLabel(key), "place-type-icon-menu");
+}
+function mapLayerGroupIcons(group) {
+    return (MAP_LAYER_GROUP_ICON_ITEMS[group] || []).map(function(item) {
+        var enabled = !!mapLayerSettings[item.layer];
+        var label = getMapLayerGroupIconLabel(item);
+        return '<span class="map-layer-group-icon ' + (enabled ? "is-on" : "is-off") + '" title="' + escapeHtml(label) + '">' + placeIconSvg(item.icon, label, "place-type-icon-menu") + '</span>';
+    }).join("");
 }
 function getMapLayerGroupKeys(group) {
     return (MAP_LAYER_GROUPS[group] || []).filter(function(key) {
@@ -10502,16 +10554,26 @@ function toggleMapLayerGroup(group) {
 function syncMapLayerGroupUI() {
     if (!UI_TEXT) return;
     var text = UI_TEXT[currentLang] || UI_TEXT.ko;
+    Object.keys(MAP_LAYER_ICON_KEYS).forEach(function(key) {
+        var toggle = document.getElementById("layer-toggle-" + key);
+        var row = toggle && toggle.closest(".map-layer-item");
+        var icon = row && row.querySelector(".map-layer-menu-icon");
+        if (icon) icon.innerHTML = mapLayerMenuIcon(key, getMapLayerItemLabel(key));
+    });
     Object.keys(MAP_LAYER_GROUPS).forEach(function(group) {
         var card = document.getElementById("map-layer-group-" + group);
         if (!card) return;
         var state = getMapLayerGroupState(group);
         var name = text["map_group_" + group];
         card.dataset.state = state;
+        card.querySelector(".map-layer-group-icons").innerHTML = mapLayerGroupIcons(group);
         card.querySelector(".map-layer-group-name").textContent = name;
         card.querySelector(".map-layer-group-state").textContent = text["map_group_" + state];
         card.querySelector(".map-layer-group-toggle").setAttribute("aria-checked", state === "mixed" ? "mixed" : String(state === "on"));
+        card.querySelector(".map-layer-group-toggle").setAttribute("aria-label", name + ": " + text["map_group_" + state]);
+        card.querySelector(".map-layer-group-toggle").setAttribute("title", name);
         card.querySelector(".map-layer-group-expand").setAttribute("aria-label", name);
+        card.querySelector(".map-layer-group-expand").setAttribute("title", name);
     });
 }
 function initMapLayerGroups() {
@@ -10522,7 +10584,7 @@ function initMapLayerGroups() {
         var card = document.createElement("section");
         card.id = "map-layer-group-" + group;
         card.className = "map-layer-group";
-        card.innerHTML = '<div class="map-layer-group-header"><button type="button" class="map-layer-group-toggle" role="checkbox" aria-checked="false"><span class="map-layer-menu-icon">' + mapLayerMenuIcon(group) + '</span><span class="map-layer-group-name"></span><span class="map-layer-group-state"></span></button><button type="button" class="map-layer-group-expand" aria-expanded="false" aria-controls="map-layer-group-details-' + group + '">▾</button></div><div class="map-layer-group-details" id="map-layer-group-details-' + group + '" hidden></div>';
+        card.innerHTML = '<div class="map-layer-group-header"><button type="button" class="map-layer-group-toggle" role="checkbox" aria-checked="false"><span class="map-layer-group-icons"></span><span class="map-layer-group-name visually-hidden"></span><span class="map-layer-group-state visually-hidden"></span></button><button type="button" class="map-layer-group-expand" aria-expanded="false" aria-controls="map-layer-group-details-' + group + '">▾</button></div><div class="map-layer-group-details" id="map-layer-group-details-' + group + '" hidden></div>';
         var details = card.querySelector(".map-layer-group-details");
         card.querySelector(".map-layer-group-toggle").addEventListener("click", function() { toggleMapLayerGroup(group); });
         card.querySelector(".map-layer-group-expand").addEventListener("click", function(event) {
@@ -10538,7 +10600,7 @@ function initMapLayerGroups() {
             var dot = row.querySelector(".map-layer-dot");
             if (dot) {
                 dot.className = "map-layer-menu-icon";
-                dot.innerHTML = mapLayerMenuIcon(key === "tourism" ? "discovery" : key === "restaurant" || key === "shopping" ? "food" : key === "durunubi" ? "activity" : key);
+                dot.innerHTML = mapLayerMenuIcon(key, getMapLayerItemLabel(key));
             }
             details.appendChild(row);
         });
@@ -10552,6 +10614,8 @@ function syncMapLayerToggleUI(key) {
     var on = !!mapLayerSettings[key];
     sw.classList.toggle("on", on);
     sw.classList.toggle("off", !on);
+    var row = sw.closest(".map-layer-item");
+    if (row) row.dataset.state = on ? "on" : "off";
     syncMapLayerGroupUI();
 }
 function applyMapLayerChange(key) {
@@ -11610,6 +11674,7 @@ function applyUILang(lang) {
     if (el("map-layer-source-durunubi")) el("map-layer-source-durunubi").textContent = t.map_layer_durunubi_source;
     if (el("map-layer-name-community")) el("map-layer-name-community").textContent = t.map_layer_community;
     if (el("map-layer-coming-soon")) el("map-layer-coming-soon").textContent = t.map_layer_coming_soon;
+    syncMapLayerGroupUI();
     setText("photo-camera-label", t.photo_camera);
     setText("photo-gallery-label", t.photo_gallery);
     var recordingControl = el("rec-btn");
