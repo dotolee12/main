@@ -437,8 +437,8 @@ function requestJsonWithRetry(url, options) {
     }
     return attempt(retries);
 }
-const SCREEN_AWAKE_MS = 8 * 60 * 60 * 1000;
-const AUTO_RECORDING_MS = 8 * 60 * 60 * 1000;
+const SCREEN_AWAKE_MS = 1 * 60 * 60 * 1000;
+const AUTO_RECORDING_MS = 1 * 60 * 60 * 1000;
 const MERGE_DISTANCE_M = 6;
 const MERGE_TIME_GAP_MS = 2 * 60 * 1000;
 // Eight hours at the native five-second sampling interval is about 5,760
@@ -3990,54 +3990,54 @@ var LOCATION_RECORDING_DISCLOSURE_TEXT = {
     ko: {
         title: "위치 기록을 시작할까요?",
         copy: "길로아는 사용자가 걸은 길을 지도에 기록하기 위해 위치정보를 사용합니다.",
-        background: "기록을 시작하면 화면이 꺼지거나 다른 앱을 사용하는 동안에도 최대 8시간 동안 위치정보가 계속 기록됩니다.",
+        background: "위치 기록은 최대 1시간 동안 진행됩니다. 다만 화면이 꺼지거나 브라우저가 백그라운드·절전 상태로 전환되면 기록이 중단될 수 있습니다. 중요한 이동 기록 중에는 화면을 켜두세요.",
         privacy: "위치 기록은 먼저 이 기기에 저장됩니다. 사용자가 로그인한 경우에만 본인 전용 서버 공간에 동기화되며 제3자와 공유되지 않습니다. 오른쪽 아래 기록 버튼이나 Android 알림에서 언제든지 기록을 중단할 수 있습니다.",
-        start: "8시간 기록 시작",
+        start: "위치 기록 시작 (최대 1시간)",
         cancel: "나중에"
     },
 
     en: {
         title: "Start location recording?",
         copy: "GILOA uses your location to save the path you walk on your map.",
-        background: "After you start recording, your location will continue to be recorded for up to 8 hours while the screen is off or while you use another app.",
+        background: "Location recording runs for up to 1 hour. It may stop if the screen turns off or the browser enters the background or power-saving mode. Keep the screen on for important journeys.",
         privacy: "Location records are saved on this device first. Only signed-in users sync them to their private server space; they are not shared with third parties. You can stop recording at any time using the record button or the Android notification.",
-        start: "Start 8-hour recording",
+        start: "Start location recording (up to 1 hour)",
         cancel: "Not now"
     },
 
     ja: {
         title: "位置記録を開始しますか？",
         copy: "GILOAは、歩いた道を地図に記録するために位置情報を使用します。",
-        background: "記録を開始すると、画面が消えている間や他のアプリを使用している間も、最大8時間位置情報の記録が続きます。",
+        background: "位置記録は最大1時間行われます。ただし、画面が消えたり、ブラウザがバックグラウンドまたは省電力状態になったりすると、記録が中断される場合があります。重要な移動中は画面をオンにしてください。",
         privacy: "位置記録はまずこの端末に保存されます。ログインした場合のみ本人専用のサーバー領域へ同期され、第三者には共有されません。記録ボタンまたはAndroid通知からいつでも停止できます。",
-        start: "8時間の記録を開始",
+        start: "位置記録を開始（最大1時間）",
         cancel: "後で"
     },
 
     zh: {
         title: "开始记录位置吗？",
         copy: "GILOA使用你的位置信息，在地图上记录你走过的路线。",
-        background: "开始记录后，即使屏幕关闭或正在使用其他应用，位置信息也会继续记录，最长为8小时。",
+        background: "位置记录最长持续1小时。但如果屏幕关闭，或浏览器进入后台或省电状态，记录可能会中断。记录重要行程时请保持屏幕开启。",
         privacy: "位置记录会先保存在此设备。仅在用户登录后同步到其个人服务器空间，不会与第三方共享。你可以随时通过记录按钮或 Android 通知停止记录。",
-        start: "开始8小时记录",
+        start: "开始位置记录（最长1小时）",
         cancel: "暂不"
     },
 
     es: {
         title: "¿Quieres iniciar el registro de ubicación?",
         copy: "GILOA utiliza tu ubicación para guardar en el mapa el camino que recorres.",
-        background: "Después de iniciar el registro, tu ubicación continuará registrándose durante un máximo de 8 horas aunque la pantalla esté apagada o utilices otra aplicación.",
+        background: "El registro de ubicación dura hasta 1 hora. Puede interrumpirse si la pantalla se apaga o si el navegador entra en segundo plano o en modo de ahorro de energía. Mantén la pantalla encendida durante recorridos importantes.",
         privacy: "Los registros se guardan primero en este dispositivo. Solo se sincronizan con el espacio privado del usuario cuando inicia sesión y no se comparten con terceros. Puedes detener el registro en cualquier momento.",
-        start: "Iniciar registro de 8 horas",
+        start: "Iniciar registro de ubicación (máximo 1 hora)",
         cancel: "Ahora no"
     },
 
     fr: {
         title: "Démarrer l’enregistrement de la position ?",
         copy: "GILOA utilise votre position pour enregistrer sur la carte le chemin que vous parcourez.",
-        background: "Après le démarrage, votre position continuera à être enregistrée pendant 8 heures maximum, même lorsque l’écran est éteint ou que vous utilisez une autre application.",
+        background: "L’enregistrement de la position dure jusqu’à 1 heure. Il peut s’interrompre si l’écran s’éteint ou si le navigateur passe en arrière-plan ou en mode économie d’énergie. Gardez l’écran allumé pour les trajets importants.",
         privacy: "Les données sont d’abord enregistrées sur cet appareil. Elles ne sont synchronisées avec l’espace serveur privé qu’après connexion et ne sont pas partagées avec des tiers. Vous pouvez arrêter l’enregistrement à tout moment.",
-        start: "Démarrer l’enregistrement de 8 heures",
+        start: "Démarrer l’enregistrement (1 heure maximum)",
         cancel: "Plus tard"
     }
 };
