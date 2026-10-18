@@ -441,8 +441,8 @@ const SCREEN_AWAKE_MS = 1 * 60 * 60 * 1000;
 const AUTO_RECORDING_MS = 1 * 60 * 60 * 1000;
 const MERGE_DISTANCE_M = 6;
 const MERGE_TIME_GAP_MS = 2 * 60 * 1000;
-// Eight hours at the native five-second sampling interval is about 5,760
-// samples. Leave room for foreground/native overlap without thinning bends.
+// Keep enough points for repeated one-hour recording sessions and
+// foreground/native overlap without thinning bends.
 const MAX_PATH_POINTS = 12000;
 const FULL_VISIBILITY_HOURS = 0;
 const MIN_VISIBILITY_HOURS = 24;
