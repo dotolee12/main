@@ -58,11 +58,15 @@
         if (confirmPassword) confirmPassword.placeholder = rt.confirmPassword;
         var notice = document.getElementById("help-notice");
         if (notice) notice.innerHTML = NOTICE[typeof currentLang === "string" ? currentLang : "ko"] || NOTICE.ko;
+        if (window.GiloaGpxSharing) window.GiloaGpxSharing.applyLanguage();
     }
     function saveSession(value) {
+        var beforeUser = session && session.user ? session.user.id : null;
         session = value && value.access_token ? value : null;
         try { if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session)); else localStorage.removeItem(SESSION_KEY); } catch (_) {}
         renderAccount();
+        var afterUser = session && session.user ? session.user.id : null;
+        if (beforeUser !== afterUser) window.dispatchEvent(new Event("giloa:account-changed"));
     }
     function readSession() {
         try { var value = JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); return value && value.access_token ? value : null; } catch (_) { return null; }
@@ -401,11 +405,22 @@
         initialized = true;
         session = readSession();
         renderAccount();
+        window.dispatchEvent(new Event("giloa:account-changed"));
         if (await handleRecoveryCallback()) return;
         window.addEventListener("online", function() { if (session) syncNow(false); });
         window.addEventListener("giloa:language-changed", applyLanguage);
         if (session) await syncNow(false);
     }
 
-    window.GiloaCloud = { init:init, signInFromForm:signInFromForm, signUpFromForm:signUpFromForm, requestPasswordReset:requestPasswordReset, updatePassword:updatePassword, cancelPasswordReset:cancelPasswordReset, signOut:signOut, syncNow:syncNow, scheduleSync:scheduleSync, applyLanguage:applyLanguage };
+    async function sharingRequest(path, options) {
+        if (!URL_ROOT || !PUBLIC_KEY) throw new Error("GPX_NOT_CONFIGURED");
+        var expectedUser = session && session.user ? session.user.id : null;
+        var active = await ensureSession();
+        if (!active || active !== session || !active.user || !active.user.id || active.user.id !== expectedUser) throw new Error("GPX_SIGN_IN_REQUIRED");
+        return request(path, options);
+    }
+    window.GiloaCloud = { init:init, signInFromForm:signInFromForm, signUpFromForm:signUpFromForm, requestPasswordReset:requestPasswordReset, updatePassword:updatePassword, cancelPasswordReset:cancelPasswordReset, signOut:signOut, syncNow:syncNow, scheduleSync:scheduleSync, applyLanguage:applyLanguage,
+        isConfigured:function() { return !!(URL_ROOT && PUBLIC_KEY); },
+        getSharingUserId:function() { return session && session.user ? session.user.id : null; },
+        sharingRequest:sharingRequest };
 })();

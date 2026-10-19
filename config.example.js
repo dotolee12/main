@@ -6,3 +6,7 @@ window.GILOA_KAKAO_JS_KEY = "YOUR_KAKAO_JS_KEY";
 window.GILOA_TOUR_API_KEY = "YOUR_TOUR_API_KEY";
 window.GILOA_SEOUL_LIBRARY_API_KEY = "YOUR_SEOUL_LIBRARY_API_KEY";
 window.GILOA_VARCO_API_KEY = "YOUR_VARCO_API_KEY";
+
+// Supabase public project credentials. Never use a service_role/secret key here.
+window.GILOA_SUPABASE_URL = "";
+window.GILOA_SUPABASE_PUBLISHABLE_KEY = "";
