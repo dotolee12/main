@@ -630,21 +630,6 @@ body.gft-active .giloa-tutorial,
 .gpx-saved-item.active-route { border-color: #4db8ff; background: rgba(77,184,255,0.16); }
 .gpx-saved-icon { font-size: 18px; flex-shrink: 0; }
 .gpx-saved-info { flex: 1; min-width: 0; }
-.gpx-saved-share { flex: 0 0 auto; min-height: 32px; padding: 4px 7px; border: 1px solid rgba(79,195,247,.5); border-radius: 7px; background: rgba(79,195,247,.12); color: #fff; cursor: pointer; font: inherit; font-size: 11px; }
-.gpx-sharing { margin: 18px 0 12px; padding: 12px; border: 1px solid rgba(255,255,255,.18); border-radius: 12px; color: #fff; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
-.gpx-sharing [hidden] { display: none !important; }
-.gpx-sharing h3 { font-size: 14px; margin: 0 0 9px; }
-.gpx-sharing h3:not(:first-child) { margin-top: 18px; }
-.gpx-sharing p { margin: 8px 0; color: rgba(255,255,255,.72); }
-.gpx-sharing label:not(.gpx-share-consent), .gpx-sharing small { display: block; margin: 8px 0 4px; }
-.gpx-sharing input[type="text"], .gpx-sharing select { box-sizing: border-box; display: block; width: 100%; min-width: 0; min-height: 40px; border: 1px solid rgba(255,255,255,.25); border-radius: 8px; padding: 6px 8px; background: #111827; color: #fff; font: inherit; }
-.gpx-sharing button { min-height: 36px; max-width: 100%; margin: 8px 6px 0 0; padding: 7px 10px; border: 1px solid rgba(79,195,247,.5); border-radius: 8px; background: rgba(79,195,247,.14); color: #fff; font: inherit; cursor: pointer; }
-.gpx-sharing button:disabled { opacity: .45; cursor: default; }
-.gpx-share-consent { display: flex; align-items: flex-start; gap: 7px; margin: 10px 0; }
-.gpx-share-consent input { flex: 0 0 auto; margin-top: 4px; }
-.gpx-received-item { padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.12); }
-.gpx-received-item strong { display: block; }
-.gpx-sharing #gpx-share-status { color: #8ee8ff; }
 .gpx-saved-name { font-size: 13px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gpx-saved-meta { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 2px; }
 .gpx-saved-del { width: 24px; height: 24px; border-radius: 6px; background: rgba(255,80,80,0.15); border: 1px solid rgba(255,80,80,0.3); color: #ff6b6b; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: 0.15s; }
@@ -2098,7 +2083,7 @@ body.giloa-restoring #map, body.giloa-restoring #top-bar, body.giloa-restoring #
 
 /* Record sync beside the travel identity, stacked on narrow screens. */
 .route-dates-popup{min-width:180px;line-height:1.6}.route-dates-popup strong{display:block;padding-right:18px}.route-dates-popup ul{max-height:220px;overflow:auto;margin:8px 0;padding-left:18px}.route-dates-popup li{margin:4px 0}
-.hud-identity-sync-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,360px);gap:14px;align-items:start;padding-top:8px}
+.hud-identity-sync-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start;padding-top:8px}
 .hud-identity-sync-layout>.rpg-growth-panel{min-width:0;margin:0}
 .hud-identity-sync-layout>.cloud-account-card{min-width:0;margin:0;background:linear-gradient(145deg,rgba(26,32,53,.98),rgba(14,20,39,.96))}
 .hud-identity-sync-layout .cloud-account-input{box-sizing:border-box;min-width:0}

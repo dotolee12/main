@@ -3991,7 +3991,7 @@ var LOCATION_RECORDING_DISCLOSURE_TEXT = {
         title: "위치 기록을 시작할까요?",
         copy: "길로아는 사용자가 걸은 길을 지도에 기록하기 위해 위치정보를 사용합니다.",
         background: "위치 기록은 최대 1시간 동안 진행됩니다. 다만 화면이 꺼지거나 브라우저가 백그라운드·절전 상태로 전환되면 기록이 중단될 수 있습니다. 중요한 이동 기록 중에는 화면을 켜두세요.",
-        privacy: "위치 기록은 먼저 이 기기에 저장됩니다. 사용자가 로그인한 경우에만 본인 전용 서버 공간에 동기화되며 제3자와 공유되지 않습니다. 오른쪽 아래 기록 버튼이나 Android 알림에서 언제든지 기록을 중단할 수 있습니다.",
+        privacy: "위치 기록은 이 기기에 저장되며 길로아 서버로 전송되지 않습니다. GPX 파일로 직접 저장할 수 있습니다. 오른쪽 아래 기록 버튼이나 Android 알림에서 언제든지 기록을 중단할 수 있습니다.",
         start: "위치 기록 시작 (최대 1시간)",
         cancel: "나중에"
     },
@@ -4000,7 +4000,7 @@ var LOCATION_RECORDING_DISCLOSURE_TEXT = {
         title: "Start location recording?",
         copy: "GILOA uses your location to save the path you walk on your map.",
         background: "Location recording runs for up to 1 hour. It may stop if the screen turns off or the browser enters the background or power-saving mode. Keep the screen on for important journeys.",
-        privacy: "Location records are saved on this device first. Only signed-in users sync them to their private server space; they are not shared with third parties. You can stop recording at any time using the record button or the Android notification.",
+        privacy: "Location records stay on this device and are not sent to GILOA servers. You can save them as GPX files. Stop recording at any time using the record button or the Android notification.",
         start: "Start location recording (up to 1 hour)",
         cancel: "Not now"
     },
@@ -4009,7 +4009,7 @@ var LOCATION_RECORDING_DISCLOSURE_TEXT = {
         title: "位置記録を開始しますか？",
         copy: "GILOAは、歩いた道を地図に記録するために位置情報を使用します。",
         background: "位置記録は最大1時間行われます。ただし、画面が消えたり、ブラウザがバックグラウンドまたは省電力状態になったりすると、記録が中断される場合があります。重要な移動中は画面をオンにしてください。",
-        privacy: "位置記録はまずこの端末に保存されます。ログインした場合のみ本人専用のサーバー領域へ同期され、第三者には共有されません。記録ボタンまたはAndroid通知からいつでも停止できます。",
+        privacy: "位置記録はこの端末に保存され、GILOAのサーバーには送信されません。GPXファイルとして保存できます。記録ボタンまたはAndroid通知からいつでも停止できます。",
         start: "位置記録を開始（最大1時間）",
         cancel: "後で"
     },
@@ -4018,7 +4018,7 @@ var LOCATION_RECORDING_DISCLOSURE_TEXT = {
         title: "开始记录位置吗？",
         copy: "GILOA使用你的位置信息，在地图上记录你走过的路线。",
         background: "位置记录最长持续1小时。但如果屏幕关闭，或浏览器进入后台或省电状态，记录可能会中断。记录重要行程时请保持屏幕开启。",
-        privacy: "位置记录会先保存在此设备。仅在用户登录后同步到其个人服务器空间，不会与第三方共享。你可以随时通过记录按钮或 Android 通知停止记录。",
+        privacy: "位置记录保存在此设备，不会发送到GILOA服务器。你可以保存为GPX文件，并随时通过记录按钮或Android通知停止记录。",
         start: "开始位置记录（最长1小时）",
         cancel: "暂不"
     },
@@ -4027,7 +4027,7 @@ var LOCATION_RECORDING_DISCLOSURE_TEXT = {
         title: "¿Quieres iniciar el registro de ubicación?",
         copy: "GILOA utiliza tu ubicación para guardar en el mapa el camino que recorres.",
         background: "El registro de ubicación dura hasta 1 hora. Puede interrumpirse si la pantalla se apaga o si el navegador entra en segundo plano o en modo de ahorro de energía. Mantén la pantalla encendida durante recorridos importantes.",
-        privacy: "Los registros se guardan primero en este dispositivo. Solo se sincronizan con el espacio privado del usuario cuando inicia sesión y no se comparten con terceros. Puedes detener el registro en cualquier momento.",
+        privacy: "Los registros se guardan en este dispositivo y no se envían a los servidores de GILOA. Puedes guardarlos como archivos GPX y detener el registro en cualquier momento.",
         start: "Iniciar registro de ubicación (máximo 1 hora)",
         cancel: "Ahora no"
     },
@@ -4036,7 +4036,7 @@ var LOCATION_RECORDING_DISCLOSURE_TEXT = {
         title: "Démarrer l’enregistrement de la position ?",
         copy: "GILOA utilise votre position pour enregistrer sur la carte le chemin que vous parcourez.",
         background: "L’enregistrement de la position dure jusqu’à 1 heure. Il peut s’interrompre si l’écran s’éteint ou si le navigateur passe en arrière-plan ou en mode économie d’énergie. Gardez l’écran allumé pour les trajets importants.",
-        privacy: "Les données sont d’abord enregistrées sur cet appareil. Elles ne sont synchronisées avec l’espace serveur privé qu’après connexion et ne sont pas partagées avec des tiers. Vous pouvez arrêter l’enregistrement à tout moment.",
+        privacy: "Les parcours sont enregistrés sur cet appareil et ne sont pas envoyés aux serveurs de GILOA. Vous pouvez les enregistrer en fichiers GPX et arrêter l’enregistrement à tout moment.",
         start: "Démarrer l’enregistrement (1 heure maximum)",
         cancel: "Plus tard"
     }
@@ -5073,7 +5073,7 @@ function exportGpx() {
 }
 function loadGpxSaves() { try { return JSON.parse(localStorage.getItem(GPX_SAVES_KEY) || "[]"); } catch(e) { return []; } }
 function saveGpxSaves(saves) {
-    try { localStorage.setItem(GPX_SAVES_KEY, JSON.stringify(saves)); window.dispatchEvent(new Event("giloa:gpx-saves-changed")); return true; }
+    try { localStorage.setItem(GPX_SAVES_KEY, JSON.stringify(saves)); return true; }
     catch (error) { console.warn("GPX save failed", error && error.name); return false; }
 }
 function updateGpxSavedList() { var container = document.getElementById("gpx-saved-list"); if (!container) return; var t = UI_TEXT[currentLang] || UI_TEXT.ko; var saves = loadGpxSaves(); if (saves.length === 0) { container.innerHTML = '<p class="empty-message">' + escapeHtml(t.gpx_empty) + '</p>'; return; } container.innerHTML = ""; saves.slice().reverse().forEach(function(s) { var item = document.createElement("div"); item.className = "gpx-saved-item" + (s.id === activeGpxId ? " active-route" : ""); var icon = document.createElement("span"); icon.className = "gpx-saved-icon"; icon.textContent = s.id === activeGpxId ? t.gpx_showing : t.gpx_route; var info = document.createElement("div"); info.className = "gpx-saved-info"; var nameEl = document.createElement("div"); nameEl.className = "gpx-saved-name"; nameEl.textContent = s.name; var meta = document.createElement("div"); meta.className = "gpx-saved-meta"; meta.textContent = new Date(s.createdAt).toLocaleDateString(currentLang) + " · " + s.pointCount + " " + t.gpx_points; info.appendChild(nameEl); info.appendChild(meta); var del = document.createElement("div"); del.className = "gpx-saved-del"; del.textContent = t.gpx_delete; del.addEventListener("click", function(e) { e.stopPropagation(); deleteGpxSave(s.id); }); item.appendChild(icon); item.appendChild(info); item.appendChild(del); item.addEventListener("click", function() { toggleGpxRoute(s); }); container.appendChild(item); }); }
@@ -5864,7 +5864,6 @@ function persistState(options) {
         var durableSaved = persistDurableStorageSnapshot();
         persistentStateDirty = false;
         lastCheckpointAt = Date.now();
-        if (window.GiloaCloud && typeof window.GiloaCloud.scheduleSync === "function") window.GiloaCloud.scheduleSync();
         if (GILOA_PERSISTENCE_DEBUG) console.log("[GILOA CHECKPOINT] " + JSON.stringify({ path:pathCoordinates.length, rawGps:rawGpsPoints.length, distance:totalDistance, photos:photos.length, timestamp:lastCheckpointAt, durable:durableSaved }));
         return true;
     } catch (e) {
@@ -8221,7 +8220,6 @@ async function init() {
     // frozen map. initializePersistentJourneyState() remains the source of truth.
     await new Promise(function(resolve) { setTimeout(resolve, 0); });
     await runInitStep("saved journey", initializePersistentJourneyState);
-    runInitStep("cloud sync", function() { return window.GiloaCloud && window.GiloaCloud.init ? window.GiloaCloud.init() : null; });
     if (isNativeRouteTrackingActive()) {
         restoreNativeRecordingSession();
         isRecording = true;
@@ -11730,7 +11728,6 @@ function applyUILang(lang) {
     if (typeof applySupplementalStaticLanguage === "function") applySupplementalStaticLanguage();
     if (typeof refreshEarlyLanguageUI === "function") refreshEarlyLanguageUI();
     if (typeof refreshCollectionLanguageUI === "function") refreshCollectionLanguageUI();
-    if (window.GiloaCloud && typeof window.GiloaCloud.applyLanguage === "function") window.GiloaCloud.applyLanguage();
     if (typeof ONBOARDING_I18N !== "undefined" && ONBOARDING_I18N) renderGiloaOnboarding();
     if (typeof introStoryState !== "undefined" && introStoryState && introStoryState.active && introStoryState.mode === "story") renderIntroStory();
     refreshPublicPlacePopupLanguage();
