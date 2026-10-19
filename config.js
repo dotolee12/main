@@ -19,3 +19,7 @@ window.GILOA_SEOUL_RESTROOM_API_BASE = "";
 // even though the rest of the UI has loaded.
 window.GILOA_CARTO_TILE_URL =
     "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+// Public Supabase project settings. Access to GPX transfers is enforced by RLS.
+window.GILOA_SUPABASE_URL = "https://jupbezsrqdkptdinvlhk.supabase.co";
+window.GILOA_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_zIy-27p32ofSagviKaTvlQ_2ACahNqY";
