@@ -1,0 +1,16 @@
+.giloa-author.key
+node_modules/
+protected-dist/
+*.apk
+*.aab
+*.jks
+*.keystore
+*.hprof
+**/keystore.properties
+**/local.properties
+**/build/
+**/.gradle/
+android-app/app/src/main/assets/
+backups/
+output/
+*.log

@@ -5,17 +5,20 @@
 window.GILOA_KAKAO_JS_KEY = "1736de3a1f9f59a3e17cf569163687f1";
 window.GILOA_TOUR_API_KEY = "c6995449e23f94083d88f198fe2617a8f957a2063bc6ac0d19816c9f27a0ed6c";
 window.GILOA_SEOUL_LIBRARY_API_KEY = "756b506d69646f7439356a526f5a47";
-// 서울 열린데이터광장: 서울시 공중화장실 위치정보(mgisToiletPoi)
 window.GILOA_SEOUL_RESTROOM_API_KEY = "664a4d746c646f743439646e664d58";
-// HTTPS 웹 배포에서는 서울시 API의 HTTP 주소를 직접 호출할 수 없습니다.
-// 운영 서버에 HTTPS 프록시를 마련한 경우 그 기본 주소를 아래에 지정하세요.
-// 예: "https://example.com/seoul-openapi"
-window.GILOA_SEOUL_LIBRARY_API_BASE = "";
-window.GILOA_SEOUL_RESTROOM_API_BASE = "";
-
-// OpenStreetMap Standard tiles for the Leaflet base map. Keep this value
-// available before map-bootstrap.js and script.js run; without it Leaflet
-// cannot expand {z}/{x}/{y}, so the web deployment remains on "Map loading"
-// even though the rest of the UI has loaded.
+window.GILOA_VARCO_API_KEY = "";
+window.GILOA_FISHING_API_KEY = "";
+// CARTO Voyager raster basemap. Keep this key restricted to GILOA's allowed
+// web origins in the CARTO dashboard before production deployment.
+window.GILOA_CARTO_BASEMAP_KEY = "cb1_3jvp_1_3c01cebe7b9b100e449d1ac0";
 window.GILOA_CARTO_TILE_URL =
-    "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+    "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=" +
+    encodeURIComponent(window.GILOA_CARTO_BASEMAP_KEY);
+
+// Supabase public client settings. The publishable key is safe to ship in the
+// app; database and Storage access remains protected by Supabase RLS policies.
+window.GILOA_SUPABASE_URL = "";
+window.GILOA_SUPABASE_PUBLISHABLE_KEY = "";
+
+// Temporary pause: retain sessions and records without cloud requests.
+window.GILOA_CLOUD_SYNC_ENABLED = false;

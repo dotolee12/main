@@ -306,3 +306,167 @@
   function start(force){if(active)cleanup();if(!force&&["1","true"].indexOf(localStorage.getItem(DONE))>=0)return false;if(typeof window.closeMapTransientPanels==="function")window.closeMapTransientPanels();if(typeof window.toggleSidebar==="function")window.toggleSidebar(false);root=document.getElementById("giloa-first-tutorial");nextBtn=document.getElementById("gft-next");secondBtn=document.getElementById("gft-secondary");copy=document.getElementById("gft-copy");detail=document.getElementById("gft-error-detail");hole=document.getElementById("gft-spotlight");if(!root||!nextBtn||!secondBtn||!hole)return false;active=true;step=S.HELLO;tutorialLocationResolved=false;root.className="gft active show-guide phase-map skip-ready";root.setAttribute("aria-hidden","false");document.body.classList.add("gft-active");document.getElementById("gft-skip").textContent=tx().skip;nextBtn.onclick=next;secondBtn.onclick=secondary;document.getElementById("gft-skip").onclick=function(event){if(event)event.stopPropagation();confirmSkip();};document.getElementById("gft-continue").onclick=function(){document.getElementById("gft-skip-confirm").hidden=true;};document.getElementById("gft-exit").onclick=function(){finish(true);};var dim=root.querySelector(".gft-dim");if(dim)dim.onclick=function(){finish(true);};resizeFn=function(){if(active)render();};locationReadyHandler=function(){if(active&&step===S.LOCATE&&!tutorialLocationResolved)completeLocation(tutorialLocationRequestId);};mapViewHandler=function(){if(active&&step===S.FOUND)spotlightCurrentLocation();};window.addEventListener("giloa:location-ready",locationReadyHandler);window.addEventListener("resize",resizeFn);if(typeof map!=="undefined"&&map&&map.on)map.on("move zoom viewreset",mapViewHandler);render();return true;}
   window.onGiloaTutorialLocationError=function(error){if(active&&step===S.LOCATE){if(validLocation())completeLocation(tutorialLocationRequestId);else locationFailed(error,tutorialLocationRequestId);}};window.startGiloaTutorial=function(){return start(true);};window.startGiloaTutorialIfNeeded=function(){return start(false);};window.resetGiloaTutorial=function(){localStorage.removeItem(DONE);};window.completeTutorialMovementForTest=function(){if(active&&step===S.WALK)movementDone();};window.isGiloaTutorialActive=function(){return active;};window.initGiloaFirstJourneyTutorial=function(){};window.openGiloaFirstJourneyTutorial=window.startGiloaTutorial;window.closeGiloaFirstJourneyTutorial=function(done){finish(!!done);};
 })();
+
+/* Screen-wide control guide: annotations only, no GPS or journey mutations. */
+(function () {
+  "use strict";
+  var languages=["ko","en","ja","zh","es","fr"], DONE="giloa-tutorial-completed";
+  var legacyActive=window.isGiloaTutorialActive, legacyClose=window.closeGiloaFirstJourneyTutorial;
+  var active=false,root,layer,svg,footer,observer,frame=0,settle=0,mode="map",annotated=[],pointerStart=null,pointerMoved=false;
+  var words={
+    map:["화면 한눈에 보기","Your screen at a glance","画面をひと目で","一眼了解屏幕","La pantalla de un vistazo","Votre écran en un regard"],
+    sidebar:["메뉴 한눈에 보기","Menu at a glance","メニューをひと目で","一眼了解菜单","El menú de un vistazo","Le menu en un regard"],
+    photo:["사진 메뉴 한눈에 보기","Photo menu at a glance","写真メニューをひと目で","一眼了解照片菜单","El menú de fotos","Le menu des photos"],
+    help:["도움말 메뉴 한눈에 보기","Help menu at a glance","ヘルプをひと目で","一眼了解帮助菜单","El menú de ayuda","Le menu d’aide"],
+    daily:["오늘의 할 일","Today's tasks","今日のミッション","今日任务","Tareas de hoy","Les tâches du jour"],
+    hud:["나의 길로와 성장","Your Gilo and progress","ギロと成長記録","我的Gilo与成长","Tu Gilo y progreso","Votre Gilo et vos progrès"],
+    tour:["주변 여행지","Nearby places","周辺のスポット","附近地点","Lugares cercanos","Les lieux proches"],
+    hint:["버튼을 눌러 살펴보세요. 빈 지도나 ×를 누르면 안내가 닫혀요.","Explore the buttons. Tap the empty map or × to close this guide.","ボタンを試してみよう。地図の空白か×で案内を閉じます。","点击按钮体验。点地图空白处或×关闭说明。","Explora los botones. Toca el mapa vacío o × para cerrar la guía.","Essayez les boutons. Touchez la carte vide ou × pour fermer le guide."],
+    detail:["열린 화면의 버튼을 함께 설명해요.","All the buttons on this screen are explained together.","この画面のボタンをまとめて説明します。","一起说明当前屏幕上的按钮。","Aquí se explican todos los botones de esta pantalla.","Les boutons de cet écran sont expliqués ensemble."],
+    done:["안내 끝내기","Finish guide","案内を閉じる","结束说明","Terminar guía","Fermer le guide"],
+    back:["지도로 돌아가기","Back to map","地図に戻る","返回地图","Volver al mapa","Revenir à la carte"],
+    menuKey:["메뉴|기록 · 지도 표시","Menu|Records · map layers","メニュー|記録・地図表示","菜单|记录与地图图层","Menú|Registros y capas","Menu|Parcours et carte"],
+    tasksKey:["할 일|오늘의 미션과 진행 상태","Tasks|Today's missions and progress","ミッション|今日の目標と進み具合","任务|今日目标与进度","Tareas|Misiones y progreso de hoy","Tâches|Missions et progrès du jour"],
+    tourKey:["주변 관광지|지도 주변의 여행지 찾기","Nearby places|Find places around the map","周辺スポット|地図の周りの観光地を探す","附近景点|查找地图周边的地点","Lugares cercanos|Busca sitios alrededor del mapa","Lieux proches|Trouvez des lieux sur la carte"],
+    photoKey:["사진|촬영·내 사진 가져오기","Photos|Take or import a photo","写真|撮影・写真の取り込み","照片|拍摄或导入照片","Fotos|Hacer o importar una foto","Photos|Prendre ou importer une photo"],
+    directionsKey:["길찾기|카카오맵으로 길 안내","Directions|Route with KakaoMap","道案内|KakaoMapで道案内","路线导航|打开KakaoMap导航","Cómo llegar|Ruta con KakaoMap","Itinéraire|Trajet avec KakaoMap"],
+    recordKey:["현재 위치 · 기록|위치 확인·기록 시작/중단","Location · record|Locate yourself; start or stop a route","現在地・記録|現在地の確認・記録の開始／停止","位置与记录|定位、开始或停止记录","Ubicación · registro|Localízate e inicia o detén la ruta","Position · parcours|Se situer ; démarrer ou arrêter"],
+    helpKey:["도움말|설명·문의·언어 설정","Help|Guide, contact and language","ヘルプ|使い方・問い合わせ・言語","帮助|说明、联系与语言设置","Ayuda|Guía, contacto e idioma","Aide|Guide, contact et langue"],
+    growthKey:["나의 길로|레벨·여행색·성장 기록","My Gilo|Level, travel style and progress","マイギロ|レベル・旅の色・成長記録","我的Gilo|等级、旅行风格与成长","Mi Gilo|Nivel, estilo y progreso","Mon Gilo|Niveau, style et progrès"],
+    layers:["지도에 표시할 여행지·시설을 고르세요.","Choose the places and facilities shown on the map.","地図に表示する場所・施設を選びます。","选择地图上显示的地点与设施。","Elige los lugares y servicios del mapa.","Choisissez les lieux et services affichés."],
+    photos:["저장한 사진과 촬영 위치를 다시 봐요.","Revisit saved photos and where they were taken.","保存した写真と撮影場所を見返します。","查看保存的照片与拍摄地点。","Revisa tus fotos y dónde las hiciste.","Revoyez les photos et leurs lieux de prise de vue."],
+    routes:["걸은 경로를 저장하거나 GPX를 불러와요.","Save walked routes or import GPX files.","歩いたルートを保存・GPXを読み込みます。","保存走过的路线或导入GPX文件。","Guarda recorridos o importa archivos GPX.","Enregistrez vos parcours ou importez un GPX."],
+    visits:["방문한 장소와 방문 기록을 확인해요.","See the places you visited and your visit history.","訪れた場所と訪問記録を確認します。","查看去过的地点与访问记录。","Consulta tus lugares e historial de visitas.","Retrouvez les lieux visités et votre historique."],
+    items:["받은 아이템과 지역 뱃지를 확인해요.","See earned items and regional badges.","獲得したアイテムと地域バッジを確認します。","查看获得的物品与地区徽章。","Consulta objetos y medallas regionales.","Consultez vos objets et badges régionaux."],
+    camera:["카메라를 열어 새 사진을 찍어요.","Open the camera to take a new photo.","カメラを開いて写真を撮ります。","打开相机拍摄新照片。","Abre la cámara para hacer una foto.","Ouvrez l’appareil photo pour une nouvelle photo."],
+    gallery:["휴대폰 사진을 가져와 지도에 남겨요.","Import phone photos onto your map.","スマホの写真を地図に取り込みます。","把手机照片导入地图。","Importa las fotos del móvil al mapa.","Importez les photos du téléphone sur la carte."],
+    timeTrace:["같은 장소의 예전 사진과 지금을 비교해요.","Compare a place's old photo with today's view.","同じ場所の昔の写真と今を比べます。","比较同一地点过去的照片与现在。","Compara una foto antigua con el lugar actual.","Comparez une ancienne photo au lieu actuel."],
+    contact:["문의 · 불편 신고","Questions and feedback","質問・不具合の連絡","提问与问题反馈","Consultas y problemas","Questions et remarques"],
+    guide:["버튼 설명 · 길로 부르기","Button guide and Call Gilo","ボタン説明・ギロを呼ぶ","按钮说明与呼叫Gilo","Guía y Llamar a Gilo","Guide et Appeler Gilo"],
+    market:["지도 주변 시세 보기","Prices around the map","地図周辺の相場を見る","查看附近价格信息","Precios cerca del mapa","Prix autour de la carte"],
+    language:["표시 언어 선택","Choose display language","表示言語を選ぶ","选择显示语言","Elegir idioma","Choisir la langue"],
+    toggle:["지도 표시를 켜거나 꺼요.","Turn this map layer on or off.","地図表示をオン・オフにします。","开启或关闭此地图图层。","Activa o desactiva esta capa.","Activez ou désactivez cette couche."],
+    expand:["세부 항목 펼치기 / 접기","Expand / collapse details","詳細を開く／閉じる","展开或收起详细选项","Abrir / cerrar detalles","Ouvrir / fermer les détails"],
+    close:["닫고 지도로 돌아가요.","Close this screen and return to the map.","閉じて地図に戻ります。","关闭此屏幕并返回地图。","Cierra esta pantalla y vuelve al mapa.","Fermez cet écran et revenez à la carte."],
+    task:["눌러서 이 미션을 시작하거나 확인해요.","Tap to start or check this mission.","押してミッションを始める・確認します。","点击开始或查看此任务。","Toca para empezar o revisar la misión.","Touchez pour commencer ou voir la mission."],
+    details:["내 여행색과 성장 내용을 펼쳐 봐요.","Expand your travel style and growth details.","旅の色と成長の詳細を開きます。","展开旅行风格与成长详情。","Abre tu estilo de viaje y progreso.","Dépliez votre style de voyage et vos progrès."],
+    source:["데이터 출처","Data credits","データの出典","数据来源","Fuentes de datos","Sources des données"],
+    account:["계정과 기록 보호","Account and record protection","アカウントと記録の保護","账户与记录保护","Cuenta y protección","Compte et protection"],
+    privacy:["위치·사진 정보 안내","Location and photo privacy","位置・写真情報の案内","位置与照片隐私","Privacidad de ubicación y fotos","Confidentialité des positions et photos"],
+    story:["길로아 소개와 이야기","About Giloa and its story","ギロアの紹介と物語","Giloa介绍与故事","Giloa y su historia","Giloa et son histoire"],
+    routeRange:["− / + 로 저장할 시간 범위를 바꿔요.","Use − / + to choose the route's time range.","− / + で保存する時間範囲を変えます。","用 − / + 选择要保存的时间范围。","Usa − / + para elegir el intervalo de la ruta.","Choisissez la période du parcours avec − / +."],
+    routeSave:["선택한 시간의 발걸음을 GPX 파일로 저장해요.","Save the selected route period as a GPX file.","選んだ時間のルートをGPXで保存します。","把所选时间段的路线保存为GPX文件。","Guarda el periodo elegido como archivo GPX.","Enregistrez la période choisie dans un GPX."],
+    routeImport:["기기에 있는 GPX 파일을 지도에 불러와요.","Load a GPX file from your device onto the map.","端末のGPXファイルを地図に読み込みます。","把设备上的GPX文件导入地图。","Importa un archivo GPX del dispositivo al mapa.","Importez sur la carte un GPX de votre appareil."],
+    atlas:["지역별 체류 시간과 획득한 뱃지를 살펴봐요.","See time spent in each region and earned badges.","地域ごとの滞在時間と獲得バッジを見ます。","查看各地区停留时间与获得的徽章。","Consulta el tiempo por región y las medallas.","Consultez les séjours par région et les badges."]
+  };
+  function text(key){var index=languages.indexOf(typeof currentLang==="string"?currentLang:"ko");return (words[key]||words.hint)[Math.max(0,index)];}
+  function visible(el){if(!el)return false;var r=el.getBoundingClientRect(),s=getComputedStyle(el);if(!(r.width>0&&r.height>0&&r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth&&s.display!=="none"&&s.visibility!=="hidden"&&Number(s.opacity)!==0))return false;for(var parent=el.parentElement;parent&&parent!==document.body;parent=parent.parentElement){var ps=getComputedStyle(parent),pr=parent.getBoundingClientRect();if(/auto|scroll|hidden/.test(ps.overflowY)&&(r.bottom<=pr.top||r.top>=pr.bottom))return false;if(/auto|scroll|hidden/.test(ps.overflowX)&&(r.right<=pr.left||r.left>=pr.right))return false;}return true;}
+  function open(id,cls){var el=document.getElementById(id);return el&&el.classList.contains(cls||"open");}
+  function detectMode(){if(open("help-popup","show"))return"help";if(open("sidebar"))return"sidebar";if(open("photo-menu"))return"photo";if(open("daily-task-panel"))return"daily";if(open("hud","expanded"))return"hud";var tour=document.getElementById("tour-panel");if(tour&&!tour.classList.contains("collapsed"))return"tour";return"map";}
+  function descriptors(){var list=[];function add(selector,key,inline,side){var el=document.querySelector(selector);if(visible(el))list.push({el:el,key:key,inline:!!inline,side:side||"left"});}
+    if(mode==="map"){
+      add("#ham-btn","menuKey",false,"right");add("#daily-task-tag","tasksKey",false,"below");add("#tour-header","tourKey",false,"below");
+      add("#hud-mini-avatar","growthKey",false,"right");add("#photo-btn","photoKey");add("#traffic-btn","directionsKey");add("#rec-btn","recordKey");add("#help-btn","helpKey",false,"above");
+    }else if(mode==="sidebar"){
+      add("#map-layer-header","layers",true);add("#tab-photo","photos",true);add("#tab-gpx","routes",true);add("#tab-visit","visits",true);add("#tab-item","items",true);
+      [["sources","source"],["account","account"],["privacy","privacy"],["about","story"]].forEach(function(row){add("#info-link-"+row[0],row[1],true);});
+      if(visible(document.getElementById("panel-gpx"))){add(".gpx-dial-row","routeRange",true);add("#gpx-save-btn","routeSave",true);add("#gpx-import-btn","routeImport",true);}
+      add(".region-badge-entry-card","atlas",true);
+      if(open("map-layer-panel","expanded")){
+        document.querySelectorAll("#map-layer-panel .map-layer-group-toggle").forEach(function(el){if(visible(el))list.push({el:el,key:"toggle",inline:true});});
+        document.querySelectorAll("#map-layer-panel .map-layer-group-expand").forEach(function(el){if(visible(el))list.push({el:el,key:"expand",inline:true});});
+        document.querySelectorAll("#map-layer-panel .map-layer-item").forEach(function(el){if(visible(el))list.push({el:el,key:"toggle",inline:true});});
+      }
+    }else if(mode==="photo"){
+      ["camera","gallery","timeTrace"].forEach(function(key,i){add("#photo-menu .photo-menu-item:nth-of-type("+(i+1)+")",key,true);});
+    }else if(mode==="help"){
+      [["ask","contact"],["info","guide"],["market","market"],["settings","language"]].forEach(function(row){add("#htab-"+row[0],row[1],true);});
+    }else if(mode==="daily"){
+      document.querySelectorAll(".daily-task-action").forEach(function(el){if(visible(el))list.push({el:el,key:"task",inline:true});});
+    }else if(mode==="hud"){add("#rpg-details-toggle","details",true);}
+    else if(mode==="tour"){add("#tour-expand-btn","expand",true);add("#tour-header","tourKey",false,"below");}
+    return list;
+  }
+  function clearInline(){annotated.forEach(function(el){var note=el.querySelector(":scope > .sg-inline-description");if(note)note.remove();el.classList.remove("sg-inline-host");});annotated=[];}
+  function addInline(item){var note=document.createElement("span");note.className="sg-inline-description";note.textContent=text(item.key);item.el.classList.add("sg-inline-host");item.el.appendChild(note);annotated.push(item.el);}
+  function box(el){var r=el.getBoundingClientRect();return {x:r.left,y:r.top,w:r.width,h:r.height};}
+  function overlaps(a,b,p){p=p||0;return Math.max(0,Math.min(a.x+a.w+p,b.x+b.w+p)-Math.max(a.x-p,b.x-p))*Math.max(0,Math.min(a.y+a.h+p,b.y+b.h+p)-Math.max(a.y-p,b.y-p));}
+  function svgEl(tag,attrs){var el=document.createElementNS("http://www.w3.org/2000/svg",tag);Object.keys(attrs).forEach(function(key){el.setAttribute(key,attrs[key]);});svg.appendChild(el);return el;}
+  function choosePosition(target,w,h,side,obstacles,titleWidth,alignRight){
+    if(side==="inside")return{x:Math.max(52,target.x+52),y:Math.max(8,Math.min(innerHeight-h-8,target.y+(target.h-h)/2)),w:Math.min(w,innerWidth-64),h:h,side:"inside"};
+    var order=[side].concat(["left","right","below","above"].filter(function(s){return s!==side;})),best,bestScore=Infinity;
+    order.forEach(function(direction,index){[14,68,122,176].forEach(function(gap){[0,-h-10,h+10,-2*(h+10),2*(h+10)].forEach(function(offset){
+      var x,y;if(direction==="left"||direction==="right"){x=direction==="left"?target.x-w-gap:target.x+target.w+gap;y=target.y+(target.h-h)/2+offset;}
+      else{x=target.x+offset;y=direction==="below"?target.y+target.h+gap:target.y-h-gap;}
+      var candidate={x:Math.max(8,Math.min(innerWidth-w-8,x)),y:Math.max(8,Math.min(innerHeight-h-8,y)),w:w,h:h,side:direction,titleWidth:titleWidth,alignRight:alignRight};
+      var score=index*6+Math.abs(offset)*.3+(gap-14)*.5+Math.hypot(candidate.x+w/2-target.x-target.w/2,candidate.y+h/2-target.y-target.h/2)*.4;
+      obstacles.forEach(function(other){score+=overlaps(candidate,other,2)*1000;});
+      score+=overlaps(candidate,target,3)*1000;
+      var route=connector(target,candidate);
+      if(!route)score+=100000;
+      else obstacles.forEach(function(other){if(segmentHits(route.a,route.corner,other)||segmentHits(route.corner,route.b,other))score+=100000;});
+      if(score<bestScore){best=candidate;bestScore=score;}
+    });});});
+    if(bestScore>500){for(var gy=8;gy<=innerHeight-h-8;gy+=12){for(var gx=8;gx<=innerWidth-w-8;gx+=12){var fallback={x:gx,y:gy,w:w,h:h,side:gx+w<=target.x?"left":gx>=target.x+target.w?"right":gy>=target.y+target.h?"below":"above",titleWidth:titleWidth,alignRight:alignRight};var fallbackScore=Math.hypot(gx+w/2-target.x-target.w/2,gy+h/2-target.y-target.h/2);obstacles.concat([target]).forEach(function(other){fallbackScore+=overlaps(fallback,other,2)*1000;});var fallbackRoute=connector(target,fallback);if(!fallbackRoute)fallbackScore+=100000;else obstacles.forEach(function(other){if(segmentHits(fallbackRoute.a,fallbackRoute.corner,other)||segmentHits(fallbackRoute.corner,fallbackRoute.b,other))fallbackScore+=100000;});if(fallbackScore<bestScore){best=fallback;bestScore=fallbackScore;}}}}
+    return best;
+  }
+  function segmentHits(a,b,r){if(a.x===b.x)return a.x>r.x-3&&a.x<r.x+r.w+3&&Math.max(a.y,b.y)>r.y-3&&Math.min(a.y,b.y)<r.y+r.h+3;return a.y>r.y-3&&a.y<r.y+r.h+3&&Math.max(a.x,b.x)>r.x-3&&Math.min(a.x,b.x)<r.x+r.w+3;}
+  function connector(target,label){var a,b,corner;
+    if(label.side==="inside")return null;
+    if(label.side==="left"){a={x:target.x-4,y:target.y+target.h/2};b={x:label.x+label.w+3,y:label.y+label.h/2};corner={x:b.x,y:a.y};}
+    else if(label.side==="right"){a={x:target.x+target.w+4,y:target.y+target.h/2};b={x:label.x-3,y:label.y+label.h/2};corner={x:b.x,y:a.y};}
+    else if(label.side==="below"){var belowX=label.x+(label.alignRight?label.w-label.titleWidth/2:label.titleWidth/2);a={x:Math.max(target.x+12,Math.min(target.x+target.w-12,belowX)),y:target.y+target.h+4};b={x:belowX,y:label.y-3};corner={x:a.x,y:b.y};}
+    else{var aboveX=label.x+(label.alignRight?label.w-label.titleWidth/2:label.titleWidth/2);a={x:Math.max(target.x+12,Math.min(target.x+target.w-12,aboveX)),y:target.y-4};b={x:aboveX,y:label.y+label.h+3};corner={x:a.x,y:b.y};}
+    var length=Math.abs(a.x-b.x)+Math.abs(a.y-b.y);if(length>96)return null;return{a:a,b:b,corner:corner,length:length};
+  }
+  function positionFooter(){footer.classList.remove("sg-compact");var h=footer.offsetHeight,w=innerWidth,top=innerHeight*.38;
+    footer.style.left=w>600?"50%":"12px";footer.style.width="";
+    if(mode==="map"){var controls=document.getElementById("controls");if(w<=600&&controls)top=Math.max(172,Math.min(top,controls.getBoundingClientRect().top-h-16));}
+    else if(mode==="sidebar"){var content=document.getElementById("sidebar-content"),r=content.getBoundingClientRect();footer.style.left="12px";footer.style.width=Math.min(300,r.width-24)+"px";footer.style.transform="none";top=r.top+Math.max(10,(r.height-h)/2);if(open("map-layer-panel","expanded")||visible(document.getElementById("panel-gpx"))||r.height<h+20){footer.classList.add("sg-compact");top=12;}}
+    else{var panel=document.getElementById(mode==="photo"?"photo-menu":mode==="help"?"help-content-box":mode==="daily"?"daily-task-panel":mode==="hud"?"hud":"tour-panel");if(panel){top=panel.getBoundingClientRect().top-h-12;if(top<12){footer.classList.add("sg-compact");top=12;}}}
+    if(mode!=="sidebar")footer.style.transform="";
+    footer.style.top=Math.max(8,Math.min(innerHeight-footer.offsetHeight-8,top))+"px";
+  }
+  function observe(){if(!observer)return;["sidebar","photo-menu","help-popup","daily-task-panel","hud","tour-panel","map-layer-panel"].forEach(function(id){var el=document.getElementById(id);if(el)observer.observe(el,{attributes:true,attributeFilter:["class","hidden","aria-expanded"],childList:true,subtree:true});});}
+  function render(){if(!active)return;if(observer)observer.disconnect();clearInline();mode=detectMode();root.dataset.guideScreen=mode;document.body.classList.toggle("sg-map-active",mode==="map");footer.hidden=mode!=="map"&&mode!=="photo";
+    layer.querySelectorAll(".sg-label").forEach(function(el){el.remove();});svg.replaceChildren();
+    footer.querySelector("h2").textContent=text(mode);footer.querySelector("p").textContent=text(mode==="map"?"hint":"detail");
+    document.getElementById("sg-done").setAttribute("aria-label",text("done"));
+    var list=descriptors();list.filter(function(item){return item.inline;}).forEach(addInline);list=list.filter(function(item){return visible(item.el);});positionFooter();
+    var obstacles=[footer.hidden?{x:-1,y:-1,w:0,h:0}:box(footer)].concat(list.map(function(item){return box(item.el);})),labels=[];
+    list.forEach(function(item,index){var r=box(item.el);
+      if(item.inline)return;
+      var label=document.createElement("div"),body=document.createElement("div"),title=document.createElement("strong"),description=document.createElement("p"),pair=text(item.key).split("|");
+      label.className="sg-label";label.dataset.target=item.el.id;title.textContent=pair[0];description.textContent=pair[1]||"";body.append(title,description);label.append(body);var width=item.key==="recordKey"?170:item.key==="tasksKey"?130:item.key==="helpKey"?(innerWidth<=340?100:110):innerWidth<=340&&(item.key==="photoKey"||item.key==="directionsKey")?130:155;label.style.width=Math.min(width,innerWidth-98)+"px";layer.appendChild(label);
+      var titleRange=document.createRange();titleRange.selectNodeContents(title);var titleWidth=titleRange.getBoundingClientRect().width;
+      var position=choosePosition(r,label.offsetWidth,label.offsetHeight,item.side,obstacles.filter(function(o,i){return i!==index+1;}),titleWidth,item.key==="tasksKey");label.style.left=position.x+"px";label.style.top=position.y+"px";label.dataset.side=position.side;obstacles.push(position);labels.push({target:r,label:position,el:label,key:item.el.id});
+      var planned=connector(r,position);if(planned)[[planned.a,planned.corner],[planned.corner,planned.b]].forEach(function(piece){obstacles.push({x:Math.min(piece[0].x,piece[1].x),y:Math.min(piece[0].y,piece[1].y),w:Math.abs(piece[0].x-piece[1].x),h:Math.abs(piece[0].y-piece[1].y),owner:label});});
+    });
+    var lines=[];labels.forEach(function(entry){var line=connector(entry.target,entry.label);if(!line)return;var pieces=[[line.a,line.corner],[line.corner,line.b]],blocked=false;
+      obstacles.forEach(function(r){if(r===entry.label||r.owner===entry.el)return;pieces.forEach(function(segment){if(segmentHits(segment[0],segment[1],r))blocked=true;});});
+      lines.forEach(function(previous){pieces.forEach(function(segment){previous.forEach(function(p){var r={x:Math.min(p[0].x,p[1].x),y:Math.min(p[0].y,p[1].y),w:Math.abs(p[0].x-p[1].x),h:Math.abs(p[0].y-p[1].y)};if(segmentHits(segment[0],segment[1],r))blocked=true;});});});
+      if(!blocked){svgEl("path",{d:"M "+line.a.x+" "+line.a.y+" L "+line.corner.x+" "+line.corner.y+" L "+line.b.x+" "+line.b.y,"data-length":line.length,"data-target":entry.key});svgEl("circle",{cx:line.a.x,cy:line.a.y,r:2,class:"sg-endpoint"});lines.push(pieces);}
+    });observe();
+  }
+  function schedule(){if(!active||frame)return;frame=requestAnimationFrame(function(){frame=0;render();});}
+  function clicked(event){if(!active)return;var target=event&&event.target;if(target&&target.closest){
+    if(target.closest("#giloa-first-tutorial"))return;
+    if(target.closest("#sidebar .close-btn,#help-popup .help-close,#daily-task-panel .daily-task-close,#hud-close,#tour-close-btn,[data-region-atlas-close]")){finish(true);return;}
+    var control=target.closest("button,a,input,select,textarea,[role=button],#sidebar,#photo-menu,#help-content-box,#daily-task-panel,#hud,#top-bar,#tour-panel,#controls,#help-btn,.leaflet-control,.leaflet-marker-icon,.leaflet-popup");
+    var blankMap=!control&&(target.closest("#map-wrap")||target.id==="sidebar-overlay"||target.id==="photo-menu-overlay"||target.id==="help-popup");
+    if(blankMap){if(pointerMoved&&event.detail!==0){pointerMoved=false;return;}finish(true);return;}
+  }schedule();clearTimeout(settle);settle=setTimeout(schedule,240);}
+  function pointerDown(event){if(active){pointerStart={x:event.clientX,y:event.clientY,id:event.pointerId};pointerMoved=false;}}
+  function pointerMove(event){if(active&&pointerStart&&event.pointerId===pointerStart.id&&Math.hypot(event.clientX-pointerStart.x,event.clientY-pointerStart.y)>10)pointerMoved=true;}
+  function back(){if(mode==="sidebar"&&typeof toggleSidebar==="function")toggleSidebar(false);if(mode==="photo"&&typeof closePhotoMenu==="function")closePhotoMenu();if(mode==="help"&&typeof toggleHelp==="function")toggleHelp();if(mode==="daily"&&typeof toggleDailyTasks==="function")toggleDailyTasks(false);if(mode==="hud"&&typeof toggleHud==="function")toggleHud();if(mode==="tour"&&typeof closeTourPanel==="function")closeTourPanel();clicked();}
+  function finish(done){if(!active)return;active=false;if(observer)observer.disconnect();observer=null;cancelAnimationFrame(frame);frame=0;clearTimeout(settle);clearInline();document.removeEventListener("click",clicked,true);document.removeEventListener("scroll",schedule,true);document.removeEventListener("pointerdown",pointerDown,true);document.removeEventListener("pointermove",pointerMove,true);pointerStart=null;pointerMoved=false;window.removeEventListener("resize",schedule);window.removeEventListener("orientationchange",clicked);root.className="gft";root.setAttribute("aria-hidden","true");root.removeAttribute("data-guide-screen");if(layer)layer.remove();document.body.classList.remove("gft-active","sg-map-active");if(done)try{localStorage.setItem(DONE,"1");}catch(_){} }
+  function start(force){if(active)finish(false);if(legacyActive&&legacyActive()&&legacyClose)legacyClose(false);if(!force&&["1","true"].indexOf(localStorage.getItem(DONE))>=0)return false;
+    root=document.getElementById("giloa-first-tutorial");if(!root)return false;if(typeof window.closeMapTransientPanels==="function")window.closeMapTransientPanels();if(typeof window.toggleSidebar==="function")window.toggleSidebar(false);
+    active=true;root.className="gft active gft-overview-mode";root.setAttribute("aria-hidden","false");document.body.classList.add("gft-active");
+    layer=document.createElement("section");layer.className="sg-overview";layer.setAttribute("aria-label",text("map"));var shade=document.createElement("div");shade.className="sg-shade";layer.appendChild(shade);svg=document.createElementNS("http://www.w3.org/2000/svg","svg");svg.classList.add("sg-wires");svg.setAttribute("aria-hidden","true");layer.appendChild(svg);
+    footer=document.createElement("div");footer.className="sg-footer";var img=document.createElement("img");img.alt="";img.src=encodeURI("./gilo many appearance/gilo-tutorial-welcome-transparent.png");var body=document.createElement("div"),heading=document.createElement("h2"),hint=document.createElement("p");
+    var doneButton=document.createElement("button");doneButton.id="sg-done";doneButton.className="sg-close";doneButton.type="button";doneButton.textContent="×";doneButton.setAttribute("aria-label",text("done"));doneButton.onclick=function(){finish(true);};body.append(heading,hint);footer.append(img,body,doneButton);layer.appendChild(footer);root.appendChild(layer);
+    observer=new MutationObserver(schedule);document.addEventListener("click",clicked,true);document.addEventListener("scroll",schedule,true);document.addEventListener("pointerdown",pointerDown,true);document.addEventListener("pointermove",pointerMove,true);window.addEventListener("resize",schedule);window.addEventListener("orientationchange",clicked);render();return true;
+  }
+  window.startGiloaTutorial=function(){return start(true);};window.startGiloaTutorialIfNeeded=function(){return start(false);};window.openGiloaFirstJourneyTutorial=window.startGiloaTutorial;window.closeGiloaFirstJourneyTutorial=function(done){finish(!!done);};window.isGiloaTutorialActive=function(){return active;};
+})();

@@ -78,6 +78,11 @@ const EARLY_UI_I18N = {
     gpxTooFew: ["선택한 시간에 경로를 만들 만큼 GPS 지점이 충분하지 않습니다.", "There are not enough GPS points in the selected period to create a route.", "選択した期間にルート作成に必要なGPS地点が足りません。", "所选时间段内的GPS点不足以生成路线。", "No hay suficientes puntos GPS en el período seleccionado para crear una ruta.", "Il n’y a pas assez de points GPS dans la période choisie pour créer un parcours."],
     gpxNoRoute: ["해당 시간에 기록된 경로가 없습니다.", "No route was recorded in this period.", "この期間に記録されたルートはありません。", "此时间段内没有记录路线。", "No hay rutas registradas en este período.", "Aucun parcours enregistré pendant cette période."],
     recentRoute: ["최근 {hours}시간 경로", "Route from the last {hours} hours", "過去{hours}時間のルート", "最近{hours}小时的路线", "Ruta de las últimas {hours} horas", "Parcours des {hours} dernières heures"],
+    gpxChooseLocation: ["GPX 파일을 저장할 위치를 선택해 주세요.", "Choose where to save the GPX file.", "GPXファイルの保存先を選択してください。", "请选择GPX文件的保存位置。", "Elige dónde guardar el archivo GPX.", "Choisissez où enregistrer le fichier GPX."],
+    gpxFileSavedOnly: ["GPX 파일을 저장했습니다. 앱 내부 목록에는 추가하지 못했지만 기존 기록은 유지됩니다.", "GPX file saved. It could not be added to the app list; existing records are preserved.", "GPXファイルを保存しました。アプリの一覧には追加できませんでしたが、既存の記録は保持されています。", "GPX文件已保存。未能添加到应用列表，原有记录已保留。", "Archivo GPX guardado. No se añadió a la lista; los registros existentes se conservan.", "Fichier GPX enregistré. Il n’a pas pu être ajouté à la liste ; les données existantes sont conservées."],
+    gpxSaveCancelled: ["GPX 파일 저장을 취소했습니다. 기존 기록은 유지됩니다.", "GPX file save cancelled. Existing records are preserved.", "GPXファイルの保存をキャンセルしました。既存の記録は保持されています。", "已取消保存GPX文件。原有记录已保留。", "Guardado GPX cancelado. Los registros existentes se conservan.", "Enregistrement GPX annulé. Les données existantes sont conservées."],
+    gpxDownloadOnly: ["내부 저장에 실패해 목록에는 추가하지 못했습니다. GPX 다운로드를 요청했습니다. 다운로드된 파일을 확인해 주세요.", "Could not add this route to the saved list. GPX download requested; please check your downloaded files.", "内部保存に失敗したため一覧には追加されませんでした。GPXのダウンロードを要求しました。ダウンロードしたファイルを確認してください。", "内部保存失败，未添加到列表。已请求下载GPX，请检查下载的文件。", "No se pudo añadir la ruta a la lista. Se solicitó la descarga GPX; comprueba los archivos descargados.", "Impossible d’ajouter le parcours à la liste. Téléchargement GPX demandé ; vérifiez vos fichiers téléchargés."],
+    gpxDownloadFailed: ["GPX 다운로드를 시작하지 못했습니다. 기존 경로는 유지됩니다. 다시 시도해 주세요.", "Could not start the GPX download. Your existing route is preserved. Please try again.", "GPXのダウンロードを開始できませんでした。既存の経路は保持されています。もう一度お試しください。", "无法开始下载GPX。原有路线已保留，请重试。", "No se pudo iniciar la descarga GPX. La ruta existente se conserva. Inténtalo de nuevo.", "Impossible de démarrer le téléchargement GPX. Le parcours existant est conservé. Réessayez."],
     gpxSaved: ["\"{name}\" 저장 완료 · {count}개 GPS 지점", "\"{name}\" saved · {count} GPS points", "「{name}」を保存しました · GPS地点{count}件", "已保存“{name}” · {count}个GPS点", "\"{name}\" guardada · {count} puntos GPS", "« {name} » enregistré · {count} points GPS"],
     departure: ["출발", "Start", "出発", "出发", "Salida", "Départ"],
     arrival: ["도착", "Finish", "到着", "到达", "Llegada", "Arrivée"],
@@ -437,12 +442,12 @@ function requestJsonWithRetry(url, options) {
     }
     return attempt(retries);
 }
-const SCREEN_AWAKE_MS = 1 * 60 * 60 * 1000;
-const AUTO_RECORDING_MS = 1 * 60 * 60 * 1000;
+const SCREEN_AWAKE_MS = 8 * 60 * 60 * 1000;
+const AUTO_RECORDING_MS = 8 * 60 * 60 * 1000;
 const MERGE_DISTANCE_M = 6;
 const MERGE_TIME_GAP_MS = 2 * 60 * 1000;
-// Keep enough points for repeated one-hour recording sessions and
-// foreground/native overlap without thinning bends.
+// Eight hours at the native five-second sampling interval is about 5,760
+// samples. Leave room for foreground/native overlap without thinning bends.
 const MAX_PATH_POINTS = 12000;
 const FULL_VISIBILITY_HOURS = 0;
 const MIN_VISIBILITY_HOURS = 24;
@@ -1078,6 +1083,9 @@ map.getPane("colorRevealPane").style.zIndex = 205;
 map.getPane("colorRevealPane").style.pointerEvents = "none";
 map.createPane("fogPane");
 map.getPane("fogPane").style.zIndex = 450;
+// Imported GPX stays above recorded paths (625), below photos (630).
+map.createPane("gpxRoutePane");
+map.getPane("gpxRoutePane").style.zIndex = 628;
 map.createPane("photoPane");
 map.getPane("photoPane").style.zIndex = 630;
 map.createPane("memoryPane");
@@ -1951,7 +1959,7 @@ function render() {
     renderFog();
     renderColorReveal();
     renderFogShade();
-    renderAgeTint();
+    renderTransportPaths();
     renderStayTint();
 }
 function calcMpp() { var center = map.getCenter(); var pt = map.latLngToContainerPoint(center); var ll2 = map.containerPointToLatLng(L.point(pt.x + 10, pt.y)); var mpp = center.distanceTo(ll2) / 10; return isFinite(mpp) && mpp > 0 ? mpp : 1; }
@@ -2096,6 +2104,85 @@ function renderFog() {
 }
 
 function getPathVisibility(ageHours) { if (ageHours <= FULL_VISIBILITY_HOURS) return 1; if (ageHours >= MIN_VISIBILITY_HOURS) return MIN_PATH_VISIBILITY; return 1 - (1 - MIN_PATH_VISIBILITY) * (ageHours / MIN_VISIBILITY_HOURS); }
+
+// Display-only estimates: never write inferred travel modes into saved GPS records.
+function getTransportSegmentStyle(fromPoint, toPoint, now) {
+    if (!fromPoint || !toPoint) return null;
+    var fromSession = String(fromPoint.recordingSessionId || "");
+    var toSession = String(toPoint.recordingSessionId || "");
+    if (fromSession && toSession && fromSession !== toSession) return null;
+    var coordinates = [fromPoint.lat, fromPoint.lng, toPoint.lat, toPoint.lng];
+    if (coordinates.some(function(value) { return value == null || !isFinite(Number(value)); })) return null;
+    if (Math.abs(Number(fromPoint.lat)) > 90 || Math.abs(Number(toPoint.lat)) > 90 || Math.abs(Number(fromPoint.lng)) > 180 || Math.abs(Number(toPoint.lng)) > 180) return null;
+    if ([fromPoint, toPoint].some(function(point) { return point.accuracy != null && (!isFinite(Number(point.accuracy)) || Number(point.accuracy) < 0 || Number(point.accuracy) > MAX_ACCURACY_M); })) return null;
+    var fromTime = Number(fromPoint.timestamp || fromPoint.startTime);
+    var toTime = Number(toPoint.timestamp || toPoint.startTime);
+    var elapsedMs = toTime - fromTime;
+    if (!isFinite(fromTime) || !isFinite(toTime) || fromTime <= 0 || elapsedMs <= 0 || elapsedMs > PATH_MAX_FIX_GAP_MS) return null;
+    var distance = L.latLng(Number(fromPoint.lat), Number(fromPoint.lng)).distanceTo([Number(toPoint.lat), Number(toPoint.lng)]);
+    var speed = distance / (elapsedMs / 1000);
+    // Retain the existing gap/session rules without treating ordinary vehicle speeds as GPS jumps.
+    if (!isFinite(speed) || speed > 250 / 3.6) return null;
+    var mode = speed <= SPEED_LIMIT_WALK ? "walk" : speed <= SPEED_LIMIT_BIKE ? "bike" : "vehicle";
+    var color = mode === "walk" ? "#43C98B" : mode === "bike" ? "#FFB454" : "#64A8FF";
+    return { mode:mode, color:color, opacity:getPathVisibility(Math.max(0, (now - toTime) / 3600000)), timestamp:toTime };
+}
+function renderTransportPaths() {
+    var w = ageCanvas.width, h = ageCanvas.height;
+    ageCtx.clearRect(0, 0, w, h);
+    if (!pathCoordinates.length) return;
+    var now = Date.now(), mpp = calcMpp();
+    var radius = metersToPixels(FOG_RADIUS_M, mpp);
+    var buckets = new Map();
+    function bucketFor(style) {
+        var key = style.color + ":" + (Math.round(style.opacity * 100) / 100);
+        if (!buckets.has(key)) buckets.set(key, { style:style, segments:[], points:[] });
+        return buckets.get(key);
+    }
+    for (var i = 0; i < pathCoordinates.length; i++) {
+        var point = pathCoordinates[i];
+        var style = i > 0 ? getTransportSegmentStyle(pathCoordinates[i - 1], point, now) : null;
+        if (style) bucketFor(style).segments.push([pathCoordinates[i - 1], point]);
+        var pointStyle = style || (i + 1 < pathCoordinates.length ? getTransportSegmentStyle(point, pathCoordinates[i + 1], now) : null);
+        var pointTime = Number(point.timestamp || point.startTime);
+        if (!pointStyle) pointStyle = { color:"#43C98B" };
+        bucketFor({ color:pointStyle.color, opacity:getPathVisibility(Math.max(0, (now - pointTime) / 3600000)) }).points.push(point);
+    }
+    var offCtx = ageScratchCtx;
+    ageCtx.save();
+    buckets.forEach(function(bucket) {
+        // Paint the union opaquely first: repeated fixes in one bucket must
+        // not accumulate opacity. Only the finished ribbon is faded.
+        offCtx.clearRect(0, 0, w, h);
+        offCtx.strokeStyle = bucket.style.color;
+        offCtx.fillStyle = bucket.style.color;
+        offCtx.lineWidth = radius * 2.2;
+        offCtx.lineCap = "round";
+        offCtx.lineJoin = "round";
+        offCtx.setLineDash([]);
+        offCtx.beginPath();
+        bucket.segments.forEach(function(segment) {
+            var from = latLngToCanvasPoint([segment[0].lat, segment[0].lng]);
+            var to = latLngToCanvasPoint([segment[1].lat, segment[1].lng]);
+            offCtx.moveTo(from.x, from.y);
+            offCtx.lineTo(to.x, to.y);
+        });
+        offCtx.stroke();
+        bucket.points.forEach(function(point) {
+            var pos = latLngToCanvasPoint([point.lat, point.lng]);
+            var stayMin = (point.endTime - point.startTime) / 60000;
+            var stayRadius = metersToPixels(getStayRadiusMeters(stayMin), mpp);
+            offCtx.beginPath();
+            offCtx.arc(pos.x, pos.y, stayRadius, 0, Math.PI * 2);
+            offCtx.fill();
+        });
+        ageCtx.globalAlpha = 0.25 * bucket.style.opacity;
+        ageCtx.drawImage(ageScratchCanvas, 0, 0);
+    });
+    ageCtx.restore();
+}
+// Refresh fading even when no new location or map movement arrives.
+setInterval(function() { if (document.visibilityState === "visible") scheduleRender(); }, 60000);
 
 function renderAgeTint() {
     var w = ageCanvas.width, h = ageCanvas.height; ageCtx.clearRect(0, 0, w, h);
@@ -2293,24 +2380,7 @@ function showTodayWalkingRoute() {
     }
     if (dailyRouteLayer) dailyRouteLayer.clearLayers();
     else dailyRouteLayer = L.layerGroup().addTo(map);
-    var runs = [], run = [];
-    points.forEach(function(point) {
-        if (!run.length) { run.push(point); return; }
-        var previous = run[run.length - 1];
-        var connected = shouldConnectPath(previous, point);
-        if (!connected) { runs.push(run); run = [point]; }
-        else run.push(point);
-    });
-    if (run.length) runs.push(run);
-    runs.forEach(function(segment) {
-        var latlngs = segment.map(function(point) { return [point.lat, point.lng]; });
-        if (latlngs.length < 2) {
-            L.circleMarker(latlngs[0], { pane:"dailyRoutePane", radius:6, color:"#6b7280", weight:3, fillColor:"#72d34d", fillOpacity:1, interactive:false }).addTo(dailyRouteLayer);
-            return;
-        }
-        L.polyline(latlngs, { pane:"dailyRoutePane", color:"#6b7280", weight:9, opacity:.88, lineCap:"round", lineJoin:"round", interactive:false }).addTo(dailyRouteLayer);
-        L.polyline(latlngs, { pane:"dailyRoutePane", color:"#72d34d", weight:5, opacity:1, lineCap:"round", lineJoin:"round", interactive:false }).addTo(dailyRouteLayer);
-    });
+    // The canvas already shows the full route ribbon; do not add a centerline.
     var bounds = L.latLngBounds(points.map(function(point) { return [point.lat, point.lng]; }));
     if (bounds.isValid() && points.length > 1) map.fitBounds(bounds, { padding:[42, 110], maxZoom:18, animate:true });
     else map.setView([points[0].lat, points[0].lng], 17, { animate:true });
@@ -2988,7 +3058,7 @@ async function readNativePhotoBlob(uri) {
             var path = bridge.copyPhotoToCachePath(uri);
             nativeReadTrace("캐시 경로", path ? String(path).slice(0, 60) : "빈 문자열");
             if (path) {
-                var forms = ["https://localhost/_capacitor_file_" + path, "http://localhost/_capacitor_file_" + path, "file://" + path];
+                var forms = ["https://localhost/_capacitor_file_" + path, "file://" + path];
                 for (var i = 0; i < forms.length; i++) {
                     var found = await readBlobFromAnyUrl(forms[i], "경로형식" + (i + 1));
                     if (found) return found;
@@ -3747,10 +3817,18 @@ function clearTrackingRetryTimer() {
 }
 function startAutoRecordingTimer() {
     clearAutoRecordingTimer();
+    var endAt = (Number(recordingSessionStartedAt) || Date.now()) + AUTO_RECORDING_MS;
+    try {
+        var native = getNativeRouteTrackingBridge();
+        if (native && typeof native.getRouteTrackingStopAt === "function" && typeof native.getRouteTrackingSessionId === "function" && native.getRouteTrackingSessionId() === recordingSessionId) {
+            var nativeEndAt = Number(native.getRouteTrackingStopAt());
+            if (isFinite(nativeEndAt) && nativeEndAt > 0) endAt = nativeEndAt;
+        }
+    } catch (_) { }
     autoRecordingTimer = setTimeout(function() {
         autoRecordingTimer = null;
         if (isRecording) stopRecording();
-    }, AUTO_RECORDING_MS);
+    }, Math.max(0, endAt - Date.now()));
 }
 function createRecordingSessionId(startedAt) {
     return "session:" + Number(startedAt || Date.now()) + ":" + Math.random().toString(36).slice(2, 10);
@@ -3852,9 +3930,10 @@ function focusStartupLocation() {
     }
     startupLocationRequested = true;
     return Promise.resolve().then(function() {
-        return requestLocationPermission();
-    }).then(function() {
-        return focusCurrentLocation();
+        return window.GiloaPrivacy ? window.GiloaPrivacy.requestLocationConsent() : false;
+    }).then(function(consented) {
+        if (!consented) return false;
+        return Promise.resolve(requestLocationPermission()).then(function() { return focusCurrentLocation(); });
     }).catch(function() {
         showLocationToast(earlyUiText("locationFailed"), 4000);
         return false;
@@ -3990,57 +4069,65 @@ var LOCATION_RECORDING_DISCLOSURE_TEXT = {
     ko: {
         title: "위치 기록을 시작할까요?",
         copy: "길로아는 사용자가 걸은 길을 지도에 기록하기 위해 위치정보를 사용합니다.",
-        background: "위치 기록은 최대 1시간 동안 진행됩니다. 다만 화면이 꺼지거나 브라우저가 백그라운드·절전 상태로 전환되면 기록이 중단될 수 있습니다. 중요한 이동 기록 중에는 화면을 켜두세요.",
-        privacy: "위치 기록은 이 기기에 저장되며 길로아 서버로 전송되지 않습니다. GPX 파일로 직접 저장할 수 있습니다. 오른쪽 아래 기록 버튼이나 Android 알림에서 언제든지 기록을 중단할 수 있습니다.",
-        start: "위치 기록 시작 (최대 1시간)",
+        background: "기록을 시작하면 화면이 꺼지거나 다른 앱을 사용하는 동안에도 최대 8시간 동안 위치정보가 계속 기록됩니다.",
+        privacy: "위치 기록은 먼저 이 기기에 저장됩니다. 사용자가 로그인한 경우에만 본인 전용 서버 공간에 동기화되며 제3자와 공유되지 않습니다. 오른쪽 아래 기록 버튼이나 Android 알림에서 언제든지 기록을 중단할 수 있습니다.",
+        start: "8시간 기록 시작",
         cancel: "나중에"
     },
 
     en: {
         title: "Start location recording?",
         copy: "GILOA uses your location to save the path you walk on your map.",
-        background: "Location recording runs for up to 1 hour. It may stop if the screen turns off or the browser enters the background or power-saving mode. Keep the screen on for important journeys.",
-        privacy: "Location records stay on this device and are not sent to GILOA servers. You can save them as GPX files. Stop recording at any time using the record button or the Android notification.",
-        start: "Start location recording (up to 1 hour)",
+        background: "After you start recording, your location will continue to be recorded for up to 8 hours while the screen is off or while you use another app.",
+        privacy: "Location records are saved on this device first. Only signed-in users sync them to their private server space; they are not shared with third parties. You can stop recording at any time using the record button or the Android notification.",
+        start: "Start 8-hour recording",
         cancel: "Not now"
     },
 
     ja: {
         title: "位置記録を開始しますか？",
         copy: "GILOAは、歩いた道を地図に記録するために位置情報を使用します。",
-        background: "位置記録は最大1時間行われます。ただし、画面が消えたり、ブラウザがバックグラウンドまたは省電力状態になったりすると、記録が中断される場合があります。重要な移動中は画面をオンにしてください。",
-        privacy: "位置記録はこの端末に保存され、GILOAのサーバーには送信されません。GPXファイルとして保存できます。記録ボタンまたはAndroid通知からいつでも停止できます。",
-        start: "位置記録を開始（最大1時間）",
+        background: "記録を開始すると、画面が消えている間や他のアプリを使用している間も、最大8時間位置情報の記録が続きます。",
+        privacy: "位置記録はまずこの端末に保存されます。ログインした場合のみ本人専用のサーバー領域へ同期され、第三者には共有されません。記録ボタンまたはAndroid通知からいつでも停止できます。",
+        start: "8時間の記録を開始",
         cancel: "後で"
     },
 
     zh: {
         title: "开始记录位置吗？",
         copy: "GILOA使用你的位置信息，在地图上记录你走过的路线。",
-        background: "位置记录最长持续1小时。但如果屏幕关闭，或浏览器进入后台或省电状态，记录可能会中断。记录重要行程时请保持屏幕开启。",
-        privacy: "位置记录保存在此设备，不会发送到GILOA服务器。你可以保存为GPX文件，并随时通过记录按钮或Android通知停止记录。",
-        start: "开始位置记录（最长1小时）",
+        background: "开始记录后，即使屏幕关闭或正在使用其他应用，位置信息也会继续记录，最长为8小时。",
+        privacy: "位置记录会先保存在此设备。仅在用户登录后同步到其个人服务器空间，不会与第三方共享。你可以随时通过记录按钮或 Android 通知停止记录。",
+        start: "开始8小时记录",
         cancel: "暂不"
     },
 
     es: {
         title: "¿Quieres iniciar el registro de ubicación?",
         copy: "GILOA utiliza tu ubicación para guardar en el mapa el camino que recorres.",
-        background: "El registro de ubicación dura hasta 1 hora. Puede interrumpirse si la pantalla se apaga o si el navegador entra en segundo plano o en modo de ahorro de energía. Mantén la pantalla encendida durante recorridos importantes.",
-        privacy: "Los registros se guardan en este dispositivo y no se envían a los servidores de GILOA. Puedes guardarlos como archivos GPX y detener el registro en cualquier momento.",
-        start: "Iniciar registro de ubicación (máximo 1 hora)",
+        background: "Después de iniciar el registro, tu ubicación continuará registrándose durante un máximo de 8 horas aunque la pantalla esté apagada o utilices otra aplicación.",
+        privacy: "Los registros se guardan primero en este dispositivo. Solo se sincronizan con el espacio privado del usuario cuando inicia sesión y no se comparten con terceros. Puedes detener el registro en cualquier momento.",
+        start: "Iniciar registro de 8 horas",
         cancel: "Ahora no"
     },
 
     fr: {
         title: "Démarrer l’enregistrement de la position ?",
         copy: "GILOA utilise votre position pour enregistrer sur la carte le chemin que vous parcourez.",
-        background: "L’enregistrement de la position dure jusqu’à 1 heure. Il peut s’interrompre si l’écran s’éteint ou si le navigateur passe en arrière-plan ou en mode économie d’énergie. Gardez l’écran allumé pour les trajets importants.",
-        privacy: "Les parcours sont enregistrés sur cet appareil et ne sont pas envoyés aux serveurs de GILOA. Vous pouvez les enregistrer en fichiers GPX et arrêter l’enregistrement à tout moment.",
-        start: "Démarrer l’enregistrement (1 heure maximum)",
+        background: "Après le démarrage, votre position continuera à être enregistrée pendant 8 heures maximum, même lorsque l’écran est éteint ou que vous utilisez une autre application.",
+        privacy: "Les données sont d’abord enregistrées sur cet appareil. Elles ne sont synchronisées avec l’espace serveur privé qu’après connexion et ne sont pas partagées avec des tiers. Vous pouvez arrêter l’enregistrement à tout moment.",
+        start: "Démarrer l’enregistrement de 8 heures",
         cancel: "Plus tard"
     }
 };
+// Keep the recording disclosure consistent with the paused-sync policy.
+Object.keys(LOCATION_RECORDING_DISCLOSURE_TEXT).forEach(function(lang) {
+    if (!window.GiloaPrivacy) return;
+    var notice = window.GiloaPrivacy.recordingText(lang);
+    LOCATION_RECORDING_DISCLOSURE_TEXT[lang].copy = notice[0];
+    LOCATION_RECORDING_DISCLOSURE_TEXT[lang].privacy = notice[1];
+    LOCATION_RECORDING_DISCLOSURE_TEXT[lang].start = notice[2];
+});
 function startRecordingAfterDisclosure() {
     dismissAutoRecordingNotice();
 
@@ -4245,8 +4332,10 @@ function startNativeRouteTracking() {
     if (!bridge || !isRecording) return false;
     var sessionId = ensureRecordingSession();
     try {
-        if (typeof bridge.startRouteTrackingSession === "function") return bridge.startRouteTrackingSession(AUTO_RECORDING_MS, sessionId) === true;
-        return bridge.startRouteTracking(AUTO_RECORDING_MS) === true;
+        var remaining = AUTO_RECORDING_MS - Math.max(0, Date.now() - Number(recordingSessionStartedAt || Date.now()));
+        if (remaining <= 0) return false;
+        if (typeof bridge.startRouteTrackingSession === "function") return bridge.startRouteTrackingSession(remaining, sessionId) === true;
+        return bridge.startRouteTracking(remaining) === true;
     }
     catch (error) { console.warn("Native route tracking start failed", error); return false; }
 }
@@ -5029,7 +5118,7 @@ function splitRecordedPathSegments(points) {
     sorted.forEach(function(point) {
         var segment = segments[segments.length - 1];
         var previous = segment && segment[segment.length - 1];
-        if (!segment || !shouldConnectStoredPathPoints(previous, point)) {
+        if (!segment || !getTransportSegmentStyle(previous, point, Date.now())) {
             segment = [];
             segments.push(segment);
         }
@@ -5049,8 +5138,49 @@ function buildGpxContent(name, points) {
     return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Giloa"\n     xmlns="http://www.topografix.com/GPX/1/1" xmlns:giloa="https://giloa.kr/gpx/1">\n  <metadata><name>' + escapeXml(name) + '</name><time>' + new Date().toISOString() + '</time></metadata>\n  <trk><name>' + escapeXml(name) + '</name>\n' + segmentXml + '\n  </trk>\n</gpx>';
 }
 function escapeXml(value) { return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;"); }
-function saveGpxRecord(name, points, options) { options = options || {}; if (!Array.isArray(points) || points.length === 0) return null; var gpxContent = buildGpxContent(name, points); var saves = loadGpxSaves(); var id = String(Date.now()) + Math.random().toString(36).slice(2); saves.push({ id: id, name: name, createdAt: Date.now(), pointCount: points.length, gpxContent: gpxContent }); if (!saveGpxSaves(saves)) return null; updateGpxSavedList(); if (options.download) { var blob = new Blob([gpxContent], { type: "application/gpx+xml" }); var url = URL.createObjectURL(blob); var a = document.createElement("a"); a.href = url; a.download = "giloa_" + name + ".gpx"; a.click(); URL.revokeObjectURL(url); } return id; }
+function saveGpxRecord(name, points, options) {
+    options = options || {};
+    if (!Array.isArray(points) || points.length === 0) return null;
+    var gpxContent = buildGpxContent(name, points);
+    var saves = loadGpxSaves();
+    var id = String(Date.now()) + Math.random().toString(36).slice(2);
+    saves.push({ id:id, name:name, createdAt:Date.now(), pointCount:points.length, gpxContent:gpxContent });
+    var savedLocally = saveGpxSaves(saves);
+    if (savedLocally) updateGpxSavedList();
+    // Internal storage failure must not prevent exporting the existing route.
+    if (!savedLocally && !options.download) return null;
+    var nativeDownload = false;
+    if (options.download && window.GiloaPhotoBridge && typeof window.GiloaPhotoBridge.saveGpxFile === "function") {
+        if (window.GiloaPhotoBridge.saveGpxFile("giloa_" + name + ".gpx", gpxContent) !== true) throw new Error("Native GPX export unavailable or busy");
+        nativeDownload = true;
+    } else if (options.download) {
+        var blob = new Blob([gpxContent], { type:"application/gpx+xml" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        try {
+            a.href = url;
+            a.download = "giloa_" + name + ".gpx";
+            a.style.display = "none";
+            document.body.appendChild(a);
+            a.click();
+        } finally {
+            if (a.parentNode) a.parentNode.removeChild(a);
+            setTimeout(function() { URL.revokeObjectURL(url); }, 60000);
+        }
+    }
+    return { id:id, savedLocally:savedLocally, nativeDownload:nativeDownload };
+}
+var gpxNativeSaveState = null;
+window.giloaHandleGpxSaveResult = function(success, cancelled) {
+    var result = gpxNativeSaveState;
+    gpxNativeSaveState = null;
+    var status = document.getElementById("gpx-import-status");
+    if (!status) return;
+    var key = cancelled ? "gpxSaveCancelled" : !success ? "gpxDownloadFailed" : result && result.savedLocally ? "gpxSaved" : "gpxFileSavedOnly";
+    status.textContent = earlyUiText(key, { name:result ? result.name : "GPX", count:result ? result.count : "" });
+};
 function exportGpx() {
+    if (gpxNativeSaveState) return;
     // Drain the foreground service first so points recorded while the screen
     // was off are included in the selected historical window.
     consumeNativeRouteTrackingPoints();
@@ -5067,9 +5197,17 @@ function exportGpx() {
     }
     var nameInput = document.getElementById("gpx-export-name").value.trim();
     var name = nameInput || earlyUiText("recentRoute", { hours:dialHours });
-    if (!saveGpxRecord(name, filtered, { download: true })) { document.getElementById("gpx-import-status").textContent = getGpxImportText().storage; return; }
+    var result;
+    try { result = saveGpxRecord(name, filtered, { download:true }); }
+    catch (error) {
+        console.warn("GPX download failed", error && error.name);
+        document.getElementById("gpx-import-status").textContent = earlyUiText("gpxDownloadFailed");
+        return;
+    }
+    if (!result) return;
     document.getElementById("gpx-export-name").value = "";
-    document.getElementById("gpx-import-status").textContent = earlyUiText("gpxSaved", { name:name, count:filtered.length });
+    if (result.nativeDownload) gpxNativeSaveState = { name:name, count:filtered.length, savedLocally:result.savedLocally };
+    document.getElementById("gpx-import-status").textContent = earlyUiText(result.nativeDownload ? "gpxChooseLocation" : result.savedLocally ? "gpxSaved" : "gpxDownloadOnly", { name:name, count:filtered.length });
 }
 function loadGpxSaves() { try { return JSON.parse(localStorage.getItem(GPX_SAVES_KEY) || "[]"); } catch(e) { return []; } }
 function saveGpxSaves(saves) {
@@ -5079,7 +5217,7 @@ function saveGpxSaves(saves) {
 function updateGpxSavedList() { var container = document.getElementById("gpx-saved-list"); if (!container) return; var t = UI_TEXT[currentLang] || UI_TEXT.ko; var saves = loadGpxSaves(); if (saves.length === 0) { container.innerHTML = '<p class="empty-message">' + escapeHtml(t.gpx_empty) + '</p>'; return; } container.innerHTML = ""; saves.slice().reverse().forEach(function(s) { var item = document.createElement("div"); item.className = "gpx-saved-item" + (s.id === activeGpxId ? " active-route" : ""); var icon = document.createElement("span"); icon.className = "gpx-saved-icon"; icon.textContent = s.id === activeGpxId ? t.gpx_showing : t.gpx_route; var info = document.createElement("div"); info.className = "gpx-saved-info"; var nameEl = document.createElement("div"); nameEl.className = "gpx-saved-name"; nameEl.textContent = s.name; var meta = document.createElement("div"); meta.className = "gpx-saved-meta"; meta.textContent = new Date(s.createdAt).toLocaleDateString(currentLang) + " · " + s.pointCount + " " + t.gpx_points; info.appendChild(nameEl); info.appendChild(meta); var del = document.createElement("div"); del.className = "gpx-saved-del"; del.textContent = t.gpx_delete; del.addEventListener("click", function(e) { e.stopPropagation(); deleteGpxSave(s.id); }); item.appendChild(icon); item.appendChild(info); item.appendChild(del); item.addEventListener("click", function() { toggleGpxRoute(s); }); container.appendChild(item); }); }
 function deleteGpxSave(id) { if (id === activeGpxId) clearActiveGpxRoute(); saveGpxSaves(loadGpxSaves().filter(function(s) { return s.id !== id; })); updateGpxSavedList(); }
 function toggleGpxRoute(save) { if (activeGpxId === save.id) { clearActiveGpxRoute(); updateGpxSavedList(); return; } clearActiveGpxRoute(); drawGpxRoute(save.gpxContent, save.id); updateGpxSavedList(); toggleSidebar(false); }
-function clearActiveGpxRoute() { activeGpxLayers.forEach(function(l) { map.removeLayer(l); }); activeGpxLayers = []; activeGpxId = null; }
+function clearActiveGpxRoute() { activeGpxLayers.forEach(function(l) { map.removeLayer(l); }); activeGpxLayers = []; activeGpxId = null; if (window.GiloaTrip) window.GiloaTrip.close(); }
 function drawGpxRoute(gpxContent, id) {
     var xmlDoc = new DOMParser().parseFromString(gpxContent, "application/xml");
     var segmentNodes = Array.from(xmlDoc.querySelectorAll("trkseg"));
@@ -5088,35 +5226,36 @@ function drawGpxRoute(gpxContent, id) {
         return Array.from(segmentNode.querySelectorAll("trkpt, rtept")).map(function(point) {
             var lat = parseFloat(point.getAttribute("lat"));
             var lng = parseFloat(point.getAttribute("lon"));
-            return isFinite(lat) && isFinite(lng) ? [lat, lng] : null;
+            return isFinite(lat) && isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 ? [lat, lng] : null;
         }).filter(Boolean);
     }).filter(function(segment) { return segment.length > 0; });
     if (!segmentLatLngs.length) return;
     var layers = [];
     segmentLatLngs.forEach(function(latlngs) {
-        if (latlngs.length > 1) layers.push(L.polyline(latlngs, { color:"#4db8ff", weight:4, opacity:0.85, dashArray:"8, 6" }).addTo(map));
+        if (latlngs.length > 1) layers.push(L.polyline(latlngs, { pane:"gpxRoutePane", color:"#B388FF", weight:4, opacity:1, lineCap:"round", lineJoin:"round" }).addTo(map));
     });
     var first = segmentLatLngs[0][0];
     var lastSegment = segmentLatLngs[segmentLatLngs.length - 1];
     var last = lastSegment[lastSegment.length - 1];
-    layers.push(L.circleMarker(first, { radius:7, color:"#4db8ff", fillColor:"#fff", fillOpacity:1, weight:2.5 }).addTo(map).bindTooltip(earlyUiText("departure")));
+    layers.push(L.circleMarker(first, { pane:"gpxRoutePane", radius:7, color:"#4db8ff", fillColor:"#fff", fillOpacity:1, weight:2.5 }).addTo(map).bindTooltip(earlyUiText("departure")));
     layers[layers.length - 1].giloaRouteEndpoint = "departure";
-    layers.push(L.circleMarker(last, { radius:7, color:"#ff6b6b", fillColor:"#fff", fillOpacity:1, weight:2.5 }).addTo(map).bindTooltip(earlyUiText("arrival")));
+    layers.push(L.circleMarker(last, { pane:"gpxRoutePane", radius:7, color:"#ff6b6b", fillColor:"#fff", fillOpacity:1, weight:2.5 }).addTo(map).bindTooltip(earlyUiText("arrival")));
     layers[layers.length - 1].giloaRouteEndpoint = "arrival";
     activeGpxLayers = layers;
     activeGpxId = id;
     var bounds = L.latLngBounds([]);
     segmentLatLngs.forEach(function(segment) { segment.forEach(function(latlng) { bounds.extend(latlng); }); });
     if (bounds.isValid()) map.fitBounds(bounds, { padding:[50, 50] });
+    if (window.GiloaTrip) window.GiloaTrip.open(gpxContent, id);
 }
 function getGpxImportText() {
     var text = {
-        ko:{ loading:"불러오는 중...", tooLarge:"GPX 파일은 10MB 이하만 불러올 수 있습니다.", invalid:"올바른 GPX 경로 파일이 아닙니다.", noRoute:"경로 좌표가 없습니다.", storage:"저장 공간이 부족해 GPX를 저장하지 못했습니다.", done:"불러오기 완료", read:"파일을 읽지 못했습니다." },
-        en:{ loading:"Importing...", tooLarge:"GPX files must be 10MB or smaller.", invalid:"This is not a valid GPX route file.", noRoute:"No route coordinates were found.", storage:"Not enough storage to save this GPX file.", done:"Import complete", read:"Could not read the file." },
-        ja:{ loading:"読み込み中...", tooLarge:"GPXファイルは10MB以下にしてください。", invalid:"有効なGPXルートファイルではありません。", noRoute:"ルート座標がありません。", storage:"保存容量が不足してGPXを保存できません。", done:"読み込み完了", read:"ファイルを読み込めませんでした。" },
-        zh:{ loading:"正在导入...", tooLarge:"GPX文件必须小于或等于10MB。", invalid:"这不是有效的GPX路线文件。", noRoute:"未找到路线坐标。", storage:"存储空间不足，无法保存GPX。", done:"导入完成", read:"无法读取文件。" },
-        es:{ loading:"Importando...", tooLarge:"El archivo GPX debe tener 10 MB o menos.", invalid:"No es un archivo de ruta GPX válido.", noRoute:"No se encontraron coordenadas de ruta.", storage:"No hay espacio suficiente para guardar el GPX.", done:"Importación completada", read:"No se pudo leer el archivo." },
-        fr:{ loading:"Importation...", tooLarge:"Le fichier GPX doit faire 10 Mo maximum.", invalid:"Ce fichier de parcours GPX n’est pas valide.", noRoute:"Aucune coordonnée de parcours trouvée.", storage:"Espace insuffisant pour enregistrer le GPX.", done:"Importation terminée", read:"Impossible de lire le fichier." }
+        ko:{ previewOnly:"내부 목록에 저장하지 못해 지도에서만 열었습니다. 원본 GPX 파일과 기존 기록은 유지됩니다.", loading:"불러오는 중...", tooLarge:"GPX 파일은 10MB 이하만 불러올 수 있습니다.", invalid:"올바른 GPX 경로 파일이 아닙니다.", noRoute:"경로 좌표가 없습니다.", storage:"저장 공간이 부족해 GPX를 저장하지 못했습니다.", done:"불러오기 완료", read:"파일을 읽지 못했습니다." },
+        en:{ previewOnly:"Opened on the map without adding to the saved list. The original GPX file and existing records are preserved.", loading:"Importing...", tooLarge:"GPX files must be 10MB or smaller.", invalid:"This is not a valid GPX route file.", noRoute:"No route coordinates were found.", storage:"Not enough storage to save this GPX file.", done:"Import complete", read:"Could not read the file." },
+        ja:{ previewOnly:"一覧に保存できなかったため地図上でのみ開きました。元のGPXファイルと既存の記録は保持されています。", loading:"読み込み中...", tooLarge:"GPXファイルは10MB以下にしてください。", invalid:"有効なGPXルートファイルではありません。", noRoute:"ルート座標がありません。", storage:"保存容量が不足してGPXを保存できません。", done:"読み込み完了", read:"ファイルを読み込めませんでした。" },
+        zh:{ previewOnly:"未能保存到列表，已在地图上打开。原始GPX文件和已有记录均保留。", loading:"正在导入...", tooLarge:"GPX文件必须小于或等于10MB。", invalid:"这不是有效的GPX路线文件。", noRoute:"未找到路线坐标。", storage:"存储空间不足，无法保存GPX。", done:"导入完成", read:"无法读取文件。" },
+        es:{ previewOnly:"Abierto en el mapa sin añadirlo a la lista. El GPX original y los registros existentes se conservan.", loading:"Importando...", tooLarge:"El archivo GPX debe tener 10 MB o menos.", invalid:"No es un archivo de ruta GPX válido.", noRoute:"No se encontraron coordenadas de ruta.", storage:"No hay espacio suficiente para guardar el GPX.", done:"Importación completada", read:"No se pudo leer el archivo." },
+        fr:{ previewOnly:"Ouvert sur la carte sans ajout à la liste. Le fichier GPX original et les données existantes sont conservés.", loading:"Importation...", tooLarge:"Le fichier GPX doit faire 10 Mo maximum.", invalid:"Ce fichier de parcours GPX n’est pas valide.", noRoute:"Aucune coordonnée de parcours trouvée.", storage:"Espace insuffisant pour enregistrer le GPX.", done:"Importation terminée", read:"Impossible de lire le fichier." }
     };
     return text[currentLang] || text.ko;
 }
@@ -5130,7 +5269,7 @@ function importGpxFile(event) {
         try {
             var name = file.name.replace(/\.gpx$/i, ""); var gpxContent = String(e.target.result || "");
             var xmlDoc = new DOMParser().parseFromString(gpxContent, "application/xml");
-            if (xmlDoc.querySelector("parsererror")) { statusEl.textContent = text.invalid; return; }
+            if (xmlDoc.querySelector("parsererror") || !xmlDoc.documentElement || String(xmlDoc.documentElement.localName).toLowerCase() !== "gpx") { statusEl.textContent = text.invalid; return; }
             var routePoints = Array.from(xmlDoc.querySelectorAll("trkpt, rtept")).filter(function(point) {
                 var lat = parseFloat(point.getAttribute("lat")); var lng = parseFloat(point.getAttribute("lon"));
                 return isFinite(lat) && isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
@@ -5138,9 +5277,12 @@ function importGpxFile(event) {
             if (!routePoints.length) { statusEl.textContent = text.noRoute; return; }
             var saves = loadGpxSaves(); var id = String(Date.now());
             saves.push({ id:id, name:name, createdAt:Date.now(), pointCount:routePoints.length, gpxContent:gpxContent });
-            if (!saveGpxSaves(saves)) { statusEl.textContent = text.storage; return; }
-            clearActiveGpxRoute(); drawGpxRoute(gpxContent, id); updateGpxSavedList();
-            statusEl.textContent = '"' + name + '" ' + text.done; toggleSidebar(false);
+            var savedLocally = saveGpxSaves(saves);
+            // Opening an existing file must work even when the app list is full.
+            clearActiveGpxRoute(); drawGpxRoute(gpxContent, savedLocally ? id : null); updateGpxSavedList();
+            statusEl.textContent = savedLocally ? '"' + name + '" ' + text.done : text.previewOnly;
+            toggleSidebar(false);
+            if (!savedLocally && typeof showLocationToast === "function") showLocationToast(text.previewOnly, 5000);
         } catch (err) { statusEl.textContent = text.read; console.error(err); }
     };
     reader.onerror = function() { statusEl.textContent = text.read; };
@@ -5168,6 +5310,7 @@ document.addEventListener("keydown", function(event) { if (event.key === "Escape
 function openGiloaInfoPage(key, event) {
     if (event) event.preventDefault();
     if (key === "about") return openGiloaStoryHub(event);
+    if (key === "privacy" && window.GiloaPrivacy) return window.GiloaPrivacy.open(currentLang);
     var modal = document.getElementById("giloa-info");
     if (!modal || (key !== "account" && key !== "privacy")) return false;
     var lang = normalizeLang(currentLang);
@@ -5864,6 +6007,7 @@ function persistState(options) {
         var durableSaved = persistDurableStorageSnapshot();
         persistentStateDirty = false;
         lastCheckpointAt = Date.now();
+        if (window.GiloaCloud && typeof window.GiloaCloud.scheduleSync === "function") window.GiloaCloud.scheduleSync();
         if (GILOA_PERSISTENCE_DEBUG) console.log("[GILOA CHECKPOINT] " + JSON.stringify({ path:pathCoordinates.length, rawGps:rawGpsPoints.length, distance:totalDistance, photos:photos.length, timestamp:lastCheckpointAt, durable:durableSaved }));
         return true;
     } catch (e) {
@@ -8220,10 +8364,13 @@ async function init() {
     // frozen map. initializePersistentJourneyState() remains the source of truth.
     await new Promise(function(resolve) { setTimeout(resolve, 0); });
     await runInitStep("saved journey", initializePersistentJourneyState);
+    runInitStep("cloud sync", function() { return window.GiloaCloud && window.GiloaCloud.init ? window.GiloaCloud.init() : null; });
     if (isNativeRouteTrackingActive()) {
         restoreNativeRecordingSession();
         isRecording = true;
         trackingRequested = true;
+        startAutoRecordingTimer();
+        startNativeRouteTracking();
     }
     runInitStep("stay bonus", loadBonusState);
     runInitStep("collection", function() {
@@ -8648,38 +8795,6 @@ var TOUR_TYPE_LABELS = {
 };
 function getTourTypeName(contentTypeId) { var names = TOUR_TYPE_NAMES[currentLang] || TOUR_TYPE_NAMES.ko; return names[String(contentTypeId)] || names["12"]; }
 function getTourTypeLabel(contentTypeId) { var labels = TOUR_TYPE_LABELS[currentLang] || TOUR_TYPE_LABELS.ko; return labels[String(contentTypeId)] || labels.default; }
-// One monochrome line-icon vocabulary is shared by the layer menu, map tags,
-// nearby cards and detail popups. Keep the fishing drawing in this single
-// source so the menu and marker can never drift apart.
-var PLACE_ICON_DRAWINGS = {
-    attraction: '<path d="M3 9l9-6 9 6"/><path d="M5 9v10m4-7v7m6-7v7m4-10v10M3 21h18M8 9h8"/>',
-    culture: '<path d="M4 21V8l8-5 8 5v13M8 21v-7h8v7M7 10h.01M12 10h.01M17 10h.01"/>',
-    leports: '<circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M6 17l4-8h4l4 8m-8-8-2-3H5m5 11 4-8m0 0 3-2"/>',
-    restaurant: '<path d="M5 3v7m3-7v7M3 3v5a3 3 0 006 0V3M6 11v10M17 3v18m0-18c-4 3-4 9 0 9"/>',
-    shopping: '<path d="M5 8h14l-1 13H6L5 8zM8 8a4 4 0 018 0"/>',
-    festival: '<path d="M4 21V7m0 0c4-3 7 3 11 0v8c-4 3-7-3-11 0M18 4v4m-2-2h4"/>',
-    course: '<circle cx="5" cy="18" r="2"/><circle cx="19" cy="6" r="2"/><path d="M7 18c6 0 3-8 9-8h1"/>',
-    lodging: '<path d="M3 21V5m0 11h18v5m-18-9h18v4M7 12V8h5v4m0 0V8h6v4"/>',
-    library: '<path d="M12 6C8 3 5 4 3 5v15c3-2 6-1 9 1 3-2 6-3 9-1V5c-2-1-5-2-9 1zm0 0v15"/>',
-    parking: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 18V7h4a3 3 0 010 6H9"/>',
-    restroom: '<circle cx="7" cy="5" r="2"/><circle cx="17" cy="5" r="2"/><path d="M4 10h6v6H4zm2 6v5m3-5v5m8-11l-4 7h8l-4-7zm-1 7v4m3-4v4"/>',
-    trail: '<path d="M3 20l6-12 4 7 3-5 5 10H3zM16 3v3m-2-1h4"/>',
-    fishing: '<circle cx="8" cy="4.5" r="2.5"></circle><path d="M8 7v8.1a5.4 5.4 0 0 0 10.8 0v-4.4l-3.8 4.1"></path>',
-    community: '<path d="M3 10l9-7 9 7v11H3V10zm6 11v-7h6v7"/>',
-    hospital: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M12 8v8M8 12h8"/>',
-    pharmacy: '<path d="M7 5h10v14H7zM10 5V3h4v2M10 10h4M12 12v4M10 14h4"/>'
-};
-function placeIconSvg(iconKey, label, className) {
-    var safeLabel = escapeHtml(String(label || ""));
-    var drawing = PLACE_ICON_DRAWINGS[iconKey] || PLACE_ICON_DRAWINGS.attraction;
-    return '<svg class="place-type-icon' + (className ? " " + className : "") + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="' + safeLabel + '" title="' + safeLabel + '"><title>' + safeLabel + '</title>' + drawing + '</svg>';
-}
-function getTourIconKey(contentTypeId) {
-    return ({ "12":"attraction", "14":"culture", "15":"festival", "25":"course", "28":"leports", "32":"lodging", "38":"shopping", "39":"restaurant" })[String(contentTypeId)] || "attraction";
-}
-function placeTypeTagHtml(iconKey, label, styleText) {
-    return "<span class='tour-popup-tag'" + (styleText ? " style='" + styleText + "'" : "") + ">" + placeIconSvg(iconKey, label, "place-type-icon-small") + "<span>" + escapeHtml(label) + "</span></span>";
-}
 var TOUR_TYPE_META = {
     "25": { label: "Course", color: "#ef4444", fill: "rgba(239,68,68,0.18)", border: "rgba(239,68,68,0.55)" },
     "28": { label: "Leports", color: "#38bdf8", fill: "rgba(56,189,248,0.18)", border: "rgba(56,189,248,0.55)" },
@@ -9036,7 +9151,7 @@ function renderFestivalStrip() {
     var center = getMapSearchCenter();
     nearbyItems.forEach(function(item) {
         var card = document.createElement("div"); card.className = "festival-card"; applyTourTypeVars(card, getTourTypeMeta("15"));
-        var typeEl = document.createElement("div"); typeEl.className = "tour-card-type"; typeEl.innerHTML = placeIconSvg("festival", getTourTypeName("15"), "place-type-icon-small") + "<span>" + escapeHtml(getTourTypeName("15")) + "</span>";
+        var typeEl = document.createElement("div"); typeEl.className = "tour-card-type"; typeEl.textContent = getTourTypeName("15");
         var nameEl = document.createElement("div"); nameEl.className = "festival-card-name"; nameEl.textContent = getTourDisplayTitle(item) || getTourTypeName("15");
         var dateEl = document.createElement("div"); dateEl.className = "festival-card-date";
         var start = item.eventstartdate || ""; var end = item.eventenddate || "";
@@ -9293,7 +9408,7 @@ function buildTourPopupHtml(item, detailLines, isLoading) {
     var loadingText = words.loading;
     var noDetailText = words.noDetails;
     var tel = item.tel ? "<br><a href='tel:" + item.tel + "' style='color:#4db8ff;font-size:12px;'>" + telLabel + " " + escapeHtml(item.tel) + "</a>" : "";
-    var tag = placeTypeTagHtml(getTourIconKey(item.contenttypeid), typeName, "color:" + meta.color + ";border-color:" + meta.border + ";background:" + meta.fill + ";");
+    var tag = "<span class='tour-popup-tag' style='color:" + meta.color + ";border-color:" + meta.border + ";background:" + meta.fill + ";'>" + escapeHtml(typeName) + "</span>";
     var detailHtml = "";
     if (isLoading) detailHtml = "<div class='tour-popup-detail loading'>" + escapeHtml(loadingText) + "</div>";
     else if (detailLines && detailLines.length) {
@@ -9352,8 +9467,7 @@ function renderTourCards() {
             var imageEl = makeTourImage(item, "tour-card-image");
             var infoEl = document.createElement("div"); infoEl.className = "tour-card-info";
             var nameEl = document.createElement("div"); nameEl.className = "tour-card-name"; nameEl.textContent = getTourDisplayTitle(item) || (UI_TEXT[currentLang] || UI_TEXT.ko).empty_tour;
-            var typeName = getTourTypeName(item.contenttypeid) || meta.label;
-            var typeEl = document.createElement("div"); typeEl.className = "tour-card-type"; typeEl.innerHTML = placeIconSvg(getTourIconKey(item.contenttypeid), typeName, "place-type-icon-small") + "<span>" + escapeHtml(typeName) + "</span>";
+            var typeEl = document.createElement("div"); typeEl.className = "tour-card-type"; typeEl.textContent = getTourTypeName(item.contenttypeid) || meta.label;
             var addrEl = document.createElement("div"); addrEl.className = "tour-card-addr"; addrEl.textContent = getTourDisplayAddr(item) || "";
             var distEl = document.createElement("div"); distEl.className = "tour-card-dist";
             var distM = center.distanceTo([parseFloat(item.mapy), parseFloat(item.mapx)]);
@@ -9548,14 +9662,14 @@ function addTourMarkers() {
     logGpsLayerChange("BEFORE tour-refresh", before);
     tourMarkerLayer.clearLayers();
     tourMarkers = [];
-    getVisibleTourMarkerItems().forEach(function(item, index) { var lat = parseFloat(item.mapy); var lng = parseFloat(item.mapx); if (!isFinite(lat) || !isFinite(lng)) return; var meta = getTourTypeMeta(item.contenttypeid); var typeName = getTourTypeName(item.contenttypeid) || meta.label; var state = getTourMarkerState(item, index); var liked = isTourLiked(item); var likeKey = getTourLikeKey(item); var classes = [state.visited ? "state-visited" : "", state.selected ? "state-selected" : "", state.nearby ? "state-nearby" : "", state.discoverable ? "state-discoverable" : "", liked ? "state-liked" : ""].filter(Boolean).join(" "); var badge = liked ? "★" : state.visited ? "✓" : state.missionAvailable ? "📷" : state.discoverable ? "◎" : ""; var icon = L.divIcon({ className: "tour-map-marker-wrap", html: "<div class='tour-map-marker " + classes + "' data-place-like-key='" + escapeHtml(likeKey) + "' style='--tour-color:" + meta.color + ";--tour-fill:" + meta.fill + ";--tour-border:" + meta.border + ";'><span class='tour-map-type-icon'>" + placeIconSvg(getTourIconKey(item.contenttypeid), typeName, "place-type-icon-marker") + "</span><span class='tour-map-label'>" + escapeHtml(meta.label) + "</span>" + (badge ? "<span class='tour-map-badge'>" + badge + "</span>" : "") + "</div>", iconSize: [84, 30], iconAnchor: [10, 15] }); var marker = L.marker([lat, lng], { pane: "tourPane", icon: icon, title: typeName + " - " + (getTourDisplayTitle(item) || "") }).addTo(tourMarkerLayer); marker._tourItem = item; marker.on("click", function() { focusTourItemBelowPanel(item); }); tourMarkers.push(marker); });
+    getVisibleTourMarkerItems().forEach(function(item, index) { var lat = parseFloat(item.mapy); var lng = parseFloat(item.mapx); if (!isFinite(lat) || !isFinite(lng)) return; var meta = getTourTypeMeta(item.contenttypeid); var state = getTourMarkerState(item, index); var liked = isTourLiked(item); var likeKey = getTourLikeKey(item); var classes = [state.visited ? "state-visited" : "", state.selected ? "state-selected" : "", state.nearby ? "state-nearby" : "", state.discoverable ? "state-discoverable" : "", liked ? "state-liked" : ""].filter(Boolean).join(" "); var badge = liked ? "★" : state.visited ? "✓" : state.missionAvailable ? "📷" : state.discoverable ? "◎" : ""; var icon = L.divIcon({ className: "tour-map-marker-wrap", html: "<div class='tour-map-marker " + classes + "' data-place-like-key='" + escapeHtml(likeKey) + "' style='--tour-color:" + meta.color + ";--tour-fill:" + meta.fill + ";--tour-border:" + meta.border + ";'><span class='tour-map-dot'></span><span class='tour-map-label'>" + escapeHtml(meta.label) + "</span>" + (badge ? "<span class='tour-map-badge'>" + badge + "</span>" : "") + "</div>", iconSize: [84, 30], iconAnchor: [10, 15] }); var marker = L.marker([lat, lng], { pane: "tourPane", icon: icon, title: (getTourTypeName(item.contenttypeid) || meta.label) + " - " + (getTourDisplayTitle(item) || "") }).addTo(tourMarkerLayer); marker._tourItem = item; marker.on("click", function() { focusTourItemBelowPanel(item); }); tourMarkers.push(marker); });
     refreshGpsVisualsAfterPlaceLayerChange("tour-refresh", before);
 }
 
 
 // ?쒖슱 怨듦났?꾩꽌愿 ?꾩튂?뺣낫
 var SEOUL_LIBRARY_API_KEY = window.GILOA_SEOUL_LIBRARY_API_KEY || "";
-var SEOUL_LIBRARY_API_URL = "http://openapi.seoul.go.kr:8088/" + SEOUL_LIBRARY_API_KEY + "/json/SeoulPublicLibraryInfo/1/300/";
+var SEOUL_LIBRARY_API_URL = "https://openapi.seoul.go.kr/" + SEOUL_LIBRARY_API_KEY + "/json/SeoulPublicLibraryInfo/1/300/";
 var SEOUL_LIBRARY_CACHE_KEY = "giloa-library-seoul-v1";
 var SEOUL_LIBRARY_CACHE_MS = 30 * 24 * 60 * 60 * 1000;
 var libraryItems = [];
@@ -9566,7 +9680,7 @@ var LIBRARY_MARKER_COLOR = "#2563eb";
 // Public restroom data: bundled coordinates first, then short background
 // refreshes from Seoul Open Data / OSM. Last-known data remains usable offline.
 var SEOUL_RESTROOM_API_KEY = window.GILOA_SEOUL_RESTROOM_API_KEY || "";
-var SEOUL_RESTROOM_API_BASE = window.GILOA_SEOUL_RESTROOM_API_BASE || "http://openapi.seoul.go.kr:8088";
+var SEOUL_RESTROOM_API_BASE = window.GILOA_SEOUL_RESTROOM_API_BASE || "https://openapi.seoul.go.kr";
 var SEOUL_RESTROOM_API_SERVICE = "mgisToiletPoi";
 var SEOUL_RESTROOM_PAGE_SIZE = 1000;
 var RESTROOM_DATA_URL = "./data/restrooms_seoul.json";
@@ -9636,7 +9750,7 @@ function renderLibraryMarkers(lang) {
         var likeKey = getMapPlaceLikeKey("library", [item.LBRRY_SEQ_NO || item.LBRRY_NAME, lat, lng]);
         var icon = L.divIcon({
             className: "library-map-marker-wrap",
-            html: "<div class='library-map-marker" + (likedTourKeys.has(likeKey) ? " state-liked" : "") + "' data-place-like-key='" + escapeHtml(likeKey) + "'><span class='map-place-icon'>" + placeIconSvg("library", label, "place-type-icon-marker") + "</span><span class='library-map-label'>" + escapeHtml(label) + "</span><span class='place-liked-star'>★</span></div>",
+            html: "<div class='library-map-marker" + (likedTourKeys.has(likeKey) ? " state-liked" : "") + "' data-place-like-key='" + escapeHtml(likeKey) + "'><span class='library-map-dot'></span><span class='library-map-label'>" + escapeHtml(label) + "</span><span class='place-liked-star'>★</span></div>",
             iconSize: [92, 28], iconAnchor: [10, 14]
         });
         var marker = L.marker([lat, lng], { pane: "libraryPane", icon: icon, title: label + " - " + getLibraryDisplayName(item) }).addTo(libraryMarkerLayer);
@@ -9654,7 +9768,7 @@ function showLibraryPopup(item) {
     setSelectedDestination(lat, lng, name || label);
     var tel = item.TEL_NO ? "<br><a href='tel:" + item.TEL_NO + "' style='color:#4ade80;font-size:12px;'>" + escapeHtml(getTourUiText().phone) + " " + escapeHtml(item.TEL_NO) + "</a>" : "";
     var time = item.OP_TIME ? "<br><small>" + escapeHtml(item.OP_TIME) + "</small>" : "";
-    var tag = placeTypeTagHtml("library", label, "color:#60a5fa;border-color:rgba(37,99,235,0.75);background:rgba(37,99,235,0.22);");
+    var tag = "<span class='tour-popup-tag' style='color:#60a5fa;border-color:rgba(37,99,235,0.75);background:rgba(37,99,235,0.22);'>" + escapeHtml(label) + "</span>";
     var likeKey = getMapPlaceLikeKey("library", [item.LBRRY_SEQ_NO || item.LBRRY_NAME, lat, lng]);
     var popup = L.popup({ className: "tour-popup" }).setLatLng([lat, lng]).setContent("<b>" + escapeHtml(name) + "</b><br>" + tag + "<br><small>" + escapeHtml(addr) + "</small>" + time + tel + buildMapPlaceLikeButton(likeKey)).openOn(map);
     trackPublicPlacePopup(popup, function() { showLibraryPopup(item); });
@@ -9667,6 +9781,8 @@ function translateLibraryItemsForLang(lang) {
 }
 
 function fetchLibraryJson() {
+    // Seoul's legacy endpoint has no usable TLS. Ship its public rows locally.
+    if (window.GILOA_SEOUL_LIBRARY_BUNDLE && window.GILOA_SEOUL_LIBRARY_BUNDLE.SeoulPublicLibraryInfo) return Promise.resolve(window.GILOA_SEOUL_LIBRARY_BUNDLE);
     var cached = null;
     try {
         cached = JSON.parse(localStorage.getItem(SEOUL_LIBRARY_CACHE_KEY) || "null");
@@ -9804,8 +9920,7 @@ function showParkingPopup(item) {
     var tel = item.t ? "<br><a href='tel:" + escapeHtml(item.t) + "' style='color:#4ade80;font-size:12px;'>" + escapeHtml(item.t) + "</a>" : "";
     setSelectedDestination(item.y, item.x, item.n || text.label);
     var likeKey = getMapPlaceLikeKey("parking", [item.i || item.n, item.y, item.x]);
-    var parkingTag = placeTypeTagHtml("parking", text.label, "color:" + PARKING_COLOR + ";border-color:" + PARKING_COLOR + ";background:rgba(167,139,250,.18);");
-    var popup = L.popup({ className:"tour-popup" }).setLatLng([item.y, item.x]).setContent("<b>" + escapeHtml(item.n || text.label) + "</b><br>" + parkingTag + (address ? "<br><small>" + escapeHtml(address) + "</small>" : "") + (details.length ? "<br><small>" + escapeHtml(details.join(" · ")) + "</small>" : "") + tel + buildMapPlaceLikeButton(likeKey)).openOn(map);
+    var popup = L.popup({ className:"tour-popup" }).setLatLng([item.y, item.x]).setContent("<b>" + escapeHtml(item.n || text.label) + "</b><br><span class='tour-popup-tag' style='color:" + PARKING_COLOR + ";border-color:" + PARKING_COLOR + ";background:rgba(167,139,250,.18);'>" + escapeHtml(text.label) + "</span>" + (address ? "<br><small>" + escapeHtml(address) + "</small>" : "") + (details.length ? "<br><small>" + escapeHtml(details.join(" · ")) + "</small>" : "") + tel + buildMapPlaceLikeButton(likeKey)).openOn(map);
     trackPublicPlacePopup(popup, function() { showParkingPopup(item); });
 }
 function renderParkingMarkers(tileIds) {
@@ -9819,7 +9934,7 @@ function renderParkingMarkers(tileIds) {
     }); });
     items.sort(function(a, b) { return a._distance - b._distance; }).slice(0, MAP_VIEWPORT_MARKER_LIMIT).forEach(function(item) {
         var likeKey = getMapPlaceLikeKey("parking", [item.i || item.n, item.y, item.x]);
-        var icon = L.divIcon({ className:"library-map-marker-wrap parking-map-marker-wrap", html:"<div class='library-map-marker" + (likedTourKeys.has(likeKey) ? " state-liked" : "") + "' data-place-like-key='" + escapeHtml(likeKey) + "' style='--tour-color:" + PARKING_COLOR + ";'><span class='map-place-icon'>" + placeIconSvg("parking", text.label, "place-type-icon-marker") + "</span><span class='library-map-label'>" + escapeHtml(text.label) + "</span><span class='place-liked-star'>★</span></div>", iconSize:[76,28], iconAnchor:[10,14] });
+        var icon = L.divIcon({ className:"library-map-marker-wrap parking-map-marker-wrap", html:"<div class='library-map-marker" + (likedTourKeys.has(likeKey) ? " state-liked" : "") + "' data-place-like-key='" + escapeHtml(likeKey) + "' style='--tour-color:" + PARKING_COLOR + ";'><span class='library-map-dot' style='background:" + PARKING_COLOR + ";'></span><span class='library-map-label'>" + escapeHtml(text.label) + "</span><span class='place-liked-star'>★</span></div>", iconSize:[76,28], iconAnchor:[10,14] });
         var marker = L.marker([item.y, item.x], { pane:"parkingPane", icon:icon, title:text.label + " - " + (item.n || "") }).addTo(parkingLayerGroup);
         marker.on("click", function() { showParkingPopup(item); }); parkingMarkers.push(marker);
     });
@@ -10039,8 +10154,7 @@ function showFishingPopup(item) {
     var tel = item.phone ? "<br><small><b>" + escapeHtml(text.phone) + ":</b> <a href='tel:" + escapeHtml(item.phone) + "' style='color:" + FISHING_COLOR + ";'>" + escapeHtml(item.phone) + "</a></small>" : "";
     setSelectedDestination(item.lat, item.lng, item.name || text.label);
     var likeKey = getMapPlaceLikeKey("fishing", [item.name, item.lat, item.lng]);
-    var fishingTag = placeTypeTagHtml("fishing", text.label, "color:" + FISHING_COLOR + ";border-color:" + FISHING_COLOR + ";background:rgba(56,189,248,.18);");
-    var popup = L.popup({ className:"tour-popup" }).setLatLng([item.lat, item.lng]).setContent("<b>" + escapeHtml(item.name || text.label) + "</b><br>" + fishingTag + detailHtml + tel + buildMapPlaceLikeButton(likeKey)).openOn(map);
+    var popup = L.popup({ className:"tour-popup" }).setLatLng([item.lat, item.lng]).setContent("<b>" + escapeHtml(item.name || text.label) + "</b><br><span class='tour-popup-tag' style='color:" + FISHING_COLOR + ";border-color:" + FISHING_COLOR + ";background:rgba(56,189,248,.18);'>🎣 " + escapeHtml(text.label) + "</span>" + detailHtml + tel + buildMapPlaceLikeButton(likeKey)).openOn(map);
     trackPublicPlacePopup(popup, function() { showFishingPopup(item); });
 }
 function renderFishingMarkers() {
@@ -10052,7 +10166,7 @@ function renderFishingMarkers() {
     }).map(function(item) {
         item._distance = center.distanceTo([item.lat, item.lng]); return item;
     }).sort(function(a, b) { return a._distance - b._distance; }).slice(0, MAP_VIEWPORT_MARKER_LIMIT).forEach(function(item) {
-        var hookSvg = placeIconSvg("fishing", text.label, "place-type-icon-marker");
+        var hookSvg = "<svg viewBox='0 0 24 24' aria-hidden='true'><circle cx='8' cy='4.5' r='2.5'></circle><path d='M8 7v8.1a5.4 5.4 0 0 0 10.8 0v-4.4l-3.8 4.1'></path></svg>";
         var likeKey = getMapPlaceLikeKey("fishing", [item.name, item.lat, item.lng]);
         var icon = L.divIcon({ className:"library-map-marker-wrap fishing-map-marker-wrap", html:"<div class='library-map-marker fishing-map-marker" + (likedTourKeys.has(likeKey) ? " state-liked" : "") + "' data-place-like-key='" + escapeHtml(likeKey) + "'><span class='fishing-map-icon'>" + hookSvg + "</span><span class='library-map-label fishing-map-label'>" + escapeHtml(text.label) + "</span><span class='place-liked-star'>★</span></div>", iconSize:[76,28], iconAnchor:[10,14] });
         var marker = L.marker([item.lat, item.lng], { pane:"fishingPane", icon:icon, title:text.label + " - " + (item.name || "") }).addTo(fishingLayerGroup);
@@ -10284,7 +10398,7 @@ function createRestroomMarker(item) {
     var likeKey = getMapPlaceLikeKey("restroom", [item._giloaKey || item.name || item.addr, item.lat, item.lng]);
     var icon = L.divIcon({
         className: "library-map-marker-wrap restroom-map-marker-wrap",
-        html: "<div class='library-map-marker" + (likedTourKeys.has(likeKey) ? " state-liked" : "") + "' data-place-like-key='" + escapeHtml(likeKey) + "' style='--tour-color:" + RESTROOM_MARKER_COLOR + ";'><span class='map-place-icon'>" + placeIconSvg("restroom", label, "place-type-icon-marker") + "</span><span class='library-map-label'>" + escapeHtml(label) + "</span><span class='place-liked-star'>★</span></div>",
+        html: "<div class='library-map-marker" + (likedTourKeys.has(likeKey) ? " state-liked" : "") + "' data-place-like-key='" + escapeHtml(likeKey) + "' style='--tour-color:" + RESTROOM_MARKER_COLOR + ";'><span class='library-map-dot' style='background:" + RESTROOM_MARKER_COLOR + ";'></span><span class='library-map-label'>" + escapeHtml(label) + "</span><span class='place-liked-star'>★</span></div>",
         iconSize: [76, 28], iconAnchor: [10, 14]
     });
     var marker = L.marker([item.lat, item.lng], { pane: "restroomPane", icon: icon, title: label + " - " + (item.name || "") }).addTo(restroomMarkerLayer);
@@ -10308,7 +10422,7 @@ function renderRestroomMarkers() {
 function showRestroomPopup(item) {
     var label = getRestroomLabel();
     setSelectedDestination(item.lat, item.lng, item.name || label);
-    var tag = placeTypeTagHtml("restroom", label, "color:" + RESTROOM_MARKER_COLOR + ";border-color:" + RESTROOM_MARKER_COLOR + ";background:rgba(163,230,53,0.18);");
+    var tag = "<span class='tour-popup-tag' style='color:" + RESTROOM_MARKER_COLOR + ";border-color:" + RESTROOM_MARKER_COLOR + ";background:rgba(163,230,53,0.18);'>" + escapeHtml(label) + "</span>";
     var tel = item.tel ? "<br><a href='tel:" + item.tel + "' style='color:#4ade80;font-size:12px;'>" + escapeHtml(getTourUiText().phone) + " " + escapeHtml(item.tel) + "</a>" : "";
     var openTypes = {"고객 이용":getTourUiText().customers,"유료":getTourUiText().paid,"공중화장실":getTourUiText().publicRestroom};
     var extra = [openTypes[item.openType] || item.openType, item.hours].filter(Boolean).join(" - ");
@@ -10499,44 +10613,21 @@ var MAP_LAYER_GROUPS = {
     convenience: ["restroom", "parking", "library", "lodging", "community"],
     activity: ["durunubi", "fishing"]
 };
-var MAP_LAYER_ICON_KEYS = {
-    tourism: "attraction",
-    restaurant: "restaurant",
-    shopping: "shopping",
-    restroom: "restroom",
-    parking: "parking",
-    library: "library",
-    lodging: "lodging",
-    durunubi: "trail",
-    fishing: "fishing",
-    community: "community",
-    hospital: "hospital",
-    pharmacy: "pharmacy"
+var MAP_LAYER_MENU_ICONS = {
+    discovery: '<path d="M3 9l9-6 9 6H3zm2 3v7m5-7v7m4-7v7m5-7v7M3 21h18"/>',
+    food: '<path d="M5 3v7m3-7v7M3 3v5a3 3 0 006 0V3M6 11v10M17 3v18m0-18c-4 3-4 9 0 9"/>',
+    convenience: '<rect x="4" y="5" width="16" height="16" rx="3"/><path d="M9 5V3h6v2m-3 5v6m-3-3h6"/>',
+    activity: '<path d="M3 20l6-12 4 7 3-5 5 10H3zM16 3v3m-2-1h4"/>',
+    restroom: '<circle cx="7" cy="5" r="2"/><circle cx="17" cy="5" r="2"/><path d="M4 10h6v6H4zm2 6v5m3-5v5m8-11l-4 7h8l-4-7zm-1 7v4m3-4v4"/>',
+    parking: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 18V7h4a3 3 0 010 6H9"/>',
+    library: '<path d="M12 6C8 3 5 4 3 5v15c3-2 6-1 9 1 3-2 6-3 9-1V5c-2-1-5-2-9 1zm0 0v15"/>',
+    shopping: '<path d="M5 7h14l-1 14H6L5 7zm3 0a4 4 0 018 0M9 12h.01M15 12h.01"/>',
+    lodging: '<path d="M3 21V4m0 12h18v5m-18-9h18v4M7 12V8h5v4m0 0V8h6v4"/>',
+    fishing: '<path d="M4 21L15 3h5v10a3 3 0 01-6 0m0 0v-2"/>',
+    community: '<path d="M3 10l9-7 9 7v11H3V10zm6 11v-7h6v7"/>'
 };
-var MAP_LAYER_GROUP_ICON_ITEMS = {
-    discovery: [{ icon:"attraction", typeId:"12", layer:"tourism" }, { icon:"culture", typeId:"14", layer:"tourism" }, { icon:"leports", typeId:"28", layer:"tourism" }],
-    food: [{ icon:"restaurant", layer:"restaurant" }, { icon:"shopping", layer:"shopping" }],
-    convenience: [{ icon:"restroom", layer:"restroom" }, { icon:"parking", layer:"parking" }, { icon:"library", layer:"library" }, { icon:"lodging", layer:"lodging" }, { icon:"community", layer:"community" }, { icon:"hospital", layer:"hospital" }, { icon:"pharmacy", layer:"pharmacy" }],
-    activity: [{ icon:"trail", layer:"durunubi" }, { icon:"fishing", layer:"fishing" }]
-};
-function getMapLayerItemLabel(key) {
-    var text = UI_TEXT[currentLang] || UI_TEXT.ko;
-    if (text["map_layer_" + key]) return text["map_layer_" + key];
-    var name = document.getElementById("map-layer-name-" + key);
-    return name ? name.textContent.trim() : key;
-}
-function getMapLayerGroupIconLabel(item) {
-    return item.typeId ? getTourTypeName(item.typeId) : getMapLayerItemLabel(item.layer);
-}
-function mapLayerMenuIcon(key, label) {
-    return placeIconSvg(MAP_LAYER_ICON_KEYS[key] || "attraction", label || getMapLayerItemLabel(key), "place-type-icon-menu");
-}
-function mapLayerGroupIcons(group) {
-    return (MAP_LAYER_GROUP_ICON_ITEMS[group] || []).map(function(item) {
-        var enabled = !!mapLayerSettings[item.layer];
-        var label = getMapLayerGroupIconLabel(item);
-        return '<span class="map-layer-group-icon ' + (enabled ? "is-on" : "is-off") + '" title="' + escapeHtml(label) + '">' + placeIconSvg(item.icon, label, "place-type-icon-menu") + '</span>';
-    }).join("");
+function mapLayerMenuIcon(key) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (MAP_LAYER_MENU_ICONS[key] || MAP_LAYER_MENU_ICONS.discovery) + '</svg>';
 }
 function getMapLayerGroupKeys(group) {
     return (MAP_LAYER_GROUPS[group] || []).filter(function(key) {
@@ -10558,26 +10649,16 @@ function toggleMapLayerGroup(group) {
 function syncMapLayerGroupUI() {
     if (!UI_TEXT) return;
     var text = UI_TEXT[currentLang] || UI_TEXT.ko;
-    Object.keys(MAP_LAYER_ICON_KEYS).forEach(function(key) {
-        var toggle = document.getElementById("layer-toggle-" + key);
-        var row = toggle && toggle.closest(".map-layer-item");
-        var icon = row && row.querySelector(".map-layer-menu-icon");
-        if (icon) icon.innerHTML = mapLayerMenuIcon(key, getMapLayerItemLabel(key));
-    });
     Object.keys(MAP_LAYER_GROUPS).forEach(function(group) {
         var card = document.getElementById("map-layer-group-" + group);
         if (!card) return;
         var state = getMapLayerGroupState(group);
         var name = text["map_group_" + group];
         card.dataset.state = state;
-        card.querySelector(".map-layer-group-icons").innerHTML = mapLayerGroupIcons(group);
         card.querySelector(".map-layer-group-name").textContent = name;
         card.querySelector(".map-layer-group-state").textContent = text["map_group_" + state];
         card.querySelector(".map-layer-group-toggle").setAttribute("aria-checked", state === "mixed" ? "mixed" : String(state === "on"));
-        card.querySelector(".map-layer-group-toggle").setAttribute("aria-label", name + ": " + text["map_group_" + state]);
-        card.querySelector(".map-layer-group-toggle").setAttribute("title", name);
         card.querySelector(".map-layer-group-expand").setAttribute("aria-label", name);
-        card.querySelector(".map-layer-group-expand").setAttribute("title", name);
     });
 }
 function initMapLayerGroups() {
@@ -10588,7 +10669,7 @@ function initMapLayerGroups() {
         var card = document.createElement("section");
         card.id = "map-layer-group-" + group;
         card.className = "map-layer-group";
-        card.innerHTML = '<div class="map-layer-group-header"><button type="button" class="map-layer-group-toggle" role="checkbox" aria-checked="false"><span class="map-layer-group-icons"></span><span class="map-layer-group-name visually-hidden"></span><span class="map-layer-group-state visually-hidden"></span></button><button type="button" class="map-layer-group-expand" aria-expanded="false" aria-controls="map-layer-group-details-' + group + '">▾</button></div><div class="map-layer-group-details" id="map-layer-group-details-' + group + '" hidden></div>';
+        card.innerHTML = '<div class="map-layer-group-header"><button type="button" class="map-layer-group-toggle" role="checkbox" aria-checked="false"><span class="map-layer-menu-icon">' + mapLayerMenuIcon(group) + '</span><span class="map-layer-group-name"></span><span class="map-layer-group-state"></span></button><button type="button" class="map-layer-group-expand" aria-expanded="false" aria-controls="map-layer-group-details-' + group + '">▾</button></div><div class="map-layer-group-details" id="map-layer-group-details-' + group + '" hidden></div>';
         var details = card.querySelector(".map-layer-group-details");
         card.querySelector(".map-layer-group-toggle").addEventListener("click", function() { toggleMapLayerGroup(group); });
         card.querySelector(".map-layer-group-expand").addEventListener("click", function(event) {
@@ -10604,7 +10685,7 @@ function initMapLayerGroups() {
             var dot = row.querySelector(".map-layer-dot");
             if (dot) {
                 dot.className = "map-layer-menu-icon";
-                dot.innerHTML = mapLayerMenuIcon(key, getMapLayerItemLabel(key));
+                dot.innerHTML = mapLayerMenuIcon(key === "tourism" ? "discovery" : key === "restaurant" || key === "shopping" ? "food" : key === "durunubi" ? "activity" : key);
             }
             details.appendChild(row);
         });
@@ -10618,8 +10699,6 @@ function syncMapLayerToggleUI(key) {
     var on = !!mapLayerSettings[key];
     sw.classList.toggle("on", on);
     sw.classList.toggle("off", !on);
-    var row = sw.closest(".map-layer-item");
-    if (row) row.dataset.state = on ? "on" : "off";
     syncMapLayerGroupUI();
 }
 function applyMapLayerChange(key) {
@@ -11017,7 +11096,7 @@ function fetchDurunubiGpx(course) {
             durunubiGpxCache[id] = routes[id];
             return routes[id];
         }
-        return fetch(course.gpxpath, { cache:"force-cache" }).then(function(response) {
+        return fetch(normalizeTourImageUrl(course.gpxpath), { cache:"force-cache" }).then(function(response) {
             if (!response.ok) throw new Error("GPX HTTP " + response.status);
             return response.text();
         }).then(parseDurunubiGpx).then(function(points) {
@@ -11581,6 +11660,8 @@ Object.assign(UI_TEXT.ja, { help_ask_copy:"ご都合のよいお問い合わせ�
 Object.assign(UI_TEXT.zh, { help_ask_copy:"请选择方便的联系方式，<br>向我们发送问题或建议。", help_link:"KakaoTalk一对一咨询", help_google_link:"Google咨询表单" });
 Object.assign(UI_TEXT.es, { help_ask_copy:"Elige el medio de contacto que prefieras<br>para enviar preguntas o comentarios.", help_link:"Chat 1 a 1 de KakaoTalk", help_google_link:"Formulario de Google" });
 Object.assign(UI_TEXT.fr, { help_ask_copy:"Choisissez le moyen de contact qui vous convient<br>pour envoyer vos questions ou suggestions.", help_link:"Discussion KakaoTalk individuelle", help_google_link:"Formulaire Google" });
+var SUPPORT_EMAIL_LABELS={ko:"이메일 문의",en:"Email support",ja:"メールで問い合わせ",zh:"邮件咨询",es:"Consulta por correo",fr:"Contact par e-mail"};
+Object.keys(SUPPORT_EMAIL_LABELS).forEach(function(lang){if(UI_TEXT[lang])UI_TEXT[lang].help_google_link=SUPPORT_EMAIL_LABELS[lang];});
 function setText(id, value) { var el = document.getElementById(id); if (el) el.textContent = value; }
 function setHtml(id, value) { var el = document.getElementById(id); if (el) el.innerHTML = value; }
 function formatUiTemplate(template, values) { return String(template || "").replace(/\{(\w+)\}/g, function(_, key) { return values && values[key] !== undefined ? values[key] : ""; }); }
@@ -11678,7 +11759,6 @@ function applyUILang(lang) {
     if (el("map-layer-source-durunubi")) el("map-layer-source-durunubi").textContent = t.map_layer_durunubi_source;
     if (el("map-layer-name-community")) el("map-layer-name-community").textContent = t.map_layer_community;
     if (el("map-layer-coming-soon")) el("map-layer-coming-soon").textContent = t.map_layer_coming_soon;
-    syncMapLayerGroupUI();
     setText("photo-camera-label", t.photo_camera);
     setText("photo-gallery-label", t.photo_gallery);
     var recordingControl = el("rec-btn");
@@ -11728,6 +11808,9 @@ function applyUILang(lang) {
     if (typeof applySupplementalStaticLanguage === "function") applySupplementalStaticLanguage();
     if (typeof refreshEarlyLanguageUI === "function") refreshEarlyLanguageUI();
     if (typeof refreshCollectionLanguageUI === "function") refreshCollectionLanguageUI();
+    if (window.GiloaCloud && typeof window.GiloaCloud.applyLanguage === "function") window.GiloaCloud.applyLanguage();
+    if (window.GiloaPrivacy) window.GiloaPrivacy.applyLanguage();
+    if (window.GiloaTrip) window.GiloaTrip.refresh();
     if (typeof ONBOARDING_I18N !== "undefined" && ONBOARDING_I18N) renderGiloaOnboarding();
     if (typeof introStoryState !== "undefined" && introStoryState && introStoryState.active && introStoryState.mode === "story") renderIntroStory();
     refreshPublicPlacePopupLanguage();
@@ -13417,3 +13500,9 @@ function applySupplementalStaticLanguage() {
     if (brandImage) brandImage.hidden = lang !== "ko";
     if (brandText) brandText.hidden = lang === "ko";
 }
+
+window.giloaRouteTrackingDiagnostic = function() {
+    var bridge = getNativeRouteTrackingBridge();
+    if (!bridge || typeof bridge.getRouteTrackingStatus !== "function") return null;
+    try { return JSON.parse(bridge.getRouteTrackingStatus()); } catch (_) { return null; }
+};

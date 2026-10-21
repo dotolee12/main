@@ -383,7 +383,7 @@ body.gft-active .giloa-tutorial,
 /* Sidebar groups only; map marker styles are unchanged. */
 #map-layer-panel .map-layer-group { margin: 6px 0; border: 1px solid rgba(79,195,247,.2); border-radius: 10px; background: #1a2035; overflow: hidden; }
 #map-layer-panel .map-layer-group-header { display: flex; align-items: stretch; min-height: 50px; }
-#map-layer-panel .map-layer-group-toggle { display: flex; align-items: center; justify-content: center; gap: 8px; flex: 1; min-width: 0; padding: 9px 10px; border: 0; background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer; }
+#map-layer-panel .map-layer-group-toggle { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; padding: 9px 8px; border: 0; background: transparent; color: inherit; text-align: left; font: inherit; cursor: pointer; }
 #map-layer-panel .map-layer-group-name { flex: 1; min-width: 0; font-size: 14px; line-height: 1.35; overflow-wrap: anywhere; }
 #map-layer-panel .map-layer-group-state { flex: 0 0 auto; font-size: 10px; color: #aab1c3; }
 #map-layer-panel .map-layer-group[data-state="on"] .map-layer-group-state,
@@ -394,15 +394,9 @@ body.gft-active .giloa-tutorial,
 #map-layer-panel .map-layer-group-expand:focus-visible { outline: 2px solid #4fc3f7; outline-offset: -3px; }
 #map-layer-panel .map-layer-group-details { padding: 2px 10px 8px; border-top: 1px solid rgba(79,195,247,.15); }
 #map-layer-panel .map-layer-group-details[hidden] { display: none; }
-#map-layer-panel .map-layer-group-icons { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; min-width: 0; max-width: 100%; color: #fff; }
-#map-layer-panel .map-layer-group-icon { display: inline-flex; width: 20px; height: 20px; flex: 0 0 20px; color: rgba(255,255,255,.42); transition: color .2s ease, opacity .2s ease; }
-#map-layer-panel .map-layer-group-icon.is-on { color: #fff; }
-#map-layer-panel .map-layer-menu-icon { display: inline-flex; width: 20px; height: 20px; flex: 0 0 20px; color: rgba(255,255,255,.42); transition: color .2s ease; }
-#map-layer-panel .map-layer-item[data-state="on"] .map-layer-menu-icon { color: #fff; }
-#map-layer-panel .map-layer-menu-icon svg,
-#map-layer-panel .map-layer-group-icon svg { display: block; width: 20px; height: 20px; }
+#map-layer-panel .map-layer-menu-icon { display: inline-flex; width: 20px; height: 20px; flex: 0 0 20px; color: #4fc3f7; }
+#map-layer-panel .map-layer-menu-icon svg { width: 100%; height: 100%; }
 #map-layer-panel .map-layer-group-details .map-layer-item { min-height: 44px; }
-.visually-hidden { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; white-space: nowrap !important; border: 0 !important; }
 .map-layer-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--layer-color, #888); flex-shrink: 0; }
 .map-layer-name { flex: 1; font-size: 14px; color: rgba(255,255,255,0.88); }
 .map-layer-copy{display:flex;min-width:0;flex:1;flex-direction:column;gap:2px}.map-layer-source{overflow:hidden;color:rgba(255,255,255,.38);font-size:9px;font-weight:650;line-height:1.25;text-overflow:ellipsis;white-space:nowrap}
@@ -1110,15 +1104,10 @@ body.gft-active .giloa-tutorial,
     box-shadow: 0 0 0 2px rgba(30,58,138,0.48);
     flex-shrink: 0;
 }
-.place-type-icon { display: block; width: 20px; height: 20px; fill: none; stroke: currentColor; }
-.place-type-icon-small { width: 12px; height: 12px; flex: 0 0 12px; }
-.place-type-icon-marker { width: 13px; height: 13px; flex: 0 0 13px; }
-.tour-map-type-icon,
-.map-place-icon { display: inline-flex; align-items: center; justify-content: center; width: 13px; height: 13px; flex: 0 0 13px; color: var(--tour-color, #fff); }
 .library-map-label { color: #eff6ff; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
 .fishing-map-marker{border-color:rgba(56,189,248,.85);background:rgba(7,28,48,.94)}
 .fishing-map-icon{display:grid;place-items:center;width:13px;height:13px;flex:0 0 13px;color:#7dd3fc}
-.fishing-map-icon svg{display:block;width:13px;height:13px;overflow:visible;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round}
+.fishing-map-icon svg{display:block;width:13px;height:13px;overflow:visible;fill:none;stroke:currentColor;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round}
 .fishing-map-label{max-width:52px;overflow:hidden;text-overflow:ellipsis}
 .tour-card-image { width: 30px; height: 30px; flex: 0 0 30px; overflow: hidden; border-radius: 6px; background: rgba(79,195,247,0.12); }
 .tour-card-image img, .tour-popup-image img { width: 100%; height: 100%; display: block; object-fit: cover; }
@@ -1205,7 +1194,6 @@ body.gft-active .giloa-tutorial,
 .tour-popup-tag {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
     width: fit-content;
     padding: 2px 7px;
     border-radius: 999px;
@@ -1315,9 +1303,6 @@ body.gft-active .giloa-tutorial,
     color: var(--tour-color, #c084fc);
 }
 @media (max-width: 420px) {
-    #map-layer-panel .map-layer-group-toggle { padding-inline: 6px; }
-    #map-layer-panel .map-layer-group-icons { gap: 9px; }
-    #map-layer-panel .map-layer-group-expand { width: 40px; flex-basis: 40px; }
     #top-bar { top: calc(8px + env(safe-area-inset-top)); left: max(5px, env(safe-area-inset-left)); right: max(5px, env(safe-area-inset-right)); gap: 4px; }
     #top-left-actions { gap: 3px; }
     #ham-btn { width: 36px; height: 36px; border-radius: 10px; }
@@ -1934,9 +1919,9 @@ body.language-onboarding-open{overflow:hidden}
 #gilo-dialogue-layer{--gilo-dialogue-controls-clearance:90px;position:fixed;left:max(12px,env(safe-area-inset-left));right:calc(var(--gilo-dialogue-controls-clearance) + env(safe-area-inset-right));bottom:calc(10px + env(safe-area-inset-bottom));z-index:4300;height:clamp(170px,24vh,210px);pointer-events:none;opacity:0;transform:translateY(calc(100% + 28px));transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .25s ease}
 #gilo-dialogue-layer.is-open{opacity:1;transform:translateY(0)}
 #gilo-dialogue-box{position:absolute;inset:0;box-sizing:border-box;min-width:0;padding:20px 22px 16px clamp(126px,20vw,252px);overflow:visible;pointer-events:auto;color:#fff;border:1px solid rgba(79,195,247,.7);border-radius:24px;background:rgba(26,32,53,.96);box-shadow:0 14px 42px rgba(3,9,24,.48),0 0 28px rgba(79,195,247,.2),inset 0 1px rgba(255,255,255,.07);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);isolation:isolate}
-#gilo-dialogue-box::before{content:"";position:absolute;z-index:-1;left:-1px;top:-44px;width:clamp(145px,23vw,275px);height:clamp(145px,23vw,275px);border-radius:52% 52% 44% 38%;background:radial-gradient(ellipse at 46% 60%,rgba(26,32,53,.98) 0 45%,rgba(26,32,53,.88) 58%,rgba(79,195,247,.15) 70%,transparent 73%);filter:drop-shadow(0 0 18px rgba(79,195,247,.16));pointer-events:none}
+#gilo-dialogue-box::before{content:none;display:none}
 .gilo-dialogue-character-stage{position:absolute;z-index:1;left:2px;bottom:-5px;width:clamp(110px,18vw,230px);height:calc(100% + 62px);pointer-events:none}
-#gilo-dialogue-character{display:block;width:100%;height:100%;object-fit:contain;object-position:center bottom;filter:drop-shadow(0 12px 17px rgba(0,0,0,.4));transform:scale(1.06);transform-origin:center bottom}
+#gilo-dialogue-character{display:block;width:100%;height:100%;object-fit:contain;object-position:center bottom;filter:none;transform:scale(1.06);transform-origin:center bottom}
 #gilo-dialogue-box.image-fallback .gilo-dialogue-character-stage{display:none}#gilo-dialogue-box.image-fallback{padding-left:22px}
 .gilo-dialogue-content{position:relative;z-index:2;display:flex;min-width:0;height:100%;flex-direction:column}
 #gilo-dialogue-name{padding-right:36px;color:#4fc3f7;font-size:clamp(15px,1.5vw,20px);font-weight:900;letter-spacing:.02em}
@@ -2083,12 +2068,34 @@ body.giloa-restoring #map, body.giloa-restoring #top-bar, body.giloa-restoring #
 
 /* Record sync beside the travel identity, stacked on narrow screens. */
 .route-dates-popup{min-width:180px;line-height:1.6}.route-dates-popup strong{display:block;padding-right:18px}.route-dates-popup ul{max-height:220px;overflow:auto;margin:8px 0;padding-left:18px}.route-dates-popup li{margin:4px 0}
-.hud-identity-sync-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:start;padding-top:8px}
+.hud-identity-sync-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,360px);gap:14px;align-items:start;padding-top:8px}
 .hud-identity-sync-layout>.rpg-growth-panel{min-width:0;margin:0}
 .hud-identity-sync-layout>.cloud-account-card{min-width:0;margin:0;background:linear-gradient(145deg,rgba(26,32,53,.98),rgba(14,20,39,.96))}
 .hud-identity-sync-layout .cloud-account-input{box-sizing:border-box;min-width:0}
 .hud-identity-sync-layout #cloud-account-email{display:block;overflow-wrap:anywhere}
 @media(max-width:760px){.hud-identity-sync-layout{grid-template-columns:minmax(0,1fr);gap:12px}}
 
-/* Quiet ownership label, underneath the current-location toast. */
-.giloa-map-copyright { position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); transform: translateX(-50%); padding: 10px 16px; color: rgba(255,255,255,.55); font-size: 10px; font-weight: 400; line-height: 1.45; white-space: nowrap; text-align: center; z-index: 1699; pointer-events: none; user-select: none; }
+/* Trip presentation hides only layers; stored journey data and tracking stay intact. */
+#map-wrap.giloa-trip-clean .leaflet-fog-pane,
+#map-wrap.giloa-trip-clean .leaflet-colorReveal-pane,
+#map-wrap.giloa-trip-clean .leaflet-dailyRoute-pane,
+#map-wrap.giloa-trip-clean .leaflet-memory-pane,
+#map-wrap.giloa-trip-clean .leaflet-specialPlace-pane,
+#map-wrap.giloa-trip-clean .leaflet-visitedPlace-pane { display:none !important; }
+#map-wrap.giloa-trip-clean .leaflet-tile-pane { opacity:1; filter:none; }
+.trip-history-toggle { position:absolute;right:10px;top:116px;z-index:1001;border:1px solid #b388ff;background:#20182eee;color:#f5eeff;border-radius:18px;padding:8px 12px;font-size:12px;box-shadow:0 2px 10px #0005; }
+.trip-share-panel { margin-top:16px;border-top:1px solid #b388ff55;padding-top:12px; }
+.trip-share-panel[hidden],.trip-history-toggle[hidden] { display:none !important; }
+.trip-share-panel h3 { font-size:15px;color:#d9c1ff;margin:5px 0; }
+.trip-hint,.trip-share-note,#trip-export-status { font-size:12px;line-height:1.55;color:#d2c8e2; }
+#trip-photo-list { max-height:320px;overflow:auto;margin:10px 0; }
+.trip-photo-row { padding:8px 0;border-bottom:1px solid #ffffff18; }
+.trip-photo-row label { display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer; }
+.trip-photo-row img { width:44px;height:44px;object-fit:cover;border-radius:6px; }
+.trip-photo-row input { width:18px;height:18px;accent-color:#b388ff;flex-shrink:0; }
+.trip-photo-row button { margin-top:6px;border:1px solid #b388ff88;background:#302340;color:#fff;border-radius:5px;padding:4px 8px; }
+.giloa-trip-photo span { display:grid;place-items:center;width:28px;height:28px;border:2px solid #fff;border-radius:50%;background:#7948b8;color:#fff;font-weight:bold;box-shadow:0 1px 5px #0008; }
+#trip-save-zip { background:#7545ad;color:#fff; }
+
+/* Initial location disclosure: no permission request before an affirmative choice. */
+.giloa-location-consent{position:fixed;inset:0;z-index:15500;display:grid;place-items:center;padding:18px;background:rgba(3,8,18,.75)}.giloa-location-consent-card{width:min(480px,100%);max-height:90vh;overflow:auto;padding:24px;border:1px solid #4fc3f7;border-radius:18px;background:#1a2035;color:white}.giloa-location-consent-card h2{font-size:22px;margin-bottom:14px}.giloa-location-consent-card p{font-size:14px;line-height:1.7;margin-bottom:15px}.giloa-location-consent-card button{display:block;width:100%;min-height:44px;padding:10px;margin-top:10px;border:1px solid #4fc3f7;border-radius:10px;background:#4fc3f7;color:#102033;font:inherit;cursor:pointer}.giloa-location-consent-card button:last-child,.giloa-location-consent-card .policy-link{background:transparent;color:#bcecff}.giloa-location-consent-card button:focus-visible{outline:3px solid white;outline-offset:2px}#giloa-info-list article h2{font-size:15px;color:#bcecff;margin-bottom:7px}#giloa-info-list article p{line-height:1.75;white-space:pre-line}#giloa-info-list>a{display:block;min-height:44px;padding:12px 0;color:#8be7ff;text-decoration:underline}

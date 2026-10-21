@@ -1,4 +1,4 @@
-var APP_CACHE = "giloa-app-shell-v247";
+var APP_CACHE = "giloa-app-shell-v242";
 var RUNTIME_CACHE = "giloa-runtime-v77";
 var TILE_CACHE = "giloa-map-tiles-v5";
 var TILE_CACHE_MAX = 300;
@@ -9,7 +9,9 @@ var RUNTIME_CACHE_MAX = 180;
 // 설치 단계에서 미리 내려받을 필요가 없다. 이전에는 ~90개 파일을 설치 시점에
 // 순차로 요청해 첫 실행/업데이트 시 체감 버퍼링이 커졌었다.
 var CORE_ASSETS = [
-  "./index.html", "./manifest.json", "./style.css", "./map-bootstrap.js", "./region-stay-core.js", "./script.js", "./medical-layers.js",
+  "./data/libraries_seoul.bundle.js",
+  "./privacy-policy.js", "./privacy-policy.html", "./privacy-policy.css",
+  "./index.html", "./manifest.json", "./style.css", "./map-bootstrap.js", "./region-stay-core.js", "./script.js", "./trip-share.js", "./supabase-sync.js", "./medical-layers.js",
   "./vendor/leaflet.css", "./vendor/leaflet.js", "./vendor/MarkerCluster.css", "./vendor/MarkerCluster.Default.css", "./vendor/leaflet.markercluster.js"
 ];
 var OPTIONAL_CORE_ASSETS = [

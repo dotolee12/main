@@ -6,6 +6,7 @@
     // 사용자가 index.html을 직접 열어도 로컬 웹 서버로 자동 전환한다.
   </script>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://dapi.kakao.com https://*.kakao.com https://*.daum.net https://*.daumcdn.net https://*.kakaocdn.net; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; connect-src 'self' https: data: blob:; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
 <title data-i18n-extra="pageTitle">나의 대동여지도 - Project Giloa</title>
 <script>
@@ -46,11 +47,11 @@ html,body{background:#1a2035;margin:0;height:100%;width:100%;overflow:hidden}
 <!-- 큰 벤더/앱 스크립트를 head 단계에서 미리 프리로드하여, 본문 파싱이 끝날 때까지
      기다리지 않고 CSS와 동시에 다운로드가 시작되도록 한다. (버퍼링 단축) -->
 <link rel="preload" as="script" href="./vendor/leaflet.js?v=app-local-9">
-<link rel="preload" as="script" href="./script.js?v=app-local-220">
+<link rel="preload" as="script" href="./script.js?v=app-local-215">
 <link rel="stylesheet" href="./vendor/leaflet.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.Default.css?v=app-local-9">
-<link rel="stylesheet" href="./style.css?v=app-local-171">
+<link rel="stylesheet" href="./style.css?v=app-local-166">
 <!-- 튜토리얼/타임트레이스 CSS는 첫 화면에 필요하지 않으므로 렌더 차단 없이
      비동기로 불러온다 (media=print 트릭 후 onload에서 all로 전환). -->
 <link rel="stylesheet" href="./time-trace.css?v=app-local-1" media="print" onload="this.media='all'">
@@ -66,13 +67,13 @@ html,body{background:#1a2035;margin:0;height:100%;width:100%;overflow:hidden}
      로직은 전혀 건드리지 않고, 그 위에 얹히는 별도 레이어라서 기존 흐름에 영향이 없다.
      목적: "로딩 중 빈 화면"을 없애서 로딩 시간 자체가 아니라 체감 대기를 줄인다. -->
 <div id="giloa-boot-splash" aria-live="polite" aria-label="GILOA loading">
-  <div class="gbs-slide is-active"><img data-src="./images/startup/01-memories.png" alt="" decoding="async"></div>
-  <div class="gbs-slide"><img data-src="./images/startup/02-horizon.png" alt="" decoding="async"></div>
-  <div class="gbs-slide"><img data-src="./images/startup/03-hello.png" alt="" decoding="async"></div>
-  <div class="gbs-slide"><img data-src="./images/startup/04-photo.png" alt="" decoding="async"></div>
-  <div class="gbs-slide"><img data-src="./images/startup/05-fog-map.png" alt="" decoding="async"></div>
-  <div class="gbs-slide"><img data-src="./images/startup/06-discovery.png" alt="" decoding="async"></div>
-  <div class="gbs-slide"><img data-src="./images/startup/07-glowing-map.png" alt="" decoding="async"></div>
+  <div class="gbs-slide is-active"><img src="./images/startup/01-memories.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img src="./images/startup/02-horizon.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img src="./images/startup/03-hello.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img src="./images/startup/04-photo.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img src="./images/startup/05-fog-map.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img src="./images/startup/06-discovery.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img src="./images/startup/07-glowing-map.png" alt="" decoding="async"></div>
   <button id="gbs-skip" class="gbs-skip" type="button">지도 먼저 보기</button>
   <div class="gbs-ui">
     <div class="gbs-brand"><i></i><span>GILOA</span></div>
@@ -141,7 +142,7 @@ var skipText={
   slides.forEach(function(_,i){var dot=document.createElement("i");if(i===0)dot.className="is-active";progress.appendChild(dot)});
   // Pick one random startup image, and show the text that belongs to that image.
   var dots=[].slice.call(progress.children),index=Math.floor(Math.random()*slides.length),timer=null,started=Date.now(),hidden=false;
-  function show(i){index=i%slides.length;var selectedImage=slides[index].querySelector("img");if(selectedImage&&!selectedImage.getAttribute("src")){selectedImage.setAttribute("fetchpriority","low");selectedImage.setAttribute("src",selectedImage.getAttribute("data-src"))}slides.forEach(function(el,n){el.classList.toggle("is-active",n===index)});dots.forEach(function(el,n){el.className=n===index?"is-active":""});title.textContent=words[lang][index][0];copy.textContent=words[lang][index][1]}
+  function show(i){index=i%slides.length;slides.forEach(function(el,n){el.classList.toggle("is-active",n===index)});dots.forEach(function(el,n){el.className=n===index?"is-active":""});title.textContent=words[lang][index][0];copy.textContent=words[lang][index][1]}
   show(index);
   setTimeout(function(){if(!hidden)splash.classList.add("gbs-long")},5000);
   function hide(){if(hidden)return;hidden=true;clearInterval(timer);splash.classList.add("gbs-hide");setTimeout(function(){if(splash.parentNode)splash.parentNode.removeChild(splash)},320)}
@@ -158,7 +159,6 @@ var skipText={
   setTimeout(hide,20000);
 })();
 </script>
-<div class="giloa-map-copyright">© GILOA</div>
 <div id="region-edge-frame" aria-hidden="true" hidden></div>
 <div id="sidebar">
 
@@ -579,7 +579,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <div class="help-notice" id="help-notice">현재 저장된 GPX 데이터는 서버로 전송되지 않아요.<br>모든 기록은 <b>오직 이 기기 안에서만</b> 저장되고 보여져요.</div>
 <div class="help-contact-links">
 <a href="https://open.kakao.com/o/s3AWTWFi" target="_blank" rel="noopener noreferrer" class="help-link help-link-kakao" id="help-link">카카오톡 1:1 문의</a>
-<a href="https://docs.google.com/forms/d/e/1FAIpQLScaWQM8tVs3x8QiuXvhfb0Ao_tNAQVicKIupSc9yZmG5r8zTw/viewform" target="_blank" rel="noopener noreferrer" class="help-link help-link-global" id="help-link-google">Google 문의 양식 / Global Contact Form</a>
+<a href="mailto:dotolee12@naver.com" target="_blank" rel="noopener noreferrer" class="help-link help-link-global" id="help-link-google">이메일 문의 / Email support</a>
 </div>
 </div>
 <div id="hpanel-info" class="help-panel" role="tabpanel" aria-labelledby="htab-info" hidden>
@@ -796,6 +796,35 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <div class="rpg-stat growth"><div><span></span><b id="rpg-stat-growth">0</b></div><i><em id="rpg-bar-growth"></em></i></div>
 </div>
 </section>
+  <section class="cloud-account-card" aria-labelledby="cloud-account-title">
+    <h2 id="cloud-account-title">기록 동기화</h2>
+    <p id="cloud-account-copy">로그인하면 이 기기의 기록을 먼저 보존한 뒤 길로아 서버와 동기화합니다.</p>
+    <div id="cloud-account-signed-out">
+      <input id="cloud-email" class="cloud-account-input" type="email" inputmode="email" autocomplete="email" placeholder="이메일">
+      <input id="cloud-password" class="cloud-account-input" type="password" autocomplete="current-password" minlength="6" placeholder="비밀번호 (6자 이상)">
+      <div class="cloud-account-actions">
+        <button id="cloud-sign-in" type="button" onclick="GiloaCloud.signInFromForm()">로그인</button>
+        <button id="cloud-sign-up" type="button" class="secondary" onclick="GiloaCloud.signUpFromForm()">가입</button>
+      </div>
+      <button id="cloud-reset-request" type="button" class="cloud-account-text-button" onclick="GiloaCloud.requestPasswordReset()">비밀번호 재설정</button>
+    </div>
+    <div id="cloud-account-recovery" hidden>
+      <input id="cloud-new-password" class="cloud-account-input" type="password" autocomplete="new-password" minlength="6" placeholder="새 비밀번호 (6자 이상)">
+      <input id="cloud-new-password-confirm" class="cloud-account-input" type="password" autocomplete="new-password" minlength="6" placeholder="새 비밀번호 확인">
+      <div class="cloud-account-actions">
+        <button id="cloud-password-update" type="button" onclick="GiloaCloud.updatePassword()">비밀번호 변경</button>
+        <button id="cloud-password-cancel" type="button" class="secondary" onclick="GiloaCloud.cancelPasswordReset()">취소</button>
+      </div>
+    </div>
+    <div id="cloud-account-signed-in" hidden>
+      <strong id="cloud-account-email"></strong>
+      <div class="cloud-account-actions">
+        <button id="cloud-sync-now" type="button" onclick="GiloaCloud.syncNow(true)">지금 동기화</button>
+        <button id="cloud-sign-out" type="button" class="secondary" onclick="GiloaCloud.signOut()">로그아웃</button>
+      </div>
+    </div>
+    <p id="cloud-account-status" class="cloud-account-status" aria-live="polite"></p>
+  </section>
 </div>
 </div>
 </div>
@@ -816,20 +845,24 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <!-- defer: 브라우저가 순서를 지키면서도 동시에 병렬로 내려받게 하여,
      기존의 '하나씩 순차 다운로드+실행' 방식보다 초기 로딩(버퍼링)을 크게 줄인다. -->
 <script src="./vendor/leaflet.js?v=app-local-9" defer></script>
-<script src="./config.js?v=app-local-13" defer></script>
+<script src="./config.js?v=app-local-11" defer></script>
 <script src="./map-bootstrap.js?v=app-local-3" defer></script>
 <script src="./vendor/leaflet.markercluster.js?v=app-local-9" defer></script>
 <script src="./vendor/exifr.full.umd.js?v=7.1.3" defer></script>
 <script src="./region-stay-core.js?v=app-local-1" defer></script>
-<script src="./script.js?v=app-local-220" defer></script>
-<script src="./medical-layers.js?v=2" defer></script>
+<script src="./data/libraries_seoul.bundle.js?v=20261021" defer></script>
+<script src="./privacy-policy.js?v=20261021" defer></script>
+<script src="./script.js?v=app-local-216" defer></script>
+<script src="./trip-share.js?v=app-local-1" defer></script>
+<script src="./supabase-sync.js?v=app-local-3" defer></script>
+<script src="./medical-layers.js?v=1" defer></script>
 <script src="./time-trace.js?v=app-local-1" defer></script>
 <script src="./hidden-missions.obfuscated.js?v=app-local-1" defer></script>
 <script src="./tutorial.js?v=app-local-134" defer></script>
 <script>
 if (window.location.protocol !== "file:" && "serviceWorker" in navigator && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
     window.addEventListener("load", function() {
-    navigator.serviceWorker.register("./sw.js?v=app-local-210", { updateViaCache: "none" })
+    navigator.serviceWorker.register("./sw.js?v=app-local-205", { updateViaCache: "none" })
             .then(function(registration) { console.log("SW 등록 완료"); return registration.update(); })
             .catch(function(e) { console.warn("SW 등록 실패", e); });
     });
@@ -837,7 +870,7 @@ if (window.location.protocol !== "file:" && "serviceWorker" in navigator && !(wi
     // The current page already has one consistent set of scripts; the updated
     // worker is used naturally on the next launch/navigation.
     navigator.serviceWorker.addEventListener("controllerchange", function() {
-        try { sessionStorage.setItem("giloa-sw-updated-v206", "1"); } catch (_) {}
+        try { sessionStorage.setItem("giloa-sw-updated-v205", "1"); } catch (_) {}
         window.dispatchEvent(new Event("giloa:service-worker-updated"));
     });
 }

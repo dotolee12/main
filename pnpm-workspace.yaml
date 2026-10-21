@@ -1,0 +1,2 @@
+allowBuilds:
+  javascript-obfuscator: set this to true or false

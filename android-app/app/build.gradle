@@ -1,0 +1,46 @@
+apply plugin: "com.android.application"
+
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+android {
+    namespace "com.giloa.app"
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "com.giloa.app"
+        minSdk 24
+        targetSdk 36
+        versionCode 73
+        versionName "1.5.19"
+    }
+
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile rootProject.file(keystoreProperties["storeFile"])
+                storePassword keystoreProperties["storePassword"]
+                keyAlias keystoreProperties["keyAlias"]
+                keyPassword keystoreProperties["keyPassword"]
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            // Keep the app's behavior and UI unchanged while allowing R8 to
+            // remove unreachable bytecode and resources from release builds.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+        }
+    }
+}
+
+dependencies {
+    implementation "androidx.core:core:1.13.0"
+}
