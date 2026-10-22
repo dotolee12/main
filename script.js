@@ -10661,37 +10661,45 @@ function syncMapLayerGroupUI() {
         card.querySelector(".map-layer-group-expand").setAttribute("aria-label", name);
     });
 }
+function syncMapLayerItemUI(key) {
+    var toggle = document.getElementById("layer-toggle-" + key);
+    var row = toggle && toggle.closest(".map-layer-item");
+    if (!row) return;
+    var unavailable = row.classList.contains("unavailable") || !!MAP_LAYER_UNAVAILABLE[key];
+    row.setAttribute("role", "button");
+    row.setAttribute("tabindex", unavailable ? "-1" : "0");
+    row.setAttribute("aria-disabled", String(unavailable));
+    row.setAttribute("aria-pressed", String(!unavailable && !!mapLayerSettings[key]));
+    var source = row.querySelector(".map-layer-source");
+    if (source) row.title = source.textContent;
+    if (!row.dataset.keyboardBound) {
+        row.dataset.keyboardBound = "true";
+        row.addEventListener("keydown", function(event) {
+            if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                if (row.getAttribute("aria-disabled") !== "true") row.click();
+            }
+        });
+    }
+}
 function initMapLayerGroups() {
     var panel = document.getElementById("map-layer-panel");
     if (!panel || panel.dataset.grouped === "true") return;
     panel.dataset.grouped = "true";
-    Object.keys(MAP_LAYER_GROUPS).forEach(function(group) {
-        var card = document.createElement("section");
-        card.id = "map-layer-group-" + group;
-        card.className = "map-layer-group";
-        card.innerHTML = '<div class="map-layer-group-header"><button type="button" class="map-layer-group-toggle" role="checkbox" aria-checked="false"><span class="map-layer-menu-icon">' + mapLayerMenuIcon(group) + '</span><span class="map-layer-group-name"></span><span class="map-layer-group-state"></span></button><button type="button" class="map-layer-group-expand" aria-expanded="false" aria-controls="map-layer-group-details-' + group + '">▾</button></div><div class="map-layer-group-details" id="map-layer-group-details-' + group + '" hidden></div>';
-        var details = card.querySelector(".map-layer-group-details");
-        card.querySelector(".map-layer-group-toggle").addEventListener("click", function() { toggleMapLayerGroup(group); });
-        card.querySelector(".map-layer-group-expand").addEventListener("click", function(event) {
-            event.stopPropagation();
-            details.hidden = !details.hidden;
-            this.setAttribute("aria-expanded", String(!details.hidden));
-            this.textContent = details.hidden ? "▾" : "▴";
-        });
-        MAP_LAYER_GROUPS[group].forEach(function(key) {
-            var toggle = document.getElementById("layer-toggle-" + key);
-            var row = toggle && toggle.closest(".map-layer-item");
-            if (!row) return;
-            var dot = row.querySelector(".map-layer-dot");
-            if (dot) {
-                dot.className = "map-layer-menu-icon";
-                dot.innerHTML = mapLayerMenuIcon(key === "tourism" ? "discovery" : key === "restaurant" || key === "shopping" ? "food" : key === "durunubi" ? "activity" : key);
-            }
-            details.appendChild(row);
-        });
-        panel.appendChild(card);
+    panel.classList.add("map-layer-icon-grid");
+    var keys = ["tourism", "restaurant", "shopping", "restroom", "parking", "library", "lodging", "hospital", "pharmacy", "durunubi", "fishing", "community"];
+    keys.forEach(function(key) {
+        var toggle = document.getElementById("layer-toggle-" + key);
+        var row = toggle && toggle.closest(".map-layer-item");
+        if (!row) return;
+        var dot = row.querySelector(".map-layer-dot");
+        if (dot) {
+            dot.className = "map-layer-menu-icon";
+            dot.innerHTML = mapLayerMenuIcon(key === "tourism" ? "discovery" : key === "restaurant" ? "food" : key === "durunubi" ? "activity" : key);
+        }
+        panel.appendChild(row);
+        syncMapLayerItemUI(key);
     });
-    syncMapLayerGroupUI();
 }
 function syncMapLayerToggleUI(key) {
     var sw = document.getElementById("layer-toggle-" + key);
@@ -10699,6 +10707,7 @@ function syncMapLayerToggleUI(key) {
     var on = !!mapLayerSettings[key];
     sw.classList.toggle("on", on);
     sw.classList.toggle("off", !on);
+    syncMapLayerItemUI(key);
     syncMapLayerGroupUI();
 }
 function applyMapLayerChange(key) {
