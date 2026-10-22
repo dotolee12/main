@@ -698,6 +698,7 @@ var tourSearchMode = "map";
 const DAILY_TASK_KEY = "giloa-daily-tasks-v1";
 const DAILY_SHARE_KEY = "giloa-daily-share-v1";
 const DAILY_GROWTH_KEY = "giloa-daily-growth-v1";
+const DAILY_TASK_TOTAL_KEY = "giloa-daily-tasks-total-v1";
 const DAILY_SHARE_TEXT = {
     ko: { mission: "길로아 알리기", action: "알리기", text: "길로아와 함께 나만의 여행 지도를 만들고 있어요." },
     en: { mission: "Share Giloa", action: "Share", text: "I am making my own travel map with Giloa." },
@@ -707,6 +708,51 @@ const DAILY_SHARE_TEXT = {
     fr: { mission: "Partager Giloa", action: "Partager", text: "Je crée ma propre carte de voyage avec Giloa." }
 };
 const RPG_GROWTH_KEY = "giloa-rpg-growth-v1";
+// 장비 상태는 기존 수집함(giloa-collection)과 분리한다. v1의 단일 장착값은
+// 최초 로드할 때 v2의 relic 슬롯으로 안전하게 옮겨 기존 사용자의 선택을 보존한다.
+const GILO_EQUIPMENT_KEY = "giloa-gilo-equipment-v2";
+const GILO_EQUIPMENT_LEGACY_KEY = "giloa-gilo-equipment-v1";
+const GILO_LEVEL_IMAGE_BASE = "./gilo%20many%20appearance/";
+const GILO_WEARABLE_SHEET_BASE = "./assets/gilo-wearables/sheets/";
+const GILO_FITTED_WEARABLE_SHEETS = {
+    "01-footwear-10.png":"./assets/gilo-wearables/fitted/01-footwear-fitted-v2.png",
+    "02-bottoms-10.png":"./assets/gilo-wearables/fitted/02-bottoms-fitted-v2.png",
+    "03-tops-10.png":"./assets/gilo-wearables/fitted/03-tops-fitted-v2.png",
+    "04-headwear-10.png":"./assets/gilo-wearables/fitted/04-headwear-fitted-v2.png",
+    "05-wrist-and-hand-10.png":"./assets/gilo-wearables/fitted/05-wrist-fitted-v2.png",
+    "06-eyewear-10.png":"./assets/gilo-wearables/fitted/06-eyewear-fitted-v2.png"
+};
+const GILO_WEARABLE_SLOTS = ["footwear", "bottoms", "tops", "headwear", "wrist", "eyewear", "bags", "cape", "neck", "relic"];
+const GILO_WEARABLE_SLOT_I18N = {
+    ko:{footwear:"신발",bottoms:"하의",tops:"상의",headwear:"모자",wrist:"팔찌",eyewear:"안경",bags:"가방",cape:"망토",neck:"목걸이",relic:"여행 소품"},
+    en:{footwear:"Footwear",bottoms:"Bottoms",tops:"Tops",headwear:"Headwear",wrist:"Wrist",eyewear:"Eyewear",bags:"Bags",cape:"Capes",neck:"Neckwear",relic:"Travel gear"},
+    ja:{footwear:"くつ",bottoms:"ボトムス",tops:"トップス",headwear:"帽子",wrist:"ブレスレット",eyewear:"メガネ",bags:"バッグ",cape:"マント",neck:"ネックレス",relic:"旅の小物"},
+    zh:{footwear:"鞋子",bottoms:"下装",tops:"上装",headwear:"帽子",wrist:"手链",eyewear:"眼镜",bags:"包",cape:"斗篷",neck:"颈饰",relic:"旅行小物"}
+};
+const GILO_WEARABLE_METRIC_I18N = {
+    ko:{distance:"걸음",photos:"사진",memories:"기억",visits:"장소 방문",stays:"머문 장소",badges:"뱃지",level:"길로 레벨",dailyTasks:"일일 미션"},
+    en:{distance:"walking",photos:"photos",memories:"memories",visits:"place visits",stays:"stayed places",badges:"badges",level:"Gilo level",dailyTasks:"daily missions"},
+    ja:{distance:"歩き",photos:"写真",memories:"思い出",visits:"場所訪問",stays:"滞在した場所",badges:"バッジ",level:"ギロレベル",dailyTasks:"デイリーミッション"},
+    zh:{distance:"步行",photos:"照片",memories:"回忆",visits:"地点访问",stays:"停留地点",badges:"徽章",level:"Gilo等级",dailyTasks:"每日任务"}
+};
+const GILO_WEARABLE_GROUPS = [
+    { slot:"footwear", sheet:"01-footwear-10.png", metric:"distance", values:[500,1000,2000,3500,5000,8000,12000,20000,35000,50000], names:["별빛 산책화","이슬길 운동화","지도길 부츠","노을 트레킹화","숲길 샌들","바다빛 워커","달빛 등산화","구름 러너","혜성 장화","대장정 부츠"] },
+    { slot:"bottoms", sheet:"02-bottoms-10.png", metric:"photos", values:[1,2,3,5,8,12,18,25,35,50], names:["첫 기록 하의","프레임 반바지","풍경 조거팬츠","엽서 치마","탐험 카고팬츠","필름 데님","숲빛 레깅스","노을 와이드팬츠","별무늬 팬츠","여행가 바지"] },
+    { slot:"tops", sheet:"03-tops-10.png", metric:"memories", values:[1,2,3,5,8,12,18,25,35,50], names:["첫 이야기 셔츠","기억 조끼","낙서 맨투맨","우체국 재킷","책갈피 가디건","지도 후드","밤하늘 니트","여행 셔츠","별자리 재킷","기록가 코트"] },
+    { slot:"headwear", sheet:"04-headwear-10.png", metric:"visits", values:[1,2,3,5,8,12,18,25,35,50], names:["첫 발걸음 모자","골목 캡","공원 버킷햇","시장 베레모","전망대 모자","박물관 페도라","축제 화관","산책 탐험모","별빛 왕관","대동여지도 모자"] },
+    { slot:"wrist", sheet:"05-wrist-and-hand-10.png", metric:"dailyTasks", values:[1,2,3,5,8,12,18,25,35,50], names:["약속 팔찌","한 걸음 밴드","사진가 손목띠","기억 매듭","여행 시계","친구 팔찌","탐험가 장갑","별조각 팔찌","나침반 커프","모험 완주 팔찌"] },
+    { slot:"eyewear", sheet:"06-eyewear-10.png", metric:"stays", values:[1,2,3,4,5,6,8,10,12,15], names:["쉬어가는 안경","카페 투명 안경","창가 선글라스","도서관 안경","비오는날 고글","야경 안경","풍경 렌즈","여행 필터 안경","별빛 고글","머무름 단안경"] },
+    { slot:"bags", sheet:"07-bags-and-back-10.png", metric:"badges", values:[1,2,3,5,8,12,18,25,35,50], names:["첫 여행 가방","스탬프 파우치","지도 크로스백","사진가 백팩","시장 장바구니","산길 배낭","기억 보관함","별가루 가방","도시 탐험 배낭","대여정 트렁크"] },
+    { slot:"cape", sheet:"08-capes-and-tail-10.png", metric:"level", values:[2,4,6,8,10,13,16,20,25,30], names:["새내기 망토","길잡이 숄","산들바람 망토","노을 케이프","여행자 망토","별빛 케이프","푸른 혜성 망토","수호자 망토","전설의 망토","길로아 대망토"] },
+    { slot:"neck", sheet:"09-neck-and-chest-10.png", metric:"visits", values:[2,4,6,9,13,18,24,32,42,60], names:["첫 만남 펜던트","골목 목도리","산책 스카프","기록 리본","우정 목걸이","여행 나침반","기억 로켓","밤하늘 브로치","별자리 메달","대동여지도 훈장"] },
+    { slot:"relic", sheet:"10-place-rewards-10.png", metric:"distance", values:[1000,3000,6000,10000,15000,25000,40000,60000,80000,100000], names:["출발의 지도","골목 나침반","숲속 랜턴","바다 조개","도시 엽서","산 정상 깃발","축제 리본","별빛 병","여행자의 열쇠","전설의 대동여지도"] }
+];
+const GILO_WEARABLE_CATALOG = GILO_WEARABLE_GROUPS.reduce(function(all, group) {
+    group.names.forEach(function(name, index) {
+        all.push({ id:"wearable_" + group.slot + "_" + String(index + 1).padStart(2, "0"), slot:group.slot, sheet:group.sheet, sheetIndex:index, name:name, metric:group.metric, target:group.values[index] });
+    });
+    return all;
+}, []);
 const RPG_POINTS_PER_LEVEL = 40;
 const RPG_STAT_KEYS = ["exploration", "experience", "memory", "connection", "growth"];
 const RPG_STAT_LABELS = { exploration:"탐험", experience:"경험", memory:"기억", connection:"연결", growth:"성장" };
@@ -2459,6 +2505,126 @@ function saveRpgGrowth(state) {
 }
 function getRpgTotal(stats) { return RPG_STAT_KEYS.reduce(function(sum, key) { return sum + (Number(stats[key]) || 0); }, 0); }
 function getRpgLevel(total) { return Math.min(30, Math.max(1, Math.floor(total / RPG_POINTS_PER_LEVEL) + 1)); }
+function getGiloLevelImage(level) {
+    var safeLevel = Math.min(30, Math.max(1, Math.floor(Number(level)) || 1));
+    return GILO_LEVEL_IMAGE_BASE + "gilo-level-" + String(safeLevel).padStart(2, "0") + ".png";
+}
+function loadGiloEquipment() {
+    try {
+        var saved = JSON.parse(localStorage.getItem(GILO_EQUIPMENT_KEY) || "null");
+        if (saved && saved.slots && typeof saved.slots === "object") return { slots:Object.assign({}, saved.slots) };
+        var legacy = JSON.parse(localStorage.getItem(GILO_EQUIPMENT_LEGACY_KEY) || "null");
+        var migrated = { slots:{} };
+        if (legacy && typeof legacy.itemId === "string" && legacy.itemId) migrated.slots.relic = legacy.itemId;
+        if (Object.keys(migrated.slots).length) saveGiloEquipment(migrated);
+        return migrated;
+    } catch (e) { return { slots:{} }; }
+}
+function saveGiloEquipment(equipment) {
+    try { localStorage.setItem(GILO_EQUIPMENT_KEY, JSON.stringify({ slots:Object.assign({}, (equipment && equipment.slots) || {}) })); }
+    catch (e) { console.warn("길로 장착 아이템을 저장하지 못했습니다.", e); }
+}
+function getEquippedGiloItems() {
+    var equipment = loadGiloEquipment();
+    if (!Array.isArray(items)) return [];
+    return GILO_WEARABLE_SLOTS.map(function(slot) {
+        var itemId = equipment.slots && equipment.slots[slot];
+        return items.find(function(item) { return item && String(item.id) === String(itemId) && item.wearable && item.slot === slot; }) || null;
+    }).filter(Boolean);
+}
+function getGiloEquipmentLabel(equipped, slot) {
+    var labels = {
+        ko: equipped ? "장착 중" : "장착하기",
+        en: equipped ? "Equipped" : "Equip",
+        ja: equipped ? "装着中" : "装着する",
+        zh: equipped ? "已装备" : "装备"
+    };
+    var label = labels[normalizeLang(currentLang)] || labels.en;
+    return slot ? ((GILO_WEARABLE_SLOT_I18N[normalizeLang(currentLang)] || GILO_WEARABLE_SLOT_I18N.en)[slot] + " · " + label) : label;
+}
+function getWearableDefinition(itemId) { return GILO_WEARABLE_CATALOG.find(function(def) { return def.id === String(itemId); }) || null; }
+function getWearableMetricValue(def) {
+    var metrics = getRpgMetrics();
+    if (def.metric === "distance") return Math.floor(Math.max(0, Number(totalDistance) || 0));
+    if (def.metric === "level") return getRpgLevel(getRpgTotal(loadRpgGrowth().stats));
+    if (def.metric === "dailyTasks") return Math.max(0, Number(safeStorageGet(DAILY_TASK_TOTAL_KEY)) || 0);
+    return Math.max(0, Number(metrics[def.metric === "stays" ? "stayPlaces" : def.metric]) || 0);
+}
+function getWearableMissionText(def) {
+    var lang = normalizeLang(currentLang);
+    var metricName = (GILO_WEARABLE_METRIC_I18N[lang] || GILO_WEARABLE_METRIC_I18N.en)[def.metric];
+    var suffix = def.metric === "distance" ? "m" : "";
+    var names = { ko:def.name, en:(GILO_WEARABLE_SLOT_I18N.en[def.slot] + " reward " + (def.sheetIndex + 1)), ja:(GILO_WEARABLE_SLOT_I18N.ja[def.slot] + "報酬 " + (def.sheetIndex + 1)), zh:(GILO_WEARABLE_SLOT_I18N.zh[def.slot] + "奖励 " + (def.sheetIndex + 1)) };
+    var templates = { ko:metricName + " " + def.target + suffix + " 달성", en:"Reach " + def.target + suffix + " " + metricName, ja:metricName + "を" + def.target + suffix + "達成", zh:"达成" + metricName + " " + def.target + suffix };
+    return { name:names[lang] || names.en, mission:templates[lang] || templates.en };
+}
+function getWearableVisualHtml(def, className) {
+    if (!def) return '<span class="gilo-wearable-sprite" aria-hidden="true">✦</span>';
+    var x = def.sheetIndex % 5, y = Math.floor(def.sheetIndex / 5);
+    return '<span class="gilo-wearable-sprite ' + (className || "") + '" style="--wearable-sheet:url(\'' + escapeHtml(GILO_FITTED_WEARABLE_SHEETS[def.sheet] || (GILO_WEARABLE_SHEET_BASE + def.sheet)) + '\');--wearable-x:' + x + ';--wearable-y:' + y + '" aria-hidden="true"></span>';
+}
+function getWearableItemText(item) {
+    var def = getWearableDefinition(item && item.id);
+    return def ? getWearableMissionText(def) : getCollectionItemText(item);
+}
+function updateGiloAppearance(level) {
+    var image = getGiloLevelImage(level);
+    var equippedItems = getEquippedGiloItems();
+    document.querySelectorAll(".my-gilo-avatar").forEach(function(avatar) {
+        var character = avatar.querySelector(".my-gilo-character");
+        if (character && character.getAttribute("src") !== image) character.src = image;
+        var legacySlot = avatar.querySelector(".my-gilo-equipped-item"); if (legacySlot) legacySlot.hidden = true;
+        avatar.querySelectorAll(".gilo-wearable-on-avatar").forEach(function(el) { el.remove(); });
+        equippedItems.forEach(function(item) {
+            var def = getWearableDefinition(item.id); if (!def) return;
+            var piece = document.createElement("span"); piece.className = "gilo-wearable-on-avatar slot-" + def.slot;
+            piece.style.setProperty("--wearable-sheet", "url('" + (GILO_FITTED_WEARABLE_SHEETS[def.sheet] || (GILO_WEARABLE_SHEET_BASE + def.sheet)) + "')");
+            piece.style.setProperty("--wearable-x", def.sheetIndex % 5); piece.style.setProperty("--wearable-y", Math.floor(def.sheetIndex / 5));
+            piece.title = getWearableMissionText(def).name; avatar.appendChild(piece);
+        });
+        avatar.classList.toggle("has-equipped-item", equippedItems.length > 0);
+    });
+}
+function toggleGiloEquipment(itemId) {
+    var item = Array.isArray(items) && items.find(function(candidate) { return candidate && String(candidate.id) === String(itemId); });
+    if (!item || !item.wearable || !item.slot) return false;
+    var equipment = loadGiloEquipment();
+    equipment.slots = equipment.slots || {};
+    equipment.slots[item.slot] = equipment.slots[item.slot] === String(itemId) ? "" : String(itemId);
+    saveGiloEquipment(equipment);
+    updateItemList();
+    updateRpgGrowthUI(loadRpgGrowth());
+    return true;
+}
+function openGiloWardrobe() {
+    toggleSidebar(true);
+    switchAllTab("item");
+    var container = document.getElementById("item-list");
+    if (container) container.scrollIntoView({ behavior:"smooth", block:"start" });
+}
+function getGiloWardrobeText() {
+    var text = {
+        ko:{title:"길로 옷장 미션",equipped:"장착",unlocked:"획득",missions:"미션 보기",open:"길로 옷장 열기"},
+        en:{title:"Gilo Wardrobe Missions",equipped:"Equipped",unlocked:"Unlocked",missions:"View missions",open:"Open Gilo wardrobe"},
+        ja:{title:"ギロのクローゼットミッション",equipped:"装着",unlocked:"獲得",missions:"ミッションを見る",open:"ギロのクローゼットを開く"},
+        zh:{title:"Gilo衣橱任务",equipped:"装备",unlocked:"已获得",missions:"查看任务",open:"打开Gilo衣橱"},
+        es:{title:"Misiones del vestuario de Gilo",equipped:"Equipados",unlocked:"Obtenidos",missions:"Ver misiones",open:"Abrir vestuario de Gilo"},
+        fr:{title:"Missions de la garde-robe de Gilo",equipped:"Équipés",unlocked:"Obtenus",missions:"Voir les missions",open:"Ouvrir la garde-robe de Gilo"}
+    };
+    return text[normalizeLang(currentLang)] || text.en;
+}
+function bindGiloWardrobeTrigger() {
+    var avatar = document.getElementById("hud-main-gilo");
+    if (!avatar) return;
+    avatar.removeAttribute("aria-hidden");
+    avatar.setAttribute("aria-label", getGiloWardrobeText().open);
+    if (avatar.dataset.wardrobeBound) return;
+    avatar.dataset.wardrobeBound = "true";
+    avatar.setAttribute("role", "button"); avatar.setAttribute("tabindex", "0");
+
+    avatar.addEventListener("click", function(event) { event.stopPropagation(); openGiloWardrobe(); });
+    avatar.addEventListener("keydown", function(event) { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openGiloWardrobe(); } });
+}
 function getRpgStage(level) { return level <= 10 ? "learning" : level <= 20 ? "forming" : "seasoned"; }
 function resolveRpgTraitKey(state) {
     var stats = state.stats || state;
@@ -2533,6 +2699,8 @@ function updateRpgGrowthUI(state) {
     var myGiloTitle = document.getElementById("rpg-my-gilo-title"); if (myGiloTitle) myGiloTitle.textContent = hud.myGilo;
     var colorTitle = document.getElementById("rpg-color-title"); if (colorTitle) colorTitle.textContent = hud.myTravelColor;
     updateMyGiloAura(state, level);
+    updateGiloAppearance(level);
+    bindGiloWardrobeTrigger();
     var mini = document.getElementById("hud-mini-line"); var miniProgress = document.getElementById("hud-mini-progress");
     var summary = getTodayJourneySummary(); var daily = getDailyTaskProgress(); var completed = daily.filter(function(task) { return task.current >= task.target; }).length;
     var status = trait.name + " · LV " + level + (isMax ? " · MAX" : " · " + progressPct + "%");
@@ -11931,7 +12099,7 @@ function getTourDisplayAddr(item) {
 
 // Collection items
 var COLLECTION_KEY = "giloa-collection";
-var badges = []; var visitStamps = []; var items = [];
+var badges = []; var visitStamps = []; var items = []; var collectionLoaded = false;
 var TESTER_SPROUT_ITEM_ID = "tester_sprout_2026";
 var TESTER_SPROUT_IMAGE = "./assets/items/giloa-tester-sprout.png";
 var TESTER_ELIGIBILITY_KEY = "giloa-prelaunch-tester-2026-v1";
@@ -12183,6 +12351,8 @@ function loadCollection() {
         }
         enrollPrelaunchTesterIfOpen();
         grantTesterSproutGift();
+        collectionLoaded = true;
+        checkWearableMissions();
         updateBadgeList();
         updateVisitList();
     } catch(e) { console.warn("수집 정보 복원 실패", e); }
@@ -12294,6 +12464,30 @@ function checkBadges() {
     if (photos.length >= 10) earnBadge("photo_10");
     var hour = new Date().getHours();
     if (isRecording && hour < 5) earnBadge("early_bird");
+    checkWearableMissions();
+}
+
+function checkWearableMissions() {
+    if (!collectionLoaded || !Array.isArray(items)) return 0;
+    var unlocked = [];
+    GILO_WEARABLE_CATALOG.forEach(function(def) {
+        if (items.some(function(item) { return item && String(item.id) === def.id; })) return;
+        if (getWearableMetricValue(def) < def.target) return;
+        var now = new Date();
+        items.push({
+            id:def.id, wearable:true, slot:def.slot, sheet:def.sheet, sheetIndex:def.sheetIndex,
+            earnedAt:now.getTime(), dateString:now.toLocaleDateString("ko-KR"), source:"gilo-wearable-mission-v1",
+            missionMetric:def.metric, missionTarget:def.target
+        });
+        unlocked.push(def);
+    });
+    if (!unlocked.length) return 0;
+    saveCollection(); updateItemList();
+    var first = getWearableMissionText(unlocked[0]);
+    var suffix = unlocked.length > 1 ? " +" + (unlocked.length - 1) : "";
+    showCollectionToast(first.name + suffix);
+    showGiloReaction("item", "", { force:true, reward:first.name + suffix });
+    return unlocked.length;
 }
 
 function updateBadgeList() {
@@ -12451,7 +12645,10 @@ function renderDailyTravelLog(summary) {
     document.getElementById("daily-travel-log-places").textContent = summary.visits.length ? formatUiTemplate(t.journey_log_places,{places:summary.visits.slice(0,3).map(getVisitDisplayName).join(" · ")}) : t.journey_log_wait;
 }
 function completeDailyTask(taskId, reward) {
-    var state = loadDailyTaskState(); state.rewarded = state.rewarded || []; if (state.rewarded.indexOf(taskId) >= 0) return false; state.rewarded.push(taskId); safeStorageSet(DAILY_TASK_KEY, JSON.stringify(state)); completedTaskEffects.add(taskId); setTimeout(function(){ completedTaskEffects.delete(taskId); }, 1200); showGiloReaction(state.rewarded.length >= 3 ? "daily" : "mission", "", { force:true, reward:"+" + reward + " EXP" }); return true;
+    var state = loadDailyTaskState(); state.rewarded = state.rewarded || []; if (state.rewarded.indexOf(taskId) >= 0) return false; state.rewarded.push(taskId); safeStorageSet(DAILY_TASK_KEY, JSON.stringify(state));
+    // 누적값은 새 장비 미션용 보조 기록이다. 기존 하루치 미션 상태는 그대로 유지한다.
+    safeStorageSet(DAILY_TASK_TOTAL_KEY, String(Math.max(0, Number(safeStorageGet(DAILY_TASK_TOTAL_KEY)) || 0) + 1));
+    completedTaskEffects.add(taskId); setTimeout(function(){ completedTaskEffects.delete(taskId); }, 1200); showGiloReaction(state.rewarded.length >= 3 ? "daily" : "mission", "", { force:true, reward:"+" + reward + " EXP" }); checkWearableMissions(); return true;
 }
 function updateTimeAtmosphere() {
     var overlay = document.getElementById("time-atmosphere"); if (!overlay) return; var hour = new Date().getHours(); var period = hour >= 4 && hour < 7 ? "dawn" : hour >= 7 && hour < 17 ? "day" : hour >= 17 && hour < 20 ? "sunset" : "night"; overlay.className = period;
@@ -12860,18 +13057,44 @@ function updateItemList() {
     regionCard.type = "button"; regionCard.className = "region-badge-entry-card";
     regionCard.innerHTML = '<span class="region-badge-entry-icon"><i></i></span><span><b>' + escapeHtml(collectionUiText("regional_badges")) + '</b><small>' + escapeHtml(collectionUiText("regional_hint")) + '</small></span><em>' + regionCount + '/' + REGION_BADGE_ATLAS_ENTRIES.length + '</em><strong aria-hidden="true">›</strong>';
     regionCard.addEventListener("click", openRegionBadgeAtlas); container.appendChild(regionCard);
+    var wardrobe = document.createElement("section");
+    wardrobe.className = "gilo-wardrobe-summary";
+    var equipped = loadGiloEquipment().slots || {};
+    var equippedCount = GILO_WEARABLE_SLOTS.filter(function(slot) { return !!equipped[slot]; }).length;
+    var unlockedCount = items.filter(function(savedItem) { return savedItem && savedItem.wearable; }).length;
+    var wardrobeText = getGiloWardrobeText();
+    wardrobe.innerHTML = '<div><b>' + escapeHtml(wardrobeText.title) + '</b><small>' + escapeHtml((wardrobeText.equipped + " ") + equippedCount + "/10 · " + (wardrobeText.unlocked + " ") + unlockedCount + "/100") + '</small></div><button type="button">' + escapeHtml(wardrobeText.missions) + '</button>';
+    wardrobe.querySelector("button").addEventListener("click", function() { wardrobe.classList.toggle("show-missions"); });
+    var missionGrid = document.createElement("div"); missionGrid.className = "gilo-wardrobe-missions";
+    GILO_WEARABLE_CATALOG.forEach(function(def) {
+        var hasItem = items.some(function(savedItem) { return savedItem && savedItem.id === def.id; });
+        var text = getWearableMissionText(def); var current = getWearableMetricValue(def);
+        var mission = document.createElement("div"); mission.className = "gilo-wardrobe-mission" + (hasItem ? " earned" : "");
+        mission.innerHTML = getWearableVisualHtml(def, "gilo-wearable-list-sprite") + '<span><b>' + escapeHtml(text.name) + '</b><small>' + escapeHtml(text.mission + " · " + Math.min(current, def.target) + "/" + def.target + (def.metric === "distance" ? "m" : "")) + '</small></span>';
+        missionGrid.appendChild(mission);
+    });
+    wardrobe.appendChild(missionGrid); container.appendChild(wardrobe);
     if (badges.length === 0 && items.length === 0) {
         var empty = document.createElement("p"); empty.className = "empty-message region-badge-empty"; empty.textContent = collectionUiText("empty_items"); container.appendChild(empty);
     }
     items.slice().reverse().forEach(function(savedItem) {
-        var item = document.createElement("div");
+        var item = document.createElement("button");
+        item.type = "button";
         item.className = "badge-item item-card";
-        var itemText = getCollectionItemText(savedItem);
+        var wearable = !!savedItem.wearable;
+        var itemText = wearable ? getWearableItemText(savedItem) : getCollectionItemText(savedItem);
         var name = itemText.name;
         var date = formatCollectionDate(savedItem.earnedAt, savedItem.dateString);
         var savedVisual = { image: savedItem.image || savedItem.imageUrl || DEFAULT_COLLECTION_IMAGE, imagePosition: savedItem.imagePosition || "center 35%" };
-        item.innerHTML = getCollectionVisualHtml(savedVisual, "✦") + '<div class="badge-name">' + escapeHtml(name) + '</div><div class="badge-date">' + escapeHtml(date) + '</div>';
-        item.title = itemText.description;
+        var equipped = wearable && loadGiloEquipment().slots && loadGiloEquipment().slots[savedItem.slot] === String(savedItem.id);
+        item.classList.toggle("is-equipped", equipped); item.classList.toggle("is-wearable", wearable);
+        item.setAttribute("aria-pressed", String(equipped));
+        var visual = wearable ? getWearableVisualHtml(getWearableDefinition(savedItem.id), "gilo-wearable-list-sprite") : getCollectionVisualHtml(savedVisual, "✦");
+        var action = wearable ? getGiloEquipmentLabel(equipped, savedItem.slot) : "";
+        item.innerHTML = visual + '<div class="badge-name">' + escapeHtml(name) + '</div><div class="badge-date">' + escapeHtml(wearable ? ((GILO_WEARABLE_SLOT_I18N[normalizeLang(currentLang)] || GILO_WEARABLE_SLOT_I18N.en)[savedItem.slot]) : date) + '</div>' + (wearable ? '<span class="item-equip-state">' + escapeHtml(action) + '</span>' : '');
+        item.title = wearable ? (itemText.mission + " · " + action) : itemText.description;
+        if (wearable) item.addEventListener("click", function() { toggleGiloEquipment(savedItem.id); });
+        else item.disabled = true;
         container.appendChild(item);
     });
     badges.slice().reverse().filter(function(b) { return !isRegionBadgeId(b.id); }).forEach(function(b) {

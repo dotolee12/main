@@ -47,11 +47,11 @@ html,body{background:#1a2035;margin:0;height:100%;width:100%;overflow:hidden}
 <!-- 큰 벤더/앱 스크립트를 head 단계에서 미리 프리로드하여, 본문 파싱이 끝날 때까지
      기다리지 않고 CSS와 동시에 다운로드가 시작되도록 한다. (버퍼링 단축) -->
 <link rel="preload" as="script" href="./vendor/leaflet.js?v=app-local-9">
-<link rel="preload" as="script" href="./script.js?v=app-local-218">
+<link rel="preload" as="script" href="./script.js?v=app-local-222">
 <link rel="stylesheet" href="./vendor/leaflet.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.Default.css?v=app-local-9">
-<link rel="stylesheet" href="./style.css?v=app-local-166">
+<link rel="stylesheet" href="./style.css?v=app-local-167">
 <!-- 튜토리얼/타임트레이스 CSS는 첫 화면에 필요하지 않으므로 렌더 차단 없이
      비동기로 불러온다 (media=print 트릭 후 onload에서 all로 전환). -->
 <link rel="stylesheet" href="./time-trace.css?v=app-local-1" media="print" onload="this.media='all'">
@@ -769,14 +769,14 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <div id="hud" onclick="event.stopPropagation()">
 <button id="hud-close" type="button" onclick="event.preventDefault(); event.stopPropagation(); if (isHudExpanded) toggleHud();" data-i18n-extra-aria="close" aria-label="닫기">&times;</button>
 <div id="hud-handle" onclick="event.preventDefault(); event.stopPropagation(); toggleHud();" role="button" data-i18n-extra-aria="openHud" aria-label="HUD 열기">
-<div id="hud-mini-avatar" class="my-gilo-avatar my-gilo-avatar-mini" aria-hidden="true"><div class="my-gilo-aura"></div><img class="my-gilo-character" src="./gilo%20many%20appearance/gilo-tutorial-welcome-transparent.png" alt=""></div>
+<div id="hud-mini-avatar" class="my-gilo-avatar my-gilo-avatar-mini" aria-hidden="true"><div class="my-gilo-aura"></div><img class="my-gilo-character" src="./gilo%20many%20appearance/gilo-tutorial-welcome-transparent.png" alt=""><span class="my-gilo-equipped-item" hidden><img alt=""></span></div>
 <div id="hud-mini-main"><div id="hud-mini-line">LV 1</div><div id="hud-mini-xp-track"><div class="hud-mini-xp-fill" id="hud-mini-progress"></div></div></div>
 </div>
 <div id="hud-basic">
 <div class="hud-identity-sync-layout">
 <section id="rpg-growth-panel" class="rpg-growth-panel" data-i18n-extra-aria="travelGrowth" aria-label="실시간 여행 성장">
 <div class="rpg-growth-head"><div><div id="rpg-growth-kicker" class="rpg-growth-kicker">REAL-WORLD TRAVEL RPG</div><strong id="rpg-trait-name">Travel growth</strong></div><div class="rpg-level-badge">LV <b id="rpg-level">1</b><span id="rpg-level-max" hidden>MAX</span></div></div>
-<div class="my-gilo-profile"><div id="rpg-my-gilo-title" class="my-gilo-title">나의 길로</div><div id="hud-main-gilo" class="my-gilo-avatar my-gilo-avatar-main" aria-hidden="true"><div class="my-gilo-aura"></div><img class="my-gilo-character" src="./gilo%20many%20appearance/gilo-tutorial-welcome-transparent.png" alt=""></div></div>
+<div class="my-gilo-profile"><div id="rpg-my-gilo-title" class="my-gilo-title">나의 길로</div><div id="hud-main-gilo" class="my-gilo-avatar my-gilo-avatar-main" aria-hidden="true"><div class="my-gilo-aura"></div><img class="my-gilo-character" src="./gilo%20many%20appearance/gilo-tutorial-welcome-transparent.png" alt=""><span class="my-gilo-equipped-item" hidden><img alt=""></span></div></div>
 <div id="rpg-trait-copy" class="rpg-trait-copy"></div>
 <div id="rpg-today-summary" class="rpg-today-summary">
 <button id="rpg-today-distance" type="button" onclick="event.stopPropagation(); openRpgJourneyView('distance');"></button>
@@ -852,7 +852,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <script src="./region-stay-core.js?v=app-local-1" defer></script>
 <script src="./data/libraries_seoul.bundle.js?v=20261021" defer></script>
 <script src="./privacy-policy.js?v=20261021" defer></script>
-<script src="./script.js?v=app-local-218" defer></script>
+<script src="./script.js?v=app-local-222" defer></script>
 <script src="./trip-share.js?v=app-local-1" defer></script>
 <script src="./supabase-sync.js?v=app-local-3" defer></script>
 <script src="./medical-layers.js?v=1" defer></script>
@@ -862,7 +862,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <script>
 if (window.location.protocol !== "file:" && "serviceWorker" in navigator && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
     window.addEventListener("load", function() {
-    navigator.serviceWorker.register("./sw.js?v=app-local-205", { updateViaCache: "none" })
+    navigator.serviceWorker.register("./sw.js?v=app-local-208", { updateViaCache: "none" })
             .then(function(registration) { console.log("SW 등록 완료"); return registration.update(); })
             .catch(function(e) { console.warn("SW 등록 실패", e); });
     });
@@ -870,7 +870,7 @@ if (window.location.protocol !== "file:" && "serviceWorker" in navigator && !(wi
     // The current page already has one consistent set of scripts; the updated
     // worker is used naturally on the next launch/navigation.
     navigator.serviceWorker.addEventListener("controllerchange", function() {
-        try { sessionStorage.setItem("giloa-sw-updated-v205", "1"); } catch (_) {}
+        try { sessionStorage.setItem("giloa-sw-updated-v207", "1"); } catch (_) {}
         window.dispatchEvent(new Event("giloa:service-worker-updated"));
     });
 }
