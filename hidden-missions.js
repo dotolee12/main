@@ -10,22 +10,22 @@
 
     /* Business logic refers only to roles. File names live in this single mapping. */
     var GILO_ASSETS = Object.freeze({
-        levelUp: asset("게임상황_01.png"),
-        missionClear: asset("게임상황_02.png"),
-        itemDiscovery: asset("게임상황_03.png"),
-        treasure: asset("게임상황_04.png"),
-        navigation: asset("게임상황_05.png"),
-        gps: asset("게임상황_06.png"),
-        placeDiscovery: asset("게임상황_07.png"),
-        photoSuccess: asset("게임상황_08.png"),
-        surprise: asset("ChatGPT Image Aug 3, 2026, 09_16_40 AM.png"),
-        curious: asset("길로_뒷모습.png"),
-        happy: asset("길로_즐거운모습_01_환영.png"),
-        moved: asset("길로_감동하는모습_03_마음깊은감동.png"),
-        warning: asset("길로_화난모습_01_팔짱.png"),
-        explain: asset("일하는 모습, 인사하는 모습, 여러가지 모습.png"),
+        levelUp: asset("gilo-emotions-transparent/17-confident-transparent.png"),
+        missionClear: asset("gilo-actions-transparent/06-thumbs-up-transparent.png"),
+        itemDiscovery: asset("gilo-actions-transparent/12-pickup-item-transparent.png"),
+        treasure: asset("gilo-actions-transparent/14-give-gift-transparent.png"),
+        navigation: asset("gilo-actions-transparent/10-map-transparent.png"),
+        gps: asset("gilo-actions-transparent/10-map-transparent.png"),
+        placeDiscovery: asset("gilo-emotions-transparent/11-curious-transparent.png"),
+        photoSuccess: asset("gilo-actions-transparent/11-photo-transparent.png"),
+        surprise: asset("gilo-emotions-transparent/12-surprised-transparent.png"),
+        curious: asset("gilo-emotions-transparent/11-curious-transparent.png"),
+        happy: asset("gilo-actions-transparent/07-waving-transparent.png"),
+        moved: asset("gilo-emotions-transparent/08-moved-transparent.png"),
+        warning: asset("gilo-emotions-transparent/21-worried-transparent.png"),
+        explain: asset("gilo-actions-transparent/09-explaining-transparent.png"),
         photoGuide: asset("giloa-tutorial-photo-nature.png"),
-        specialDiscovery: asset("길로_감동하는모습_02_감사의눈물.png")
+        specialDiscovery: asset("gilo-emotions-transparent/24-grateful-transparent.png")
     });
 
     var COPY = {

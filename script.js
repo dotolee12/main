@@ -9098,7 +9098,7 @@ function fetchFestivals(options) {
     }
     if (festivalRefreshPromiseByLang[requestLang]) return festivalRefreshPromiseByLang[requestLang];
     var requestSeq = ++festivalRequestSeq;
-    var buildUrl = function(lang) { return getTourEndpoint("searchFestival2", lang) + "?serviceKey=" + TOUR_API_KEY + "&eventStartDate=" + today + "&mapX=" + center.lng.toFixed(6) + "&mapY=" + center.lat.toFixed(6) + "&radius=" + radiusM + "&numOfRows=100&pageNo=1&MobileOS=ETC&MobileApp=Giloa&_type=json&arrange=E"; };
+    var buildUrl = function(lang) { return getTourEndpoint("searchFestival2", lang) + "?serviceKey=" + TOUR_API_KEY + "&eventStartDate=" + today + "&numOfRows=1000&pageNo=1&MobileOS=ETC&MobileApp=Giloa&_type=json&arrange=A"; };
     beginTourApiLoading();
     var festivalRequest;
     try {
