@@ -47,11 +47,11 @@ html,body{background:#1a2035;margin:0;height:100%;width:100%;overflow:hidden}
 <!-- 큰 벤더/앱 스크립트를 head 단계에서 미리 프리로드하여, 본문 파싱이 끝날 때까지
      기다리지 않고 CSS와 동시에 다운로드가 시작되도록 한다. (버퍼링 단축) -->
 <link rel="preload" as="script" href="./vendor/leaflet.js?v=app-local-9">
-<link rel="preload" as="script" href="./script.js?v=app-local-224">
+<link rel="preload" as="script" href="./script.js?v=app-local-225">
 <link rel="stylesheet" href="./vendor/leaflet.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.Default.css?v=app-local-9">
-<link rel="stylesheet" href="./style.css?v=app-local-168">
+<link rel="stylesheet" href="./style.css?v=app-local-169">
 <!-- 튜토리얼/타임트레이스 CSS는 첫 화면에 필요하지 않으므로 렌더 차단 없이
      비동기로 불러온다 (media=print 트릭 후 onload에서 all로 전환). -->
 <link rel="stylesheet" href="./time-trace.css?v=app-local-1" media="print" onload="this.media='all'">
@@ -172,6 +172,7 @@ var skipText={
 <div id="map-layer-wrap">
   <div class="fog-toggle-row" id="map-layer-header" onclick="toggleMapLayerPanel()">
     <span class="fog-toggle-label" id="map-layer-title">지도 표시</span>
+    <button id="map-layer-order-edit" class="map-layer-order-edit" type="button" onclick="event.stopPropagation(); toggleMapLayerOrderEdit();" aria-pressed="false">편집</button>
     <span id="map-layer-caret" class="map-layer-caret">▾</span>
   </div>
   <div id="map-layer-panel" class="map-layer-panel">
@@ -866,10 +867,10 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <script src="./data/libraries_seoul.bundle.js?v=20261021" defer></script>
 <script src="./privacy-policy.js?v=20261021" defer></script>
 <script src="./gpx-access.js?v=1" defer></script>
-<script src="./script.js?v=app-local-224" defer></script>
+<script src="./script.js?v=app-local-225" defer></script>
 <script src="./trip-share.js?v=app-local-1" defer></script>
 <script src="./supabase-sync.js?v=app-local-3" defer></script>
-<script src="./medical-layers.js?v=1" defer></script>
+<script src="./medical-layers.js?v=map-order-1" defer></script>
 <script src="./time-trace.js?v=app-local-1" defer></script>
 <script src="./hidden-missions.obfuscated.js?v=app-local-2" defer></script>
 <script src="./tutorial.js?v=app-local-134" defer></script>

@@ -30,7 +30,7 @@ function requireAuthorKey() {
 }
 
 requireAuthorKey();
-const requiredSources = ["gpx-access.js", "privacy-policy.js", "privacy-policy.html", "privacy-policy.css", "index.html", "style.css", "time-trace.css", "tutorial.css", "config.js", "map-bootstrap.js", "script.js", "trip-share.js", "supabase-sync.js", "time-trace.js", "region-stay-core.js", "hidden-missions.js", "tutorial.js", "sw.js"];
+const requiredSources = ["medical-layers.js", "gpx-access.js", "privacy-policy.js", "privacy-policy.html", "privacy-policy.css", "index.html", "style.css", "time-trace.css", "tutorial.css", "config.js", "map-bootstrap.js", "script.js", "trip-share.js", "supabase-sync.js", "time-trace.js", "region-stay-core.js", "hidden-missions.js", "tutorial.js", "sw.js"];
 requiredSources.forEach((file) => { if (!fs.existsSync(path.join(root, file))) fail("Required source is missing: " + file); });
 // Fail before replacing build output if the packaged map cannot get its URL.
 const configSource = read("config.js");
@@ -141,8 +141,8 @@ const swResult = await minifyJs(swSource, { compress:true, mangle:true, format:{
 if (!swResult.code) fail("Service worker minification produced no output.");
 fs.writeFileSync(path.join(outputDir, "sw.js"), swResult.code, "utf8");
 
-["gpx-access.js", "privacy-policy.js", "privacy-policy.html", "privacy-policy.css"].forEach((name) => fs.copyFileSync(path.join(root, name), path.join(outputDir, name)));
-const outputNames = ["gpx-access.js", "privacy-policy.js", "privacy-policy.html", "privacy-policy.css", "index.html", "style.css", "time-trace.css", "tutorial.css", "config.js", "map-bootstrap.js", "sw.js", ...Object.values(jsOutputs)];
+["medical-layers.js", "gpx-access.js", "privacy-policy.js", "privacy-policy.html", "privacy-policy.css"].forEach((name) => fs.copyFileSync(path.join(root, name), path.join(outputDir, name)));
+const outputNames = ["medical-layers.js", "gpx-access.js", "privacy-policy.js", "privacy-policy.html", "privacy-policy.css", "index.html", "style.css", "time-trace.css", "tutorial.css", "config.js", "map-bootstrap.js", "sw.js", ...Object.values(jsOutputs)];
 const manifest = { version:1, buildType:testerBuild ? "prelaunch-tester" : "production", createdAt:new Date().toISOString(), files:{} };
 outputNames.forEach((name) => { manifest.files[name] = digest(fs.readFileSync(path.join(outputDir, name))); });
 fs.writeFileSync(path.join(outputDir, "protected-manifest.json"), JSON.stringify(manifest, null, 2), "utf8");

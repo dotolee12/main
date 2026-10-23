@@ -322,6 +322,7 @@ const STORAGE_CORRUPT_KEY = STORAGE_KEY + "-corrupt";
 const STORAGE_TEMP_KEY = STORAGE_KEY + "-pending";
 const FOG_ENABLED_KEY = "giloa-fog-enabled";
 const MAP_LAYER_KEY = "giloa-map-layers";
+const MAP_LAYER_ORDER_KEY = "giloa-map-layer-order-v1";
 const MAP_LAYER_RADIUS_M = 300;
 const GPX_SAVES_KEY = "giloa-gpx-saves";
 const GPX_IMPORT_MAX_BYTES = 10 * 1024 * 1024;
@@ -10804,6 +10805,100 @@ var MAP_LAYER_MENU_ICONS = {
     fishing: '<path d="M4 21L15 3h5v10a3 3 0 01-6 0m0 0v-2"/>',
     community: '<path d="M3 10l9-7 9 7v11H3V10zm6 11v-7h6v7"/>'
 };
+var MAP_LAYER_TILE_KEYS = ["hospital", "pharmacy", "tourism", "restaurant", "shopping", "restroom", "parking", "library", "lodging", "durunubi", "fishing", "community"];
+var mapLayerOrderEditing = false;
+function loadMapLayerTileOrder() {
+    var known = [];
+    try {
+        var saved = JSON.parse(localStorage.getItem(MAP_LAYER_ORDER_KEY) || "[]");
+        if (Array.isArray(saved)) saved.forEach(function(key) {
+            if (MAP_LAYER_TILE_KEYS.indexOf(key) >= 0 && known.indexOf(key) < 0) known.push(key);
+        });
+    } catch (e) {}
+    MAP_LAYER_TILE_KEYS.forEach(function(key) { if (known.indexOf(key) < 0) known.push(key); });
+    return known;
+}
+function getMapLayerOrderText() {
+    var texts = {
+        ko:["편집", "완료", "위로 이동", "아래로 이동", "순서를 저장하지 못했습니다. 저장 공간을 확인하고 다시 시도해 주세요."],
+        en:["Edit", "Done", "Move up", "Move down", "Could not save the order. Check storage and try again."],
+        ja:["編集", "完了", "上へ移動", "下へ移動", "順序を保存できませんでした。保存領域を確認して再試行してください。"],
+        zh:["编辑", "完成", "上移", "下移", "无法保存顺序。请检查存储空间后重试。"],
+        es:["Editar", "Listo", "Subir", "Bajar", "No se pudo guardar el orden. Comprueba el almacenamiento e inténtalo de nuevo."],
+        fr:["Modifier", "Terminé", "Monter", "Descendre", "Impossible d’enregistrer l’ordre. Vérifiez le stockage et réessayez."]
+    };
+    return texts[normalizeLang(currentLang)] || texts.en;
+}
+function renderMapLayerTileOrder() {
+    var panel = document.getElementById("map-layer-panel");
+    if (!panel) return;
+    var order = loadMapLayerTileOrder(), text = getMapLayerOrderText();
+    order.forEach(function(key, index) {
+        var toggle = document.getElementById("layer-toggle-" + key);
+        var row = toggle && toggle.closest(".map-layer-item");
+        if (!row) return;
+        panel.appendChild(row);
+        var controls = row.querySelector(".map-layer-order-controls");
+        if (!controls) {
+            controls = document.createElement("span");
+            controls.className = "map-layer-order-controls";
+            [-1, 1].forEach(function(direction) {
+                var button = document.createElement("button");
+                button.type = "button";
+                button.textContent = direction < 0 ? "↑" : "↓";
+                button.addEventListener("click", function(event) {
+                    event.stopPropagation();
+                    moveMapLayerTile(key, direction);
+                });
+                // Keep Enter/Space away from the tile's layer-toggle handler.
+                button.addEventListener("keydown", function(event) { event.stopPropagation(); });
+                controls.appendChild(button);
+            });
+            row.appendChild(controls);
+        }
+        syncMapLayerItemUI(key);
+        if (mapLayerOrderEditing) {
+            row.setAttribute("role", "group");
+            row.removeAttribute("aria-disabled");
+            row.removeAttribute("aria-pressed");
+            row.setAttribute("tabindex", "-1");
+        }
+        controls.hidden = !mapLayerOrderEditing;
+        var name = row.querySelector(".map-layer-name");
+        [0, 1].forEach(function(i) {
+            controls.children[i].setAttribute("aria-label", (name ? name.textContent + ": " : "") + text[i + 2]);
+            controls.children[i].disabled = i === 0 ? index === 0 : index === order.length - 1;
+        });
+    });
+    panel.classList.toggle("is-order-editing", mapLayerOrderEditing);
+    var edit = document.getElementById("map-layer-order-edit");
+    if (edit) {
+        edit.textContent = text[mapLayerOrderEditing ? 1 : 0];
+        edit.setAttribute("aria-pressed", String(mapLayerOrderEditing));
+    }
+}
+function moveMapLayerTile(key, direction) {
+    if (direction !== -1 && direction !== 1) return;
+    var order = loadMapLayerTileOrder(), index = order.indexOf(key), next = index + direction;
+    if (index < 0 || next < 0 || next >= order.length) return;
+    order[index] = order[next]; order[next] = key;
+    try { localStorage.setItem(MAP_LAYER_ORDER_KEY, JSON.stringify(order)); }
+    catch (e) { window.alert(getMapLayerOrderText()[4]); return; }
+    renderMapLayerTileOrder();
+    var toggle = document.getElementById("layer-toggle-" + key);
+    var row = toggle && toggle.closest(".map-layer-item");
+    var button = row && row.querySelectorAll(".map-layer-order-controls button")[direction < 0 ? 0 : 1];
+    if (button && !button.disabled) button.focus();
+}
+function toggleMapLayerOrderEdit() {
+    mapLayerOrderEditing = !mapLayerOrderEditing;
+    var panel = document.getElementById("map-layer-panel"), caret = document.getElementById("map-layer-caret");
+    if (mapLayerOrderEditing && panel) { panel.classList.add("expanded"); if (caret) caret.classList.add("open"); }
+    renderMapLayerTileOrder();
+}
+window.toggleMapLayerOrderEdit = toggleMapLayerOrderEdit;
+// Optional modules call this after inserting their dynamic tiles.
+window.refreshMapLayerTileOrder = renderMapLayerTileOrder;
 function mapLayerMenuIcon(key) {
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (MAP_LAYER_MENU_ICONS[key] || MAP_LAYER_MENU_ICONS.discovery) + '</svg>';
 }
@@ -10853,6 +10948,7 @@ function syncMapLayerItemUI(key) {
     if (!row.dataset.keyboardBound) {
         row.dataset.keyboardBound = "true";
         row.addEventListener("keydown", function(event) {
+            if (event.target !== row) return;
             if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
                 if (row.getAttribute("aria-disabled") !== "true") row.click();
@@ -10862,10 +10958,11 @@ function syncMapLayerItemUI(key) {
 }
 function initMapLayerGroups() {
     var panel = document.getElementById("map-layer-panel");
-    if (!panel || panel.dataset.grouped === "true") return;
+    if (!panel) return;
+    if (panel.dataset.grouped === "true") { renderMapLayerTileOrder(); return; }
     panel.dataset.grouped = "true";
     panel.classList.add("map-layer-icon-grid");
-    var keys = ["tourism", "restaurant", "shopping", "restroom", "parking", "library", "lodging", "hospital", "pharmacy", "durunubi", "fishing", "community"];
+    var keys = MAP_LAYER_TILE_KEYS;
     keys.forEach(function(key) {
         var toggle = document.getElementById("layer-toggle-" + key);
         var row = toggle && toggle.closest(".map-layer-item");
@@ -10878,6 +10975,7 @@ function initMapLayerGroups() {
         panel.appendChild(row);
         syncMapLayerItemUI(key);
     });
+    renderMapLayerTileOrder();
 }
 function syncMapLayerToggleUI(key) {
     var sw = document.getElementById("layer-toggle-" + key);
