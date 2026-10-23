@@ -5307,6 +5307,7 @@ function buildGpxContent(name, points) {
 }
 function escapeXml(value) { return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;"); }
 function saveGpxRecord(name, points, options) {
+    if (!window.GiloaGpxAccess || !window.GiloaGpxAccess.requireAccess()) return;
     options = options || {};
     if (!Array.isArray(points) || points.length === 0) return null;
     var gpxContent = buildGpxContent(name, points);
@@ -5348,6 +5349,7 @@ window.giloaHandleGpxSaveResult = function(success, cancelled) {
     status.textContent = earlyUiText(key, { name:result ? result.name : "GPX", count:result ? result.count : "" });
 };
 function exportGpx() {
+    if (!window.GiloaGpxAccess || !window.GiloaGpxAccess.requireAccess()) return;
     if (gpxNativeSaveState) return;
     // Drain the foreground service first so points recorded while the screen
     // was off are included in the selected historical window.
@@ -5384,9 +5386,11 @@ function saveGpxSaves(saves) {
 }
 function updateGpxSavedList() { var container = document.getElementById("gpx-saved-list"); if (!container) return; var t = UI_TEXT[currentLang] || UI_TEXT.ko; var saves = loadGpxSaves(); if (saves.length === 0) { container.innerHTML = '<p class="empty-message">' + escapeHtml(t.gpx_empty) + '</p>'; return; } container.innerHTML = ""; saves.slice().reverse().forEach(function(s) { var item = document.createElement("div"); item.className = "gpx-saved-item" + (s.id === activeGpxId ? " active-route" : ""); var icon = document.createElement("span"); icon.className = "gpx-saved-icon"; icon.textContent = s.id === activeGpxId ? t.gpx_showing : t.gpx_route; var info = document.createElement("div"); info.className = "gpx-saved-info"; var nameEl = document.createElement("div"); nameEl.className = "gpx-saved-name"; nameEl.textContent = s.name; var meta = document.createElement("div"); meta.className = "gpx-saved-meta"; meta.textContent = new Date(s.createdAt).toLocaleDateString(currentLang) + " · " + s.pointCount + " " + t.gpx_points; info.appendChild(nameEl); info.appendChild(meta); var del = document.createElement("div"); del.className = "gpx-saved-del"; del.textContent = t.gpx_delete; del.addEventListener("click", function(e) { e.stopPropagation(); deleteGpxSave(s.id); }); item.appendChild(icon); item.appendChild(info); item.appendChild(del); item.addEventListener("click", function() { toggleGpxRoute(s); }); container.appendChild(item); }); }
 function deleteGpxSave(id) { if (id === activeGpxId) clearActiveGpxRoute(); saveGpxSaves(loadGpxSaves().filter(function(s) { return s.id !== id; })); updateGpxSavedList(); }
-function toggleGpxRoute(save) { if (activeGpxId === save.id) { clearActiveGpxRoute(); updateGpxSavedList(); return; } clearActiveGpxRoute(); drawGpxRoute(save.gpxContent, save.id); updateGpxSavedList(); toggleSidebar(false); }
+function toggleGpxRoute(save) {
+    if (!window.GiloaGpxAccess || !window.GiloaGpxAccess.requireAccess()) return; if (activeGpxId === save.id) { clearActiveGpxRoute(); updateGpxSavedList(); return; } clearActiveGpxRoute(); drawGpxRoute(save.gpxContent, save.id); updateGpxSavedList(); toggleSidebar(false); }
 function clearActiveGpxRoute() { activeGpxLayers.forEach(function(l) { map.removeLayer(l); }); activeGpxLayers = []; activeGpxId = null; if (window.GiloaTrip) window.GiloaTrip.close(); }
 function drawGpxRoute(gpxContent, id) {
+    if (!window.GiloaGpxAccess || !window.GiloaGpxAccess.requireAccess()) return;
     var xmlDoc = new DOMParser().parseFromString(gpxContent, "application/xml");
     var segmentNodes = Array.from(xmlDoc.querySelectorAll("trkseg"));
     if (!segmentNodes.length) segmentNodes = [xmlDoc];
@@ -5427,13 +5431,19 @@ function getGpxImportText() {
     };
     return text[currentLang] || text.ko;
 }
+function chooseGpxFile() {
+    if (!window.GiloaGpxAccess || !window.GiloaGpxAccess.requireAccess()) return;
+    document.getElementById("gpx-file-input").click();
+}
 function importGpxFile(event) {
+    if (!window.GiloaGpxAccess || !window.GiloaGpxAccess.requireAccess()) return;
     var file = event.target.files[0]; if (!file) return;
     var statusEl = document.getElementById("gpx-import-status"); var text = getGpxImportText();
     if (file.size > GPX_IMPORT_MAX_BYTES) { statusEl.textContent = text.tooLarge; event.target.value = ""; return; }
     statusEl.textContent = text.loading;
     var reader = new FileReader();
     reader.onload = function(e) {
+        if (!window.GiloaGpxAccess || !window.GiloaGpxAccess.isAuthorized()) return;
         try {
             var name = file.name.replace(/\.gpx$/i, ""); var gpxContent = String(e.target.result || "");
             var xmlDoc = new DOMParser().parseFromString(gpxContent, "application/xml");
@@ -11988,6 +11998,7 @@ function applyUILang(lang) {
     if (window.GiloaCloud && typeof window.GiloaCloud.applyLanguage === "function") window.GiloaCloud.applyLanguage();
     if (window.GiloaPrivacy) window.GiloaPrivacy.applyLanguage();
     if (window.GiloaTrip) window.GiloaTrip.refresh();
+    if (window.GiloaGpxAccess) window.GiloaGpxAccess.refresh();
     if (typeof ONBOARDING_I18N !== "undefined" && ONBOARDING_I18N) renderGiloaOnboarding();
     if (typeof introStoryState !== "undefined" && introStoryState && introStoryState.active && introStoryState.mode === "story") renderIntroStory();
     refreshPublicPlacePopupLanguage();

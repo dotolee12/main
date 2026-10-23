@@ -107,6 +107,7 @@
         });
     }
     function open(xml, id) {
+    if (!window.GiloaGpxAccess || !window.GiloaGpxAccess.requireAccess()) return;
         route = parseRoute(xml,id); selected = new Set(); allPhotos = false;
         photos.forEach(function(p) { if (suggested(p)) selected.add(String(p.id)); });
         setHistory(false); refresh();
@@ -158,6 +159,7 @@
     }
     function extension(type) { return ({"image/jpeg":"jpg","image/png":"png","image/webp":"webp","image/heic":"heic","image/heif":"heif","image/gif":"gif"})[String(type).toLowerCase()]||"bin"; }
     async function buildPackage(trip, chosen) {
+        if (!window.GiloaGpxAccess || !window.GiloaGpxAccess.requireAccess()) throw new Error("GPX access required");
         var t=words(),entries=[{name:"route.gpx",blob:new Blob([trip.xml],{type:"application/gpx+xml"})}],items=[],size=entries[0].blob.size;
         for(var i=0;i<chosen.length;i++) {
             var p=chosen[i],row=await idbGetPhoto(p.id).catch(function(){return null;}),original=await getPhotoRecoveryBlob(p).catch(function(){return null;});
@@ -180,12 +182,15 @@
         return zipBlob(entries);
     }
     async function exportZip() {
+    if (!window.GiloaGpxAccess || !window.GiloaGpxAccess.requireAccess()) return;
         if(busy)return;if(!route){statusText(words().noRoute);return;}
         var snapshot=route,chosen=photos.filter(function(p){return selected.has(String(p.id));}).map(function(p){return Object.assign({},p);});
         busy=true;refresh();statusText(words().loading);
         var bridge=window.GiloaPhotoBridge,staged=false;
         try {
-            var zip=await buildPackage(snapshot,chosen),filename="giloa_trip_"+new Date().toISOString().slice(0,10)+".zip";
+            var zip=await buildPackage(snapshot,chosen);
+            if (!window.GiloaGpxAccess || !window.GiloaGpxAccess.isAuthorized()) throw new Error("GPX access required");
+            var filename="giloa_trip_"+new Date().toISOString().slice(0,10)+".zip";
             if(bridge&&typeof bridge.beginTravelZip==="function") {
                 if(bridge.beginTravelZip(zip.size)!==true)throw new Error(words().failed);staged=true;
                 for(var offset=0;offset<zip.size;offset+=196608){var data=await blobDataUrl(zip.slice(offset,offset+196608));if(bridge.appendTravelZipChunk(data.slice(data.indexOf(",")+1))!==true)throw new Error(words().failed);await new Promise(function(resolve){setTimeout(resolve,0);});}

@@ -47,11 +47,11 @@ html,body{background:#1a2035;margin:0;height:100%;width:100%;overflow:hidden}
 <!-- 큰 벤더/앱 스크립트를 head 단계에서 미리 프리로드하여, 본문 파싱이 끝날 때까지
      기다리지 않고 CSS와 동시에 다운로드가 시작되도록 한다. (버퍼링 단축) -->
 <link rel="preload" as="script" href="./vendor/leaflet.js?v=app-local-9">
-<link rel="preload" as="script" href="./script.js?v=app-local-222">
+<link rel="preload" as="script" href="./script.js?v=app-local-224">
 <link rel="stylesheet" href="./vendor/leaflet.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.Default.css?v=app-local-9">
-<link rel="stylesheet" href="./style.css?v=app-local-167">
+<link rel="stylesheet" href="./style.css?v=app-local-168">
 <!-- 튜토리얼/타임트레이스 CSS는 첫 화면에 필요하지 않으므로 렌더 차단 없이
      비동기로 불러온다 (media=print 트릭 후 onload에서 all로 전환). -->
 <link rel="stylesheet" href="./time-trace.css?v=app-local-1" media="print" onload="this.media='all'">
@@ -243,6 +243,18 @@ var skipText={
   </div>
 
   <div id="panel-gpx" class="tab-panel" style="display:none;">
+    <form id="gpx-access-form" class="gpx-access-card">
+      <h3 id="gpx-access-title">GPX 이용 권한</h3>
+      <p id="gpx-access-copy">관리자가 발급한 아이디로 이용할 수 있습니다.</p>
+      <label id="gpx-access-id" for="gpx-access-input">발급 아이디</label>
+      <input id="gpx-access-input" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="32" required>
+      <button id="gpx-access-enter" type="submit">이용 시작</button>
+      <p id="gpx-access-status" role="status" aria-live="polite"></p>
+      <p id="gpx-access-note"></p>
+    </form>
+    <button id="gpx-access-lock" type="button" hidden>GPX 잠그기</button>
+    <div id="gpx-access-content" hidden inert>
+
     <div id="gpx-export-label" class="gpx-section-label">발걸음 추출</div>
     <div class="gpx-dial-wrap">
       <div class="gpx-dial-row"><span id="gpx-time-label" class="gpx-dial-icon">시간</span><span id="gpx-recent-label" class="gpx-dial-title">최근</span>
@@ -255,9 +267,10 @@ var skipText={
     <div class="sidebar-divider" style="margin-top:18px;"></div>
     <div id="gpx-saved-label" class="gpx-section-label">저장된 발걸음 열기</div>
     <div id="gpx-saved-list"><p class="empty-message">저장된 발걸음이 없습니다.</p></div>
-    <button id="gpx-import-btn" class="gpx-action-btn import" onclick="document.getElementById('gpx-file-input').click()" style="margin-top:10px;">파일에서 불러오기</button>
+    <button id="gpx-import-btn" class="gpx-action-btn import" onclick="chooseGpxFile()" style="margin-top:10px;">파일에서 불러오기</button>
     <input type="file" id="gpx-file-input" accept=".gpx" style="display:none" onchange="importGpxFile(event)">
     <div id="gpx-import-status" class="gpx-status"></div>
+    </div>
   </div>
 
   <div id="panel-visit" class="tab-panel" style="display:none;">
@@ -852,7 +865,8 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <script src="./region-stay-core.js?v=app-local-1" defer></script>
 <script src="./data/libraries_seoul.bundle.js?v=20261021" defer></script>
 <script src="./privacy-policy.js?v=20261021" defer></script>
-<script src="./script.js?v=app-local-222" defer></script>
+<script src="./gpx-access.js?v=1" defer></script>
+<script src="./script.js?v=app-local-224" defer></script>
 <script src="./trip-share.js?v=app-local-1" defer></script>
 <script src="./supabase-sync.js?v=app-local-3" defer></script>
 <script src="./medical-layers.js?v=1" defer></script>

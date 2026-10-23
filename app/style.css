@@ -2115,3 +2115,13 @@ body.giloa-restoring #map, body.giloa-restoring #top-bar, body.giloa-restoring #
 #map-layer-panel.map-layer-icon-grid .map-layer-source { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
 #map-layer-panel.map-layer-icon-grid .toggle-switch { display:none; }
 #map-layer-panel.map-layer-icon-grid .map-layer-item.unavailable { opacity:.4; }
+
+/* Issued-ID feature gate: existing saved records remain intact. */
+#gpx-access-content[hidden],#gpx-access-form[hidden],#gpx-access-lock[hidden]{display:none!important}
+.gpx-access-card{padding:16px 12px;border:1px solid rgba(79,195,247,.35);border-radius:12px;background:#1a2035;color:#e6f4ff}
+.gpx-access-card h3{margin:0 0 10px;font-size:15px;color:#69ccff}
+.gpx-access-card p{margin:8px 0;font-size:12px;line-height:1.55}
+.gpx-access-card label{display:block;margin:14px 0 6px;font-size:12px}
+.gpx-access-card input{box-sizing:border-box;width:100%;min-height:42px;padding:9px;border:1px solid #526982;border-radius:8px;background:#111827;color:#fff;font:inherit;font-size:14px}
+.gpx-access-card button,#gpx-access-lock{box-sizing:border-box;width:100%;min-height:40px;margin-top:10px;padding:9px;border:1px solid #4fc3f7;border-radius:8px;background:#183d56;color:#e6f4ff;font:inherit;font-size:12px;cursor:pointer}
+#gpx-access-lock{margin:0 0 14px}#gpx-access-status{color:#ffd78c;min-height:1.5em}#gpx-access-note{color:#aebed1;font-size:11px}

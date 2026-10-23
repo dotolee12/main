@@ -14,3 +14,6 @@ android-app/app/src/main/assets/
 backups/
 output/
 *.log
+
+# Private issuance spreadsheets and local verification output
+outputs/
