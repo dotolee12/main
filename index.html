@@ -51,7 +51,7 @@ html,body{background:#1a2035;margin:0;height:100%;width:100%;overflow:hidden}
 <link rel="stylesheet" href="./vendor/leaflet.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.Default.css?v=app-local-9">
-<link rel="stylesheet" href="./style.css?v=app-local-169">
+<link rel="stylesheet" href="./style.css?v=app-local-173">
 <!-- 튜토리얼/타임트레이스 CSS는 첫 화면에 필요하지 않으므로 렌더 차단 없이
      비동기로 불러온다 (media=print 트릭 후 onload에서 all로 전환). -->
 <link rel="stylesheet" href="./time-trace.css?v=app-local-1" media="print" onload="this.media='all'">
@@ -443,6 +443,10 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <div id="ham-btn" onclick="toggleSidebar()" role="button" tabindex="0" data-i18n-extra-aria="openMenu" aria-label="메뉴 열기"><div class="hline"></div><div class="hline"></div><div class="hline"></div></div>
 <div id="rec-status-box">대기 중</div>
 </div>
+<button id="adventure-music-toggle" type="button" aria-label="길로의 모험 재생" title="길로의 모험 재생" aria-pressed="false" aria-controls="adventure-music-audio">
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 17V5l11-2v12M9 8l11-2"/><ellipse cx="6" cy="17" rx="3" ry="2.5"/><ellipse cx="17" cy="15" rx="3" ry="2.5"/><path class="music-off-slash" d="M3 3l18 18"/></svg>
+</button>
+<span id="adventure-music-status" class="music-screen-reader" role="status" aria-live="polite"></span>
 
 <div id="daily-task-widget">
   <button id="daily-task-tag" type="button" onclick="toggleDailyTasks()" aria-expanded="false" aria-controls="daily-task-panel">
@@ -698,6 +702,8 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
     <audio id="gilo-welcome-audio" preload="none" src="./assets/audio/giloa-suno-welcome.mp3"></audio>
   </div>
 
+  <button id="adventure-music-start" class="gsi-start" type="button" aria-controls="adventure-music-audio">음악과 함께 시작</button>
+  <p id="adventure-music-caption" class="adventure-music-caption">시작 음악: 길로의 모험 · 한 번 재생</p>
   <button id="gsi-start" class="gsi-start" type="button">
     <span id="gsi-start-copy">시작하기</span>
     <span aria-hidden="true">›</span>
@@ -880,10 +886,12 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <script src="./time-trace.js?v=app-local-1" defer></script>
 <script src="./hidden-missions.obfuscated.js?v=app-local-2" defer></script>
 <script src="./tutorial.js?v=app-local-134" defer></script>
+<audio id="adventure-music-audio" preload="none" playsinline src="./assets/audio/giloa-adventure.mp3"></audio>
+<script src="./startup-music.js?v=1" defer></script>
 <script>
 if (window.location.protocol !== "file:" && "serviceWorker" in navigator && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
     window.addEventListener("load", function() {
-    navigator.serviceWorker.register("./sw.js?v=app-local-208", { updateViaCache: "none" })
+    navigator.serviceWorker.register("./sw.js?v=app-local-212", { updateViaCache: "none" })
             .then(function(registration) { console.log("SW 등록 완료"); return registration.update(); })
             .catch(function(e) { console.warn("SW 등록 실패", e); });
     });

@@ -249,6 +249,14 @@ body.gft-active .giloa-tutorial,
     gap: 5px;
     min-width: 0;
 }
+#adventure-music-toggle { flex: 0 0 38px; width: 38px; height: 40px; padding: 8px; border: 1px solid rgba(79,195,247,.4); border-radius: 12px; background: rgba(16,22,38,.92); color: #acbed0; cursor: pointer; }
+#adventure-music-toggle[aria-pressed="true"] { color: #7fe2ff; border-color: #7fe2ff; }
+#adventure-music-toggle[aria-pressed="true"] .music-off-slash { display: none; }
+#adventure-music-toggle:focus-visible, #adventure-music-start:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.music-screen-reader { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.adventure-music-error { position: fixed; top: calc(108px + env(safe-area-inset-top)); left: 10px; max-width: min(320px, calc(100vw - 40px)); padding: 10px; border-radius: 10px; background: #172238; color: #ffd3bb; font: 12px/1.5 system-ui, sans-serif; pointer-events: none; }
+.adventure-music-caption { margin: 6px 0 10px; text-align: center; color: #b7cee0; font-size: 11px; line-height: 1.5; }
+.gsi-onboarding-actions #gsi-start { background: transparent; color: #b7cee0; border: 1px solid rgba(183,206,224,.45); box-shadow: none; }
 #daily-task-widget { position: relative; z-index: 1; flex: 0 0 auto; margin-left: auto; font-family: inherit; }
 #daily-task-tag { min-width: 88px; height: 42px; padding: 0 12px; border: 1px solid rgba(91,192,255,.58); border-radius: 13px; background: rgba(16,22,38,.92); color: #fff; display: flex; align-items: center; justify-content: center; gap: 9px; box-shadow: 0 8px 24px rgba(0,0,0,.25); backdrop-filter: blur(12px); cursor: pointer; }
 .daily-task-tag-label { color: #58c7ff; font-size: 14px; font-weight: 900; }
