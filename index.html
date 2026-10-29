@@ -692,6 +692,12 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
     </div>
 
 <footer class="gsi-onboarding-actions">
+  <div id="gilo-welcome" style="text-align:center;margin:8px 0">
+    <button id="gilo-welcome-play" class="gsi-story-open" type="button" aria-pressed="false" aria-controls="gilo-welcome-audio">🔊 길로의 인사 듣기</button>
+    <small id="gilo-welcome-status" role="status" style="display:block;margin-top:4px;color:inherit;opacity:.75;font-size:11px">Suno로 만든 한국어 환영 음성</small>
+    <audio id="gilo-welcome-audio" preload="none" src="./assets/audio/giloa-suno-welcome.mp3"></audio>
+  </div>
+
   <button id="gsi-start" class="gsi-start" type="button">
     <span id="gsi-start-copy">시작하기</span>
     <span aria-hidden="true">›</span>
@@ -889,6 +895,58 @@ if (window.location.protocol !== "file:" && "serviceWorker" in navigator && !(wi
         window.dispatchEvent(new Event("giloa:service-worker-updated"));
     });
 }
+</script>
+<script>
+(function () {
+  var button = document.getElementById("gilo-welcome-play");
+  var audio = document.getElementById("gilo-welcome-audio");
+  var status = document.getElementById("gilo-welcome-status");
+  if (!button || !audio) return;
+  var words = {
+    ko: ["🔊 길로의 인사 듣기", "■ 인사 정지", "Suno로 만든 한국어 환영 음성", "음성을 불러오지 못했어요. 다시 눌러 주세요."],
+    en: ["🔊 Hear Gilo's greeting", "■ Stop greeting", "Korean welcome audio created with Suno", "Audio could not play. Please try again."],
+    ja: ["🔊 ギロの挨拶を聞く", "■ 停止", "Sunoで制作した韓国語の歓迎音声", "再生できませんでした。もう一度お試しください。"],
+    zh: ["🔊 听听Gilo的问候", "■ 停止播放", "使用Suno制作的韩语欢迎语音", "无法播放，请重试。"],
+    es: ["🔊 Escuchar a Gilo", "■ Detener", "Bienvenida en coreano creada con Suno", "No se pudo reproducir. Inténtalo de nuevo."],
+    fr: ["🔊 Écouter Gilo", "■ Arrêter", "Accueil en coréen créé avec Suno", "Lecture impossible. Veuillez réessayer."]
+  };
+  var failed = false, pending = false, request = 0;
+  function copy() {
+    var lang = typeof currentLang === "string" ? currentLang : document.documentElement.lang || "ko";
+    return words[lang.slice(0, 2)] || words.en;
+  }
+  function render() {
+    var w = copy(), playing = !audio.paused;
+    button.textContent = w[playing ? 1 : 0];
+    button.setAttribute("aria-pressed", String(playing));
+    button.disabled = pending;
+    status.textContent = w[failed ? 3 : 2];
+  }
+  function stop() {
+    request++; pending = false;
+    audio.pause(); audio.currentTime = 0; render();
+  }
+  button.addEventListener("click", function () {
+    if (!audio.paused) { stop(); return; }
+    failed = false; pending = true;
+    var id = ++request; render();
+    audio.play().then(function () {
+      if (id !== request) return;
+      pending = false; render();
+    }).catch(function () {
+      if (id !== request) return;
+      pending = false; failed = true; render();
+    });
+  });
+  ["play", "pause", "ended"].forEach(function (event) { audio.addEventListener(event, render); });
+  audio.addEventListener("error", function () { pending = false; failed = true; render(); });
+  var start = document.getElementById("gsi-start");
+  if (start) start.addEventListener("click", stop);
+  window.addEventListener("pagehide", stop);
+  document.addEventListener("visibilitychange", function () { if (document.hidden) stop(); });
+  new MutationObserver(render).observe(document.getElementById("gsi-start-copy"), {childList:true, subtree:true, characterData:true});
+  render();
+})();
 </script>
 </body>
 </html>
