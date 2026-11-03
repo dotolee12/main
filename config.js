@@ -8,12 +8,15 @@ window.GILOA_SEOUL_LIBRARY_API_KEY = "756b506d69646f7439356a526f5a47";
 window.GILOA_SEOUL_RESTROOM_API_KEY = "664a4d746c646f743439646e664d58";
 window.GILOA_VARCO_API_KEY = "";
 window.GILOA_FISHING_API_KEY = "";
-// CARTO Voyager raster basemap. Keep this key restricted to GILOA's allowed
-// web origins in the CARTO dashboard before production deployment.
-window.GILOA_CARTO_BASEMAP_KEY = "cb1_3jvp_1_3c01cebe7b9b100e449d1ac0";
-window.GILOA_CARTO_TILE_URL =
-    "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=" +
-    encodeURIComponent(window.GILOA_CARTO_BASEMAP_KEY);
+
+// Public basemap endpoints. OpenStreetMap does not require a browser API key.
+// The Esri layer is used only if repeated tile errors make the primary layer unusable.
+window.GILOA_BASE_TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+window.GILOA_FALLBACK_TILE_URL =
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}";
+
+// Backward-compatible alias for older cached application code.
+window.GILOA_CARTO_TILE_URL = window.GILOA_BASE_TILE_URL;
 
 // Supabase public client settings. The publishable key is safe to ship in the
 // app; database and Storage access remains protected by Supabase RLS policies.
