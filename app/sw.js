@@ -1,6 +1,6 @@
-var APP_CACHE = "giloa-app-shell-v251";
+var APP_CACHE = "giloa-app-shell-v252";
 var RUNTIME_CACHE = "giloa-runtime-v77";
-var TILE_CACHE = "giloa-map-tiles-v5";
+var TILE_CACHE = "giloa-map-tiles-v6";
 var TILE_CACHE_MAX = 300;
 var RUNTIME_CACHE_MAX = 180;
 // CORE_ASSETS는 "첫 화면을 그리는 데 반드시 필요한" 최소 셸만 담는다.
