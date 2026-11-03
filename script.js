@@ -10289,14 +10289,34 @@ function fetchFishingPage(pageNo) {
         return response.json();
     });
 }
+function normalizeFishingRows(rows) {
+    var seen = new Set();
+    return (rows || []).map(normalizeFishingItem).filter(function(item) {
+        if (!item) return false;
+        var id = item.lat.toFixed(6) + "|" + item.lng.toFixed(6) + "|" + item.name;
+        if (seen.has(id)) return false;
+        seen.add(id); return true;
+    });
+}
+function loadFishingFallbackData() {
+    return fetch("./data/fishing-spots.json", { cache:"no-cache" }).then(function(response) {
+        if (!response.ok) throw new Error("Fishing fallback HTTP " + response.status);
+        return response.json();
+    }).then(function(payload) {
+        var rows = Array.isArray(payload) ? payload : (payload && Array.isArray(payload.items) ? payload.items : []);
+        fishingItems = normalizeFishingRows(rows);
+        return fishingItems;
+    });
+}
 function loadFishingData() {
     if (Array.isArray(fishingItems)) return Promise.resolve(fishingItems);
-    if (!FISHING_API_KEY) {
-        if (!fishingMissingKeyWarned) console.warn("Fishing layer disabled: window.GILOA_FISHING_API_KEY is not configured.");
-        fishingMissingKeyWarned = true;
-        return Promise.resolve([]);
-    }
     if (fishingLoadPromise) return fishingLoadPromise;
+    if (!FISHING_API_KEY) {
+        if (!fishingMissingKeyWarned) console.info("Fishing API key is not configured; using the bundled official dataset.");
+        fishingMissingKeyWarned = true;
+        fishingLoadPromise = loadFishingFallbackData().finally(function() { fishingLoadPromise = null; });
+        return fishingLoadPromise;
+    }
     fishingLoadPromise = fetchFishingPage(1).then(function(firstPage) {
         var rows = extractFishingRows(firstPage);
         var total = extractFishingTotal(firstPage, rows.length < FISHING_PAGE_SIZE ? rows.length : FISHING_PAGE_SIZE * FISHING_MAX_PAGES);
@@ -10305,15 +10325,13 @@ function loadFishingData() {
         for (var page = 2; page <= pageCount; page += 1) requests.push(fetchFishingPage(page).then(extractFishingRows));
         return Promise.all(requests).then(function(extraPages) {
             extraPages.forEach(function(pageRows) { rows = rows.concat(pageRows); });
-            var seen = new Set();
-            fishingItems = rows.map(normalizeFishingItem).filter(function(item) {
-                if (!item) return false;
-                var id = item.lat.toFixed(6) + "|" + item.lng.toFixed(6) + "|" + item.name;
-                if (seen.has(id)) return false;
-                seen.add(id); return true;
-            });
+            fishingItems = normalizeFishingRows(rows);
+            if (fishingItems.length === 0) throw new Error("Fishing API returned no usable records");
             return fishingItems;
         });
+    }).catch(function(error) {
+        console.warn("Fishing API load failed; using bundled official dataset", error && error.message);
+        return loadFishingFallbackData();
     }).finally(function() { fishingLoadPromise = null; });
     return fishingLoadPromise;
 }
