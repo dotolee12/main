@@ -178,8 +178,9 @@
             });
             photoLoading = false; ocrTask = null; refresh();
             status(result.floor || result.zone ? 'review' : 'ocrError');
-        }).catch(function () {
+        }).catch(function (error) {
             if (id !== photoRequest || panel.hidden) return;
+            console.warn('Parking OCR unavailable', error && error.message ? error.message : 'unknown');
             photoLoading = false; ocrTask = null; refresh(); status('ocrError');
         });
     }
