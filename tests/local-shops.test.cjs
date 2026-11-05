@@ -104,16 +104,17 @@ test('shops load together without a category selector; keyword search is unrestr
     assert.equal(a.calls.at(-1).opts.category_group_code,undefined); assert.equal(a.markers.length,2);
     assert(a.markers.every(marker=>marker.point.every(Number.isFinite))); a.dom.window.close();
 });
-test('map logos and category symbols omit labels while search results keep readable names',async()=>{
+test('map brand names use plain text without logo images and independent places retain category icons',async()=>{
     const a=start();
     const names=['세븐일레븐 성남점','CU 성남점','GS25 수정점','이마트24 산성점','메가MGC커피 단대점','스타벅스 성남점','이마트 성남점','롯데마트 성남점','동네마트','CUBE 카페'];
     a.response.data=names.map((name,i)=>({...fixture,id:String(i+1),place_name:name})); a.open(); await tick();
     const expected=['seven-eleven','cu','gs25','emart24','mega-coffee','starbucks','emart','lotte-mart'];
+    const labels=['세븐일레븐','씨유','쥐에스','이마트24','메가커피','스타벅스','이마트','롯데마트'];
     expected.forEach((brand,i)=>{
         const badge=a.markers[i].opts.icon.html;
-        const file=brand+(brand==='cu'?'.svg':'.png');
-        assert.equal(badge.dataset.brand,brand); assert.equal(badge.querySelector('img').getAttribute('src'),'./assets/shop-logos/'+file);
-        assert(fs.existsSync(path.join(__dirname,'..','assets','shop-logos',file)));
+        assert.equal(badge.dataset.brand,brand); assert.equal(badge.querySelector('img'),null);
+        assert.equal(badge.textContent,labels[i]);assert.equal(badge.classList.contains('has-brand-name'),true);
+        assert.deepEqual(Array.from(a.markers[i].opts.icon.iconSize),[78,26]);
     });
     assert.equal(a.markers[8].opts.icon.html.querySelector('img'),null);
     assert.equal(a.markers[9].opts.icon.html.querySelector('img'),null);
@@ -121,8 +122,10 @@ test('map logos and category symbols omit labels while search results keep reada
     assert.equal(a.markers[8].opts.icon.html.querySelector('.local-shop-pin-name'),null);
     assert.match(a.el('list').textContent,/동네마트/);
     assert.deepEqual(Array.from(a.markers[8].opts.icon.iconSize),[39,31]);
-    const badge=a.markers[0].opts.icon.html; badge.querySelector('img').dispatchEvent(new a.w.Event('error'));
-    assert.equal(badge.classList.contains('has-logo'),false); assert(badge.querySelector('.local-shop-category-symbol')); assert.equal(badge.querySelector('.local-shop-pin-name'),null);
+    assert.equal(a.w.document.querySelector('#local-shops-panel img'),null);
+    for(const [lang,label] of [['en','7-Eleven'],['ja','セブンイレブン'],['zh','7-Eleven']]) {
+        a.w.document.documentElement.lang=lang; await tick(); assert.equal(a.markers[0].opts.icon.html.textContent,label);
+    }
     a.el('query').value='약국'; a.search(); await tick(); assert.equal(a.calls.at(-1).opts.category_group_code,undefined);
     a.dom.window.close();
 });
@@ -187,9 +190,9 @@ test('existing search button is reused when the bootstrap module is absent but t
     b.dom.window.close();
 });
 
-test('nearby Daiso stores appear with the dedicated logo without including similarly named businesses',async()=>{
+test('nearby Daiso stores appear with plain names without including similarly named businesses',async()=>{
     const a=start(); a.response.byQuery=q=>q==='다이소'?[{...fixture,id:'daiso-1',place_name:'다이소 성남점',category_name:'가정,생활 > 생활용품점 > 다이소'},{...fixture,id:'other',place_name:'다이소앞 식당',category_name:'음식점 > 한식'}]:[];
     a.w.document.getElementById('map-layer-localshops').click(); await tick();
     assert.equal(a.calls.filter(x=>x.q==='다이소').length,1);assert.equal(a.calls.find(x=>x.q==='다이소').opts.radius,1000);assert.equal(a.markers.length,1);
-    const badge=a.markers[0].opts.icon.html;assert.equal(badge.dataset.brand,'daiso');assert.equal(badge.querySelector('img').getAttribute('src'),'./assets/shop-logos/daiso.png');assert.equal(badge.querySelector('.local-shop-pin-name'),null);assert.equal(a.w.localStorage.getItem('journey-fixture'),'GPS/photos/GPX/levels');a.dom.window.close();
+    const badge=a.markers[0].opts.icon.html;assert.equal(badge.dataset.brand,'daiso');assert.equal(badge.querySelector('img'),null);assert.equal(badge.querySelector('.local-shop-pin-name').textContent,'다이소');assert.equal(a.w.localStorage.getItem('journey-fixture'),'GPS/photos/GPX/levels');a.dom.window.close();
 });

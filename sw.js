@@ -1,4 +1,4 @@
-var APP_CACHE = "giloa-app-shell-v260";
+var APP_CACHE = "giloa-app-shell-v261";
 var RUNTIME_CACHE = "giloa-runtime-v77";
 var TILE_CACHE = "giloa-map-tiles-v6";
 var TILE_CACHE_MAX = 300;
@@ -13,11 +13,10 @@ var CORE_ASSETS = [
   "./data/libraries_seoul.bundle.js?v=20261021",
   "./privacy-policy.js?v=20261021", "./privacy-policy.html", "./privacy-policy.css",
   "./index.html", "./manifest.json", "./style.css?v=app-local-174", "./map-bootstrap.js?v=app-local-4", "./region-stay-core.js?v=app-local-1", "./script.js?v=app-local-230", "./trip-share.js?v=app-local-1", "./supabase-sync.js?v=app-local-3", "./medical-layers.js?v=map-order-3",
-  "./parking.js?v=2", "./parking.css?v=2", "./local-shops.js?v=9", "./local-shops.css?v=7",
+  "./parking.js?v=2", "./parking.css?v=2", "./local-shops.js?v=10", "./local-shops.css?v=8",
   "./vendor/leaflet.css?v=app-local-9", "./vendor/leaflet.js?v=app-local-9", "./vendor/MarkerCluster.css?v=app-local-9", "./vendor/MarkerCluster.Default.css?v=app-local-9", "./vendor/leaflet.markercluster.js?v=app-local-9"
 ];
 var OPTIONAL_CORE_ASSETS = [
-  "./assets/shop-logos/daiso.png",
   "./time-trace.css?v=app-local-1", "./tutorial.css?v=app-local-131", "./time-trace.js?v=app-local-1", "./hidden-missions.obfuscated.js?v=app-local-2", "./tutorial.js?v=app-local-134", "./config.js?v=app-local-11",
   // HUD 아바타에 항상 즉시 표시되는 유일한 이미지이므로 core로 유지한다.
   "./gilo many appearance/gilo-tutorial-welcome-transparent.png",

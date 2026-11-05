@@ -20,17 +20,17 @@
     Object.assign(TEXT.en,{title:'Place search',hint:'Search hospitals, cafés, shops and attractions. Categories search within 1 km; place names search a wider area.',query:'Hospital, café, attraction or place name',search:'Search',empty:'No places found. Try another query or area.',loading:'Finding places…',count:'{n} places found',clear:'Clear search results',find:'More on the web ↗',layerTitle:'Local shops',layerHint:'Cafés · convenience stores · supermarkets · DAISO',prompt:'Enter a place or category.'});
     Object.assign(TEXT.ja,{title:'場所を検索',hint:'病院・カフェ・店舗・観光地を検索します。分類は半径1km、店名は広い範囲で検索します。',query:'病院・カフェ・観光地・店名',search:'検索',empty:'場所が見つかりません。検索語や地域を変えてください。',loading:'検索中…',count:'検索結果 {n}件',clear:'検索結果を消す',find:'ウェブで詳しく見る ↗',layerTitle:'近所のお店',layerHint:'カフェ・コンビニ・スーパー・ダイソー',prompt:'場所や種類を入力してください。'});
     Object.assign(TEXT.zh,{title:'地点搜索',hint:'搜索医院、咖啡店、商店和景点。类别搜索范围为1公里，店名搜索范围更广。',query:'医院、咖啡店、景点或店名',search:'搜索',empty:'未找到地点，请更换关键词或区域。',loading:'正在搜索地点…',count:'找到 {n} 个地点',clear:'清除搜索结果',find:'查看更多网页 ↗',layerTitle:'附近商店',layerHint:'咖啡店・便利店・超市・大创',prompt:'请输入地点或类别。'});
-    // Static brand artwork only. Place results remain transient and are not stored.
+    // Plain store names only. Place results remain transient and are not stored.
     var BRANDS = [
         {id:'daiso',label:'다이소',match:/^(아성)?다이소|^daiso(?=[가-힣0-9]|$)/},
-        {id:'seven-eleven',label:'7-Eleven',match:/^(세븐일레븐|7eleven|seveneleven)/},
-        {id:'cu',label:'CU',match:/^(씨유|cu(?=[가-힣0-9]|$))/},
-        {id:'gs25',label:'GS25',match:/^(gs25|지에스25)/},
-        {id:'emart24',label:'emart24',match:/^(이마트24|emart24)/},
-        {id:'mega-coffee',label:'MEGA COFFEE',match:/^(메가mgc커피|메가커피|메가엠지씨커피|megamgccoffee|megacoffee)/},
-        {id:'starbucks',label:'STARBUCKS',match:/^(스타벅스|starbucks)/},
-        {id:'emart',label:'emart',match:/^(이마트|emart)(?!24)/},
-        {id:'lotte-mart',label:'LOTTE MART',match:/^(롯데마트|lottemart)/}
+        {id:'seven-eleven',label:'세븐일레븐',match:/^(세븐일레븐|7eleven|seveneleven)/},
+        {id:'cu',label:'씨유',match:/^(씨유|cu(?=[가-힣0-9]|$))/},
+        {id:'gs25',label:'쥐에스',match:/^(gs25|지에스25)/},
+        {id:'emart24',label:'이마트24',match:/^(이마트24|emart24)/},
+        {id:'mega-coffee',label:'메가커피',match:/^(메가mgc커피|메가커피|메가엠지씨커피|megamgccoffee|megacoffee)/},
+        {id:'starbucks',label:'스타벅스',match:/^(스타벅스|starbucks)/},
+        {id:'emart',label:'이마트',match:/^(이마트|emart)(?!24)/},
+        {id:'lotte-mart',label:'롯데마트',match:/^(롯데마트|lottemart)/}
     ];
     var shopMap, panel, button, layer, items = [], selected = null, request = 0, linkRequest = 0, controller = null;
     var shopsLayer, shopsItems = [], shopsRequest = 0, shopsTimer = null, layerRow, localEnabled = false;
@@ -51,9 +51,23 @@
         var tags = item.osm || {}, names = [item.name,tags.brand,tags['brand:ko']].map(normalize);
         return BRANDS.find(function(brand) { return names.some(function(name) { return brand.match.test(name); }); });
     }
+    function brandName(brand) {
+        var lang = String(typeof currentLang === 'string' ? currentLang : document.documentElement.lang || 'ko').slice(0,2);
+        var names = {
+            'seven-eleven':['7-Eleven','セブンイレブン','7-Eleven'], cu:['CU','CU','CU'], gs25:['GS25','GS25','GS25'],
+            emart24:['emart24','emart24','emart24'], 'mega-coffee':['Mega Coffee','メガコーヒー','Mega Coffee'],
+            starbucks:['Starbucks','スターバックス','星巴克'], emart:['emart','イーマート','易买得'],
+            'lotte-mart':['Lotte Mart','ロッテマート','乐天玛特'], daiso:['Daiso','ダイソー','大创']
+        };
+        return lang === 'ko' ? brand.label : names[brand.id][lang === 'ja' ? 1 : lang === 'zh' ? 2 : 0];
+    }
+    function placeMarkerIcon(item) {
+        var named = !!brandFor(item);
+        return L.divIcon({className:'local-shop-marker',html:badge(item,true),iconSize:named ? [78,26] : [39,31],iconAnchor:named ? [39,13] : [19.5,15.5]});
+    }
     function badge(item, onMap) {
         var brand = brandFor(item), node = document.createElement('span'); node.className = 'local-shop-pin' + (onMap ? ' map-symbol-only' : '');
-        if (!onMap) { var name = text('span',brand ? brand.label : item.name,node); name.className = 'local-shop-pin-name'; }
+        if (brand || !onMap) { var name = text('span',brand ? brandName(brand) : item.name,node); name.className = 'local-shop-pin-name'; }
         function fallbackSymbol() {
             var codes = {HP8:'hospital',PM9:'pharmacy',FD6:'food',AT4:'discovery',AD5:'lodging',PK6:'parking'};
             var kind = codes[item.category] || (item.osm && ({hospital:'hospital',clinic:'hospital',pharmacy:'pharmacy',restaurant:'food',toilets:'restroom',parking:'parking'})[item.osm.amenity]) || 'shopping';
@@ -63,12 +77,7 @@
             node.appendChild(symbol);
         }
         if (onMap && !brand) fallbackSymbol();
-        if (brand) {
-            node.dataset.brand = brand.id;
-            var img = document.createElement('img'); img.alt = brand.label; img.src = './assets/shop-logos/' + brand.id + (brand.id === 'cu' ? '.svg' : '.png');
-            img.addEventListener('error',function() { img.remove(); node.classList.remove('has-logo'); if (onMap) fallbackSymbol(); });
-            node.classList.add('has-logo'); node.prepend(img);
-        }
+        if (brand) { node.dataset.brand = brand.id; node.classList.add('has-brand-name'); }
         return node;
     }
     function externalSearch() {
@@ -100,7 +109,7 @@
         el('list').hidden = false; el('list').replaceChildren(); layer.clearLayers();
         items.forEach(function(item) {
             var row = text('button','',el('list')); row.appendChild(badge(item)); text('span',item.name + ' · ' + distanceLabel(item),row); row.type = 'button'; row.onclick = function() { show(item); focusPlace(item); };
-            var icon = L.divIcon({className:'local-shop-marker',html:badge(item,true),iconSize:[39,31],iconAnchor:[19.5,15.5]});
+            var icon = placeMarkerIcon(item);
             L.marker([item.lat,item.lng],{pane:'localShopsPane',icon:icon,title:item.name,bubblingMouseEvents:false}).addTo(layer).on('click',function() { panel.hidden = false; show(item); });
         });
         if (selected && !panel.hidden) show(selected);
@@ -223,7 +232,7 @@
     function renderShops() {
         shopsLayer.clearLayers(); if (!shopsOn()) return;
         shopsItems.forEach(function(item) {
-            var icon = L.divIcon({className:'local-shop-marker',html:badge(item,true),iconSize:[39,31],iconAnchor:[19.5,15.5]});
+            var icon = placeMarkerIcon(item);
             L.marker([item.lat,item.lng],{pane:'localShopsPane',icon:icon,title:item.name,bubblingMouseEvents:false}).addTo(shopsLayer).on('click',function() { panel.hidden = false; show(item); el('list').hidden = true; });
         });
     }
