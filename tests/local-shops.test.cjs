@@ -14,7 +14,7 @@ function start() {
     w.giloaMapBootstrap = map;
     w.L = {layerGroup:()=>layer,divIcon:x=>x,DomEvent:{disableClickPropagation:()=>{},disableScrollPropagation:()=>{}},marker:(point,opts)=>{const m={point,opts,addTo:()=>m,on:(event,fn)=>{m[event]=fn;return m;}};markers.push(m);return m;}};
     const response = {data:[fixture],status:'OK'};
-    function places() { const call=(type,q,cb,opts)=>{calls.push({type,q,cb,opts}); if (!response.defer) cb(response.data,response.status);}; this.keywordSearch=(...args)=>call('keyword',...args); this.categorySearch=(...args)=>call('category',...args); }
+    function places() { const call=(type,q,cb,opts)=>{calls.push({type,q,cb,opts}); if (!response.defer) cb(response.byQuery ? response.byQuery(q,type) : response.data,response.status);}; this.keywordSearch=(...args)=>call('keyword',...args); this.categorySearch=(...args)=>call('category',...args); }
     w.kakao = {maps:{services:{Places:places,Status:{OK:'OK',ZERO_RESULT:'ZERO',ERROR:'ERROR'},SortBy:{DISTANCE:'distance'}},LatLng:function(lat,lng){this.lat=lat;this.lng=lng;}}};
     w.loadKakaoTrafficSdk=()=>Promise.resolve();
     w.fetch=()=>Promise.resolve({ok:true,json:()=>Promise.resolve({elements:[]})});
@@ -120,6 +120,14 @@ test('brand logos identify chains while independent shops and failed logos keep 
     assert.equal(badge.classList.contains('has-logo'),false); assert.equal(badge.textContent,'7-Eleven');
     a.el('query').value='약국'; a.search(); await tick(); assert.equal(a.calls.at(-1).opts.category_group_code,undefined);
     a.dom.window.close();
+});
+test('combined market search excludes shoe and phone shops with mart in their names',async()=>{
+    const a=start(); a.response.byQuery=q=>q==='마트'?[
+        {...fixture,id:'market',place_name:'동네마트',category_name:'가정,생활 > 슈퍼마켓'},
+        {...fixture,id:'shoe',place_name:'ABC마트',category_name:'쇼핑,유통 > 신발 > ABC마트'},
+        {...fixture,id:'phone',place_name:'폰마트',category_name:'쇼핑,유통 > 통신판매'}
+    ]:[];
+    a.open(); await tick(); assert.equal(a.markers.length,1); assert.match(a.el('list').textContent,/동네마트/); assert(!a.el('list').textContent.includes('ABC마트')); a.dom.window.close();
 });
 test('Korean, English, Japanese and Chinese labels, Escape and map close work',async()=>{
     const a=start();

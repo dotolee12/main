@@ -160,7 +160,10 @@
             var results;
             if (query) results = await providerSearch(query,false);
             else {
-                var groups = await Promise.allSettled([providerSearch('CS2',true),providerSearch('MT1',true),providerSearch('CE7',true),providerSearch('마트',false)]);
+                var markets = providerSearch('마트',false).then(function(places) {
+                    return places.filter(function(place) { return place.category_group_code === 'MT1' || /슈퍼|수퍼|식료품|하나로마트|대형마트/.test(place.category_name || ''); });
+                });
+                var groups = await Promise.allSettled([providerSearch('CS2',true),providerSearch('MT1',true),providerSearch('CE7',true),markets]);
                 if (groups.every(function(group) { return group.status === 'rejected'; })) throw new Error('Shop search failed');
                 results = groups.filter(function(group) { return group.status === 'fulfilled'; }).flatMap(function(group) { return group.value; });
             }
