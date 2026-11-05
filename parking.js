@@ -19,7 +19,7 @@
         fr:{memo:'Note',parking:'Parking',camera:'Photographier le numéro',shoot:'Capturer et lire',gallery:'Lire une photo existante',cameraError:'Caméra indisponible. Choisissez une photo ou saisissez les informations.',reading:'Lecture de l’étage et de la zone… Le premier scan télécharge les outils.',review:'Vérifiez et corrigez les numéros avant d’enregistrer.',ocrError:'Aucun numéro reconnu. Réessayez ou saisissez les informations.',local:'La photo est traitée sur cet appareil et n’est pas enregistrée. Seuls les textes vérifiés et la position sont conservés dans ce navigateur.'}
     };
     Object.keys(TEXT).forEach(function (lang) { Object.assign(TEXT[lang], EXTRA[lang]); });
-    var parkingMap, marker, draftMarker, record = null, draft = null, panel, button;
+    var parkingMap, marker, draftMarker, record = null, draft = null, panel;
     var stream = null, cameraRequest = 0, ocrTask = null, memoContext = null;
     var editing = false, picking = false, photoLoading = false, request = 0, photoRequest = 0;
     function words() {
@@ -67,14 +67,11 @@
         picking = false;
         clearDraftMarker();
         parkingMap.getContainer().classList.remove('parking-picking');
-        button.focus();
+        parkingMap.getContainer().focus();
     }
     function updateMarker() {
         if (marker) parkingMap.removeLayer(marker);
         marker = null;
-        button.setAttribute('aria-label', words().title);
-        button.title = words().title;
-        button.classList.toggle('has-parking', !!record);
         if (!record) return;
         var label = document.createElement('span');
         label.className = 'personal-parking-pin';
@@ -240,8 +237,6 @@
         parkingMap = window.giloaMapBootstrap || (typeof map !== 'undefined' && typeof map.createPane === 'function' ? map : null);
         if (!parkingMap || !window.L || !document.getElementById('controls')) return;
         parkingMap.createPane('personalParkingPane').style.zIndex = '680';
-        button = document.createElement('button'); button.type = 'button'; button.id = 'personal-parking-button'; button.className = 'btn'; button.textContent = '🚗';
-        document.getElementById('controls').appendChild(button);
         panel = document.createElement('section'); panel.id = 'personal-parking-panel'; panel.hidden = true;
         panel.setAttribute('role','dialog'); panel.setAttribute('aria-labelledby','personal-parking-title');
         panel.innerHTML = '<header><h2 id="personal-parking-title" data-parking-text="title"></h2><button type="button" data-parking="close">×</button></header>' +
@@ -253,7 +248,6 @@
             '<img data-parking="preview" alt="" hidden><button type="button" data-parking="removePhoto" data-parking-text="removePhoto" hidden></button>';
         document.body.appendChild(panel);
         L.DomEvent.disableClickPropagation(panel); L.DomEvent.disableScrollPropagation(panel);
-        button.addEventListener('click',function () { panel.hidden ? open(false) : close(); });
         addMemoTabs();
         node('camera').onclick = camera; node('shoot').onclick = shoot; node('cancelCamera').onclick = stopCamera;
         node('memo').onclick = memo; node('parkingTab').onclick = function () { if (editing) camera(); };

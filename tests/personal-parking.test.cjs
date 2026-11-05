@@ -22,12 +22,18 @@ function start(saved) {
     w.openSpecialPlaceEditor = (lat,lng)=>{w.specialPlaceEditorCoords={latitude:lat,longitude:lng};w.document.getElementById('special-place-editor').hidden=false;w.document.getElementById('special-place-note').value='';};
     w.eval(source);
     const el = id=>w.document.querySelector('[data-parking="'+id+'"]');
-    const open = ()=>w.document.getElementById('personal-parking-button').click();
+    const open = ()=>{
+        const savedMarker=markers.findLast(marker=>!marker.removed && marker.options.icon);
+        if (savedMarker) { savedMarker.click(); return; }
+        w.openSpecialPlaceEditor(37.52,127.2);
+        w.document.querySelector('#location-memo-tabs [data-location-tab=parking]').click();
+    };
     const clickMap = ()=>handlers.click({latlng:{lat:37.51,lng:127.1}});
     return {w,dom,map,el,open,clickMap,markers};
 }
 test('manual location, floor, escaped notes, reload, and departure preserve journey data', () => {
-    const a=start(); a.open(); assert.equal(a.el('save').disabled,true);
+    const a=start(); a.open(); assert.equal(a.el('save').disabled,false);
+    assert.equal(a.w.document.getElementById('personal-parking-button'),null);
     a.el('pick').click(); a.clickMap();
     a.el('floor').value='B3'; a.el('zone').value='C-17'; a.el('note').value='<img src=x onerror=alert(1)>';
     a.el('save').click();
@@ -70,7 +76,7 @@ test('map click closes details, selection cancels cleanly, and all languages ren
     a.dom.window.close();
 });
 test('invalid stored coordinates do not become map markers', () => {
-    const a=start({lat:999,lng:127}); assert.equal(a.markers.length,0); a.open(); assert.equal(a.el('save').disabled,true); a.dom.window.close();
+    const a=start({lat:999,lng:127}); assert.equal(a.markers.length,0); a.open(); assert.equal(a.el('save').disabled,false); a.dom.window.close();
 });
 
 test('integrates with the actual bundled Leaflet map and restores a clickable floor marker', () => {

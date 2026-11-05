@@ -1,5 +1,3 @@
-#personal-parking-button{font-size:25px;color:#f5e7c6;font-family:inherit;cursor:pointer}
-#personal-parking-button.has-parking{border-color:#e4b56c;box-shadow:0 0 10px #e4b56c55}
 .personal-parking-pin{display:inline-block;padding:7px 10px;background:#212439;color:#ffe2a6;border:2px solid #e4b56c;border-radius:12px;font:bold 14px sans-serif;white-space:nowrap;box-shadow:0 3px 10px #0006;max-width:180px;overflow:hidden;text-overflow:ellipsis}
 #personal-parking-panel{position:fixed;z-index:1600;right:max(12px,env(safe-area-inset-right));top:max(70px,calc(env(safe-area-inset-top) + 20px));width:min(350px,calc(100vw - 24px));max-height:calc(100dvh - 100px - env(safe-area-inset-bottom));overflow-y:auto;box-sizing:border-box;padding:18px;background:#202236;color:#f6f0e5;border:1px solid #b58c53;border-radius:18px;box-shadow:0 10px 40px #0008;font:14px/1.5 sans-serif}
 #personal-parking-panel[hidden],#personal-parking-panel [hidden]{display:none!important}
