@@ -5,8 +5,8 @@ test('libraries outside Seoul use coordinates and names from Kakao without chang
  let callback, renders=0, query,opts;
  const c={mapLayerSettings:{library:true},navigator:{onLine:true},nearbyLibraryArea:'',nearbyLibrarySeq:0,getMapSearchCenter:()=>center,getMapSearchRadius:()=>1000,loadKakaoTrafficSdk:()=>Promise.resolve(),setTimeout,clearTimeout,libraryItems:[original],currentLang:'ko',isWithinMapSearchCenter:()=>true,renderLibraryMarkers:()=>renders++,kakao:{maps:{LatLng:function(lat,lng){this.lat=lat;this.lng=lng;},services:{Status:{OK:'OK'},SortBy:{DISTANCE:'distance'},Places:function(){this.keywordSearch=(q,cb,o)=>{query=q;callback=cb;opts=o;};}}}}};
  vm.createContext(c);vm.runInContext(source.slice(source.indexOf('function fetchNearbyLibraryFallback()'),source.indexOf('function fetchLibraries()')),c);
- const work=c.fetchNearbyLibraryFallback();await Promise.resolve();callback([{id:'10',place_name:'성남수정도서관',y:'37.4521',x:'127.1552',road_address_name:'성남시 수정구',phone:'031-123-4567'}],'OK');assert.equal(await work,true);
- assert.equal(query,'도서관');assert.equal(opts.radius,1000);assert.equal(c.libraryItems[0],original);assert.equal(c.libraryItems[1].XCNTS,37.4521);assert.equal(c.libraryItems[1].YDNTS,127.1552);assert.equal(renders,1);
+ const work=c.fetchNearbyLibraryFallback();await Promise.resolve();callback([{id:'10',place_name:'성남수정도서관',category_name:'교육,학문 > 학습시설 > 도서관',y:'37.4521',x:'127.1552',road_address_name:'성남시 수정구',phone:'031-123-4567'},{id:'11',place_name:'수정도서관 공영주차장',category_name:'교통 > 주차장',y:'37.452',x:'127.155'}],'OK');assert.equal(await work,true);
+ assert.equal(query,'도서관');assert.equal(opts.radius,1000);assert.equal(c.libraryItems[0],original);assert.equal(c.libraryItems[1].XCNTS,37.4521);assert.equal(c.libraryItems[1].YDNTS,127.1552);assert.equal(renders,1);assert.equal(c.libraryItems.length,2);
  assert.equal(await c.fetchNearbyLibraryFallback(),false);
 });
 test('missing place modules retry after document load; search button exists in the HTML before any module runs',()=>{

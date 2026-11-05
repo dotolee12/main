@@ -10001,6 +10001,7 @@ function fetchNearbyLibraryFallback() {
         });
     }).then(function(rows) {
         if (seq !== nearbyLibrarySeq || !mapLayerSettings.library || getMapSearchCenter().distanceTo(center) > 150) return false;
+        rows = rows.filter(function(row) { return /도서관/.test(String(row.category_name || "").split(">").pop()); });
         rows.forEach(function(row) {
             var lat = Number(row.y), lng = Number(row.x), id = "kakao-library-" + row.id;
             if (!row.id || !row.place_name || !isFinite(lat) || !isFinite(lng) || !isWithinMapSearchCenter(lat,lng,radius)) return;

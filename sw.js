@@ -1,4 +1,4 @@
-var APP_CACHE = "giloa-app-shell-v258";
+var APP_CACHE = "giloa-app-shell-v259";
 var RUNTIME_CACHE = "giloa-runtime-v77";
 var TILE_CACHE = "giloa-map-tiles-v6";
 var TILE_CACHE_MAX = 300;
@@ -12,7 +12,7 @@ var CORE_ASSETS = [
   "./gpx-access.js?v=1", "./startup-music.js?v=1",
   "./data/libraries_seoul.bundle.js?v=20261021",
   "./privacy-policy.js?v=20261021", "./privacy-policy.html", "./privacy-policy.css",
-  "./index.html", "./manifest.json", "./style.css?v=app-local-174", "./map-bootstrap.js?v=app-local-4", "./region-stay-core.js?v=app-local-1", "./script.js?v=app-local-229", "./trip-share.js?v=app-local-1", "./supabase-sync.js?v=app-local-3", "./medical-layers.js?v=map-order-3",
+  "./index.html", "./manifest.json", "./style.css?v=app-local-174", "./map-bootstrap.js?v=app-local-4", "./region-stay-core.js?v=app-local-1", "./script.js?v=app-local-230", "./trip-share.js?v=app-local-1", "./supabase-sync.js?v=app-local-3", "./medical-layers.js?v=map-order-3",
   "./parking.js?v=2", "./parking.css?v=2", "./local-shops.js?v=8", "./local-shops.css?v=7",
   "./vendor/leaflet.css?v=app-local-9", "./vendor/leaflet.js?v=app-local-9", "./vendor/MarkerCluster.css?v=app-local-9", "./vendor/MarkerCluster.Default.css?v=app-local-9", "./vendor/leaflet.markercluster.js?v=app-local-9"
 ];
