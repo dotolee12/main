@@ -186,3 +186,10 @@ test('existing search button is reused when the bootstrap module is absent but t
     assert.equal(b.w.document.getElementById('local-shops-panel').hidden,false);
     b.dom.window.close();
 });
+
+test('nearby Daiso stores appear with the dedicated logo without including similarly named businesses',async()=>{
+    const a=start(); a.response.byQuery=q=>q==='다이소'?[{...fixture,id:'daiso-1',place_name:'다이소 성남점',category_name:'가정,생활 > 생활용품점 > 다이소'},{...fixture,id:'other',place_name:'다이소앞 식당',category_name:'음식점 > 한식'}]:[];
+    a.w.document.getElementById('map-layer-localshops').click(); await tick();
+    assert.equal(a.calls.filter(x=>x.q==='다이소').length,1);assert.equal(a.calls.find(x=>x.q==='다이소').opts.radius,1000);assert.equal(a.markers.length,1);
+    const badge=a.markers[0].opts.icon.html;assert.equal(badge.dataset.brand,'daiso');assert.equal(badge.querySelector('img').getAttribute('src'),'./assets/shop-logos/daiso.png');assert.equal(badge.querySelector('.local-shop-pin-name'),null);assert.equal(a.w.localStorage.getItem('journey-fixture'),'GPS/photos/GPX/levels');a.dom.window.close();
+});
