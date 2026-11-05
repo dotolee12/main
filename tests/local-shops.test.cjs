@@ -81,7 +81,7 @@ test('connection failure offers an accurately labelled external search using the
 test('fallback matches Korean Seven Eleven searches against English brand-only OSM shops',async()=>{
     const a=start(); a.w.loadKakaoTrafficSdk=()=>Promise.reject(new Error('domain mismatch'));
     a.w.fetch=()=>Promise.resolve({ok:true,json:()=>Promise.resolve({elements:[{type:'node',id:7,lat:37.5,lon:127.1,tags:{brand:'7-Eleven',shop:'convenience'}}]})});
-    a.el('query').value='세븐일레븐'; a.el('category').value='CS2'; a.open(); await tick();
+    a.el('query').value='세븐일레븐'; a.open(); await tick();
     assert.equal(a.markers.length,1); assert.match(a.el('list').textContent,/7-Eleven/);
     assert.match(a.el('status').textContent,/공개 지도/); a.dom.window.close();
 });
@@ -93,10 +93,33 @@ test('closing or clearing prevents late searches and link responses from replaci
     complete({ok:true,json:()=>Promise.resolve({elements:[]})}); await tick(); assert(a.w.document.getElementById('local-shops-panel').hidden);
     a.dom.window.close();
 });
-test('category and keyword searches stay within radius, deduplicate and reject invalid locations',async()=>{
-    const a=start(); a.open(); await tick(); a.el('category').value='CE7'; a.search(); await tick(); assert.equal(a.calls.at(-1).type,'category');
+test('shops load together without a category selector; keyword search is unrestricted and rejects invalid points',async()=>{
+    const a=start(); a.open(); await tick();
+    assert.equal(a.el('category'),null);
+    assert.deepEqual(a.calls.filter(x=>x.type==='category').map(x=>x.q),['CS2','MT1','CE7']);
+    assert(a.calls.some(x=>x.type==='keyword'&&x.q==='마트'));
     a.el('query').value='빵'; a.response.data=[fixture,fixture,{...fixture,id:'bad',y:'oops'},{...fixture,id:'far',y:'39'}]; a.search(); await tick();
-    assert.equal(a.calls.at(-1).opts.category_group_code,'CE7'); assert.equal(a.markers.length,1); a.dom.window.close();
+    assert.equal(a.calls.at(-1).type,'keyword'); assert.equal(a.calls.at(-1).q,'빵');
+    assert.equal(a.calls.at(-1).opts.category_group_code,undefined); assert.equal(a.markers.length,1); a.dom.window.close();
+});
+test('brand logos identify chains while independent shops and failed logos keep readable labels',async()=>{
+    const a=start();
+    const names=['세븐일레븐 성남점','CU 성남점','GS25 수정점','이마트24 산성점','메가MGC커피 단대점','스타벅스 성남점','이마트 성남점','롯데마트 성남점','동네마트','CUBE 카페'];
+    a.response.data=names.map((name,i)=>({...fixture,id:String(i+1),place_name:name})); a.open(); await tick();
+    const expected=['seven-eleven','cu','gs25','emart24','mega-coffee','starbucks','emart','lotte-mart'];
+    expected.forEach((brand,i)=>{
+        const badge=a.markers[i].opts.icon.html;
+        const file=brand+(brand==='cu'?'.svg':'.png');
+        assert.equal(badge.dataset.brand,brand); assert.equal(badge.querySelector('img').getAttribute('src'),'./assets/shop-logos/'+file);
+        assert(fs.existsSync(path.join(__dirname,'..','assets','shop-logos',file)));
+    });
+    assert.equal(a.markers[8].opts.icon.html.querySelector('img'),null);
+    assert.equal(a.markers[9].opts.icon.html.querySelector('img'),null);
+    assert.equal(a.markers[8].opts.icon.html.textContent,'동네마트');
+    const badge=a.markers[0].opts.icon.html; badge.querySelector('img').dispatchEvent(new a.w.Event('error'));
+    assert.equal(badge.classList.contains('has-logo'),false); assert.equal(badge.textContent,'7-Eleven');
+    a.el('query').value='약국'; a.search(); await tick(); assert.equal(a.calls.at(-1).opts.category_group_code,undefined);
+    a.dom.window.close();
 });
 test('Korean, English, Japanese and Chinese labels, Escape and map close work',async()=>{
     const a=start();

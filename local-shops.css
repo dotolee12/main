@@ -1,20 +1,25 @@
 #local-shops-button{font-size:24px;cursor:pointer}
 #local-shops-button.is-active{border-color:#80d4ae;box-shadow:0 0 12px #80d4ae55}
-.local-shop-marker span{display:grid;place-items:center;width:32px;height:34px;background:#203b35;border:2px solid #85dcb7;border-radius:12px;color:white;font-size:21px;box-shadow:0 3px 9px #0007}
+.local-shop-marker .local-shop-pin{position:relative;display:flex;align-items:center;justify-content:center;box-sizing:border-box;width:56px;height:44px;padding:4px;border:2px solid #85dcb7;border-radius:10px;background:#fff;color:#17342c;box-shadow:0 3px 9px #0007}
+.local-shop-marker .local-shop-pin:after{content:'';position:absolute;bottom:-7px;left:22px;border-top:6px solid #85dcb7;border-left:5px solid transparent;border-right:5px solid transparent}
+.local-shop-pin img{display:block;width:100%;height:100%;object-fit:contain}
+.local-shop-pin-name{font:700 11px/1.2 sans-serif;text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.local-shop-pin.has-logo .local-shop-pin-name{display:none}
 #local-shops-panel{position:fixed;z-index:1600;right:max(12px,env(safe-area-inset-right));top:max(70px,calc(env(safe-area-inset-top) + 20px));width:min(360px,calc(100vw - 86px));max-height:calc(100dvh - 110px - env(safe-area-inset-bottom));overflow:auto;box-sizing:border-box;padding:18px;background:#202236;color:#f5f1e8;border:1px solid #80d4ae;border-radius:18px;box-shadow:0 10px 40px #0008;font:14px/1.55 sans-serif;overflow-wrap:anywhere}
 #local-shops-panel[hidden],#local-shops-panel [hidden]{display:none!important}
 #local-shops-panel header{display:flex;align-items:center;justify-content:space-between;gap:10px}
 #local-shops-panel h2{margin:0;color:#a1edca;font-size:20px}
 #local-shops-panel h3{font-size:18px;margin:6px 0}
-#local-shops-panel button,#local-shops-panel input,#local-shops-panel select,#local-shops-panel .local-shop-actions a{box-sizing:border-box;min-height:44px;border:1px solid #627d78;border-radius:10px;background:#303a49;color:#fff;font:inherit;padding:9px 10px}
+#local-shops-panel button,#local-shops-panel input,#local-shops-panel .local-shop-actions a{box-sizing:border-box;min-height:44px;border:1px solid #627d78;border-radius:10px;background:#303a49;color:#fff;font:inherit;padding:9px 10px}
 #local-shops-panel button{cursor:pointer}
-#local-shops-panel input,#local-shops-panel select{width:100%;margin-bottom:8px;background:#151c2a}
+#local-shops-panel input{width:100%;margin-bottom:8px;background:#151c2a}
 #local-shops-panel [data-shops=search]{width:100%;background:#a1edca;color:#172e2c;font-weight:700}
 #local-shops-panel button:disabled{opacity:.5;cursor:wait}
 #local-shops-panel a{color:#a1edca}
 #local-shops-panel :focus-visible{outline:2px solid #a1edca;outline-offset:3px}
 #local-shops-panel [data-shops=list]{display:grid;gap:7px;margin-top:12px}
-#local-shops-panel [data-shops=list] button{text-align:start;width:100%}
+#local-shops-panel [data-shops=list] button{text-align:start;width:100%;display:flex;align-items:center;gap:10px}
+#local-shops-panel [data-shops=list] .local-shop-pin{display:flex;align-items:center;justify-content:center;flex:0 0 46px;height:36px;padding:3px;border-radius:6px;background:#fff;color:#17342c;box-sizing:border-box}
 #local-shops-panel [data-shops=detail]{padding:12px;background:#141d2b;border-radius:12px;margin:10px 0}
 #local-shops-panel .local-shop-actions{display:grid;gap:8px}
 #local-shops-panel .local-shop-actions a{display:block;text-decoration:none}

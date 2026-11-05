@@ -11,6 +11,21 @@
     Object.assign(TEXT.en,{error:'Shop search is unavailable in GILOA. Use the button below to search Kakao Maps.',external:'Search in Kakao Maps ↗',fallback:'Public map results. Some shops may be missing.'});
     Object.assign(TEXT.ja,{error:'GILOAの店舗検索に接続できません。下のボタンでKakao Mapsを検索できます。',external:'Kakao Mapsで検索 ↗',fallback:'公開地図の検索結果です。未登録の店舗は表示されません。'});
     Object.assign(TEXT.zh,{error:'GILOA无法连接商店搜索。可使用下方按钮在Kakao Maps搜索。',external:'在Kakao Maps搜索 ↗',fallback:'公开地图搜索结果，可能缺少尚未登记的商店。'});
+    Object.assign(TEXT.ko,{hint:'지도 중심 1km 안의 편의점·마트·카페를 함께 표시해요. 가게 이름을 입력하면 구분 없이 검색해요. 결과는 일부만 표시돼요.',query:'가게 이름 검색 · 예: 세븐일레븐, 약국'});
+    Object.assign(TEXT.en,{hint:'Show convenience stores, supermarkets and cafés together within 1 km. Search any place by name. Results are limited.',query:'Search a place name'});
+    Object.assign(TEXT.ja,{hint:'半径1kmのコンビニ・スーパー・カフェを一緒に表示します。店名検索は分類で制限しません。表示件数には制限があります。',query:'店名を検索'});
+    Object.assign(TEXT.zh,{hint:'同时显示1公里内的便利店、超市和咖啡店。店名搜索不限类别，结果数量有限。',query:'搜索店名'});
+    // Static brand artwork only. Place results remain transient and are not stored.
+    var BRANDS = [
+        {id:'seven-eleven',label:'7-Eleven',match:/^(세븐일레븐|7eleven|seveneleven)/},
+        {id:'cu',label:'CU',match:/^(씨유|cu(?=[가-힣0-9]|$))/},
+        {id:'gs25',label:'GS25',match:/^(gs25|지에스25)/},
+        {id:'emart24',label:'emart24',match:/^(이마트24|emart24)/},
+        {id:'mega-coffee',label:'MEGA COFFEE',match:/^(메가mgc커피|메가커피|메가엠지씨커피|megamgccoffee|megacoffee)/},
+        {id:'starbucks',label:'STARBUCKS',match:/^(스타벅스|starbucks)/},
+        {id:'emart',label:'emart',match:/^(이마트|emart)(?!24)/},
+        {id:'lotte-mart',label:'LOTTE MART',match:/^(롯데마트|lottemart)/}
+    ];
     var shopMap, panel, button, layer, items = [], selected = null, request = 0, linkRequest = 0, controller = null;
     function words() { var lang = typeof currentLang === 'string' ? currentLang : document.documentElement.lang; return TEXT[String(lang || 'ko').slice(0,2)] || TEXT.en; }
     function el(key) { return panel.querySelector('[data-shops="' + key + '"]'); }
@@ -25,8 +40,23 @@
     }
     function normalize(value) { return String(value || '').normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]/gu,''); }
     function searchName(value) { return normalize(value).replace(/세븐일레븐|seveneleven/g,'7eleven'); }
+    function brandFor(item) {
+        var tags = item.osm || {}, names = [item.name,tags.brand,tags['brand:ko']].map(normalize);
+        return BRANDS.find(function(brand) { return names.some(function(name) { return brand.match.test(name); }); });
+    }
+    function badge(item) {
+        var brand = brandFor(item), node = document.createElement('span'); node.className = 'local-shop-pin';
+        var name = text('span',brand ? brand.label : item.name,node); name.className = 'local-shop-pin-name';
+        if (brand) {
+            node.dataset.brand = brand.id;
+            var img = document.createElement('img'); img.alt = brand.label; img.src = './assets/shop-logos/' + brand.id + (brand.id === 'cu' ? '.svg' : '.png');
+            img.addEventListener('error',function() { img.remove(); node.classList.remove('has-logo'); });
+            node.classList.add('has-logo'); node.prepend(img);
+        }
+        return node;
+    }
     function externalSearch() {
-        var category = el('category'), query = el('query').value.trim().slice(0,100) || category.options[category.selectedIndex].textContent;
+        var query = el('query').value.trim().slice(0,100) || words().title;
         var region = document.getElementById('admin-region-label');
         var area = region ? region.textContent.split('·').slice(1).join(' ').trim() : '';
         el('external').href = 'https://map.kakao.com/link/search/' + encodeURIComponent([area,query].filter(Boolean).join(' '));
@@ -47,12 +77,12 @@
         var fromOsm = items.some(function(item) { return !!item.osm; });
         el('source').textContent = fromOsm ? '© OpenStreetMap contributors' : w.source;
         el('source').href = fromOsm ? 'https://www.openstreetmap.org/copyright' : 'https://map.kakao.com';
-        el('close').setAttribute('aria-label',w.close); el('query').placeholder = w.query; el('query').setAttribute('aria-label',w.query); el('category').setAttribute('aria-label',w.title);
+        el('close').setAttribute('aria-label',w.close); el('query').placeholder = w.query; el('query').setAttribute('aria-label',w.query);
         externalSearch();
         el('list').replaceChildren(); layer.clearLayers();
         items.forEach(function(item) {
-            var row = text('button',item.name + ' · ' + item.distance + 'm',el('list')); row.type = 'button'; row.onclick = function() { show(item); shopMap.panTo([item.lat,item.lng]); };
-            var icon = L.divIcon({className:'local-shop-marker',html:'<span>🛍</span>',iconSize:[34,38],iconAnchor:[17,38]});
+            var row = text('button','',el('list')); row.appendChild(badge(item)); text('span',item.name + ' · ' + item.distance + 'm',row); row.type = 'button'; row.onclick = function() { show(item); shopMap.panTo([item.lat,item.lng]); };
+            var icon = L.divIcon({className:'local-shop-marker',html:badge(item),iconSize:[56,44],iconAnchor:[28,44]});
             L.marker([item.lat,item.lng],{pane:'localShopsPane',icon:icon,title:item.name,bubblingMouseEvents:false}).addTo(layer).on('click',function() { panel.hidden = false; show(item); });
         });
         if (selected && !panel.hidden) show(selected);
@@ -65,11 +95,11 @@
         status.textContent = buy || website ? w.linkHint : w.missing;
         if (buy || website) link(box,w.osm,'https://www.openstreetmap.org/copyright');
     }
-    async function osmSearch(center, category, query, id) {
-        var filter = {CE7:'["amenity"="cafe"]',FD6:'["amenity"="restaurant"]',CS2:'["shop"="convenience"]',MT1:'["shop"="supermarket"]'}[category] || '["shop"]';
+    async function osmSearch(center, query, id) {
         var timeout = new AbortController(), timer = setTimeout(function() { timeout.abort(); },9000);
         try {
-            var q = '[out:json][timeout:6];nwr' + filter + '(around:1000,' + center.lat.toFixed(6) + ',' + center.lng.toFixed(6) + ');out center tags 150;';
+            var around = '(around:1000,' + center.lat.toFixed(6) + ',' + center.lng.toFixed(6) + ');';
+            var q = '[out:json][timeout:6];(nwr["shop"]' + around + 'nwr["amenity"="cafe"]' + around + (query ? 'nwr["amenity"="pharmacy"]' + around + 'nwr["amenity"="restaurant"]' + around : '') + ');out center tags 150;';
             var response = await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:new URLSearchParams({data:q}),signal:timeout.signal,cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer'});
             if (!response.ok) throw new Error('OSM unavailable');
             var data = await response.json(); if (id !== request) return [];
@@ -79,7 +109,7 @@
                 if (!name || !validPoint(lat,lng) || shopMap.distance(center,[lat,lng]) > 1000) return null;
                 if (query && !searchName([tags.name,tags['name:ko'],tags.brand,tags['brand:ko'],tags.operator,tags.shop,tags.cuisine].join(' ')).includes(searchName(query))) return null;
                 return {id:'osm-' + item.type + '-' + item.id,name:name,address:tags['addr:full'] || [tags['addr:city'],tags['addr:street'],tags['addr:housenumber']].filter(Boolean).join(' '),phone:tags.phone || tags['contact:phone'] || '',lat:lat,lng:lng,distance:Math.round(shopMap.distance(center,[lat,lng])),osm:tags};
-            }).filter(Boolean).sort(function(a,b) { return a.distance - b.distance; }).slice(0,30);
+            }).filter(Boolean).sort(function(a,b) { return a.distance - b.distance; }).slice(0,60);
         } finally { clearTimeout(timer); }
     }
     function show(item) {
@@ -115,19 +145,25 @@
         items = []; render(); button.classList.remove('is-active'); el('search').disabled = false;
         if (navigator.onLine === false) { el('status').textContent = w.offline; return; }
         el('status').textContent = w.loading; el('search').disabled = true;
-        var center = shopMap.getCenter(), category = el('category').value, query = el('query').value.trim().slice(0,100);
+        var center = shopMap.getCenter(), query = el('query').value.trim().slice(0,100);
         try {
             await loadKakaoTrafficSdk();
             if (id !== request) return;
             var services = window.kakao.maps.services;
-            var results = await new Promise(function(resolve,reject) {
+            function providerSearch(value, isCategory) { return new Promise(function(resolve,reject) {
                 var timer = setTimeout(function() { reject(new Error('Shop search timeout')); },9000);
                 function done(data,status) { clearTimeout(timer); if (status === services.Status.ZERO_RESULT) resolve([]); else if (status === services.Status.OK) resolve(data || []); else reject(new Error('Shop search failed')); }
                 var places = new services.Places(), options = {location:new window.kakao.maps.LatLng(center.lat,center.lng),radius:1000,size:15,sort:services.SortBy.DISTANCE};
-                if (query) { if (category) options.category_group_code = category; places.keywordSearch(query,done,options); }
-                else if (category) places.categorySearch(category,done,options);
-                else places.keywordSearch('상점',done,options);
-            });
+                if (isCategory) places.categorySearch(value,done,options);
+                else places.keywordSearch(value,done,options);
+            }); }
+            var results;
+            if (query) results = await providerSearch(query,false);
+            else {
+                var groups = await Promise.allSettled([providerSearch('CS2',true),providerSearch('MT1',true),providerSearch('CE7',true),providerSearch('마트',false)]);
+                if (groups.every(function(group) { return group.status === 'rejected'; })) throw new Error('Shop search failed');
+                results = groups.filter(function(group) { return group.status === 'fulfilled'; }).flatMap(function(group) { return group.value; });
+            }
             if (id !== request) return;
             var seen = new Set();
             items = results.map(function(item) { return shop(item,center); }).filter(function(item) { if (!item || seen.has(item.id)) return false; seen.add(item.id); return true; }).sort(function(a,b) { return a.distance - b.distance; });
@@ -136,7 +172,7 @@
         } catch (_) {
             if (id !== request) return;
             try {
-                items = await osmSearch(center,category,query,id);
+                items = await osmSearch(center,query,id);
                 if (id !== request) return;
                 render(); button.classList.toggle('is-active',items.length > 0);
                 el('status').textContent = (items.length ? words().count.replace('{n}',items.length) : words().empty) + ' ' + words().fallback;
@@ -154,12 +190,12 @@
         button = text('button','🛍',controls); button.id = 'local-shops-button'; button.type = 'button'; button.className = 'btn';
         panel = document.createElement('section'); panel.id = 'local-shops-panel'; panel.hidden = true; panel.setAttribute('role','dialog'); panel.setAttribute('aria-labelledby','local-shops-title');
         panel.innerHTML = '<header><h2 id="local-shops-title" data-shops-text="title"></h2><button type="button" data-shops="close">×</button></header><p data-shops-text="hint"></p>' +
-            '<form data-shops="form"><input data-shops="query" maxlength="100"><select data-shops="category"><option value="" data-shops-text="all"></option><option value="CE7" data-shops-text="cafe"></option><option value="FD6" data-shops-text="food"></option><option value="CS2" data-shops-text="convenience"></option><option value="MT1" data-shops-text="market"></option></select><button type="submit" data-shops="search" data-shops-text="search"></button></form>' +
+            '<form data-shops="form"><input data-shops="query" maxlength="100"><button type="submit" data-shops="search" data-shops-text="search"></button></form>' +
             '<p data-shops="status" role="status" aria-live="polite"></p><div data-shops="detail" hidden></div><div data-shops="list"></div><footer><a data-shops="source" target="_blank" rel="noopener noreferrer" href="https://map.kakao.com" data-shops-text="source"></a><button type="button" data-shops="clear" data-shops-text="clear"></button></footer>';
         document.body.appendChild(panel); L.DomEvent.disableClickPropagation(panel); L.DomEvent.disableScrollPropagation(panel);
         var external = document.createElement('a'); external.dataset.shops = 'external'; external.dataset.shopsText = 'external'; external.target = '_blank'; external.rel = 'noopener noreferrer';
         panel.querySelector('footer').prepend(external);
-        el('query').addEventListener('input',externalSearch); el('category').addEventListener('change',externalSearch);
+        el('query').addEventListener('input',externalSearch);
         button.onclick = function() { if (!panel.hidden) { close(); return; } panel.hidden = false; render(); if (!items.length) search(); };
         el('close').onclick = close; el('clear').onclick = clear; el('form').onsubmit = function(event) { event.preventDefault(); search(); };
         shopMap.on('click',close);
