@@ -104,7 +104,7 @@ test('shops load together without a category selector; keyword search is unrestr
     assert.equal(a.calls.at(-1).opts.category_group_code,undefined); assert.equal(a.markers.length,2);
     assert(a.markers.every(marker=>marker.point.every(Number.isFinite))); a.dom.window.close();
 });
-test('brand logos identify chains while independent shops and failed logos keep readable labels',async()=>{
+test('map logos and category symbols omit labels while search results keep readable names',async()=>{
     const a=start();
     const names=['세븐일레븐 성남점','CU 성남점','GS25 수정점','이마트24 산성점','메가MGC커피 단대점','스타벅스 성남점','이마트 성남점','롯데마트 성남점','동네마트','CUBE 카페'];
     a.response.data=names.map((name,i)=>({...fixture,id:String(i+1),place_name:name})); a.open(); await tick();
@@ -117,9 +117,12 @@ test('brand logos identify chains while independent shops and failed logos keep 
     });
     assert.equal(a.markers[8].opts.icon.html.querySelector('img'),null);
     assert.equal(a.markers[9].opts.icon.html.querySelector('img'),null);
-    assert.equal(a.markers[8].opts.icon.html.textContent,'동네마트');
+    assert(a.markers[8].opts.icon.html.querySelector('.local-shop-category-symbol'));
+    assert.equal(a.markers[8].opts.icon.html.querySelector('.local-shop-pin-name'),null);
+    assert.match(a.el('list').textContent,/동네마트/);
+    assert.deepEqual(Array.from(a.markers[8].opts.icon.iconSize),[39,31]);
     const badge=a.markers[0].opts.icon.html; badge.querySelector('img').dispatchEvent(new a.w.Event('error'));
-    assert.equal(badge.classList.contains('has-logo'),false); assert.equal(badge.textContent,'7-Eleven');
+    assert.equal(badge.classList.contains('has-logo'),false); assert(badge.querySelector('.local-shop-category-symbol')); assert.equal(badge.querySelector('.local-shop-pin-name'),null);
     a.el('query').value='약국'; a.search(); await tick(); assert.equal(a.calls.at(-1).opts.category_group_code,undefined);
     a.dom.window.close();
 });

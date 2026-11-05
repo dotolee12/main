@@ -49,13 +49,22 @@
         var tags = item.osm || {}, names = [item.name,tags.brand,tags['brand:ko']].map(normalize);
         return BRANDS.find(function(brand) { return names.some(function(name) { return brand.match.test(name); }); });
     }
-    function badge(item) {
-        var brand = brandFor(item), node = document.createElement('span'); node.className = 'local-shop-pin';
-        var name = text('span',brand ? brand.label : item.name,node); name.className = 'local-shop-pin-name';
+    function badge(item, onMap) {
+        var brand = brandFor(item), node = document.createElement('span'); node.className = 'local-shop-pin' + (onMap ? ' map-symbol-only' : '');
+        if (!onMap) { var name = text('span',brand ? brand.label : item.name,node); name.className = 'local-shop-pin-name'; }
+        function fallbackSymbol() {
+            var codes = {HP8:'hospital',PM9:'pharmacy',FD6:'food',AT4:'discovery',AD5:'lodging',PK6:'parking'};
+            var kind = codes[item.category] || (item.osm && ({hospital:'hospital',clinic:'hospital',pharmacy:'pharmacy',restaurant:'food',toilets:'restroom',parking:'parking'})[item.osm.amenity]) || 'shopping';
+            var symbol = document.createElement('span'); symbol.className = 'local-shop-category-symbol'; symbol.setAttribute('aria-hidden','true');
+            if (typeof mapLayerMenuIcon === 'function') symbol.innerHTML = mapLayerMenuIcon(kind);
+            else symbol.textContent = '◇';
+            node.appendChild(symbol);
+        }
+        if (onMap && !brand) fallbackSymbol();
         if (brand) {
             node.dataset.brand = brand.id;
             var img = document.createElement('img'); img.alt = brand.label; img.src = './assets/shop-logos/' + brand.id + (brand.id === 'cu' ? '.svg' : '.png');
-            img.addEventListener('error',function() { img.remove(); node.classList.remove('has-logo'); });
+            img.addEventListener('error',function() { img.remove(); node.classList.remove('has-logo'); if (onMap) fallbackSymbol(); });
             node.classList.add('has-logo'); node.prepend(img);
         }
         return node;
@@ -70,7 +79,7 @@
     function shop(item, center, localOnly) {
         var lat = Number(item.y), lng = Number(item.x);
         if (!item.id || !item.place_name || !validPoint(lat,lng) || (localOnly && shopMap.distance(center,[lat,lng]) > 1000)) return null;
-        return {id:String(item.id),name:String(item.place_name),address:String(item.road_address_name || item.address_name || ''),phone:String(item.phone || ''),lat:lat,lng:lng,distance:Math.round(shopMap.distance(center,[lat,lng]))};
+        return {id:String(item.id),name:String(item.place_name),address:String(item.road_address_name || item.address_name || ''),phone:String(item.phone || ''),category:String(item.category_group_code || ''),lat:lat,lng:lng,distance:Math.round(shopMap.distance(center,[lat,lng]))};
     }
     function cancelLinks() { linkRequest++; if (controller) controller.abort(); controller = null; }
     function close() { panel.hidden = true; button.setAttribute('aria-expanded','false'); request++; cancelLinks(); el('search').disabled = false; }
@@ -89,7 +98,7 @@
         el('list').hidden = false; el('list').replaceChildren(); layer.clearLayers();
         items.forEach(function(item) {
             var row = text('button','',el('list')); row.appendChild(badge(item)); text('span',item.name + ' · ' + distanceLabel(item),row); row.type = 'button'; row.onclick = function() { show(item); focusPlace(item); };
-            var icon = L.divIcon({className:'local-shop-marker',html:badge(item),iconSize:[56,44],iconAnchor:[28,44]});
+            var icon = L.divIcon({className:'local-shop-marker',html:badge(item,true),iconSize:[39,31],iconAnchor:[19.5,15.5]});
             L.marker([item.lat,item.lng],{pane:'localShopsPane',icon:icon,title:item.name,bubblingMouseEvents:false}).addTo(layer).on('click',function() { panel.hidden = false; show(item); });
         });
         if (selected && !panel.hidden) show(selected);
@@ -211,7 +220,7 @@
     function renderShops() {
         shopsLayer.clearLayers(); if (!shopsOn()) return;
         shopsItems.forEach(function(item) {
-            var icon = L.divIcon({className:'local-shop-marker',html:badge(item),iconSize:[56,44],iconAnchor:[28,44]});
+            var icon = L.divIcon({className:'local-shop-marker',html:badge(item,true),iconSize:[39,31],iconAnchor:[19.5,15.5]});
             L.marker([item.lat,item.lng],{pane:'localShopsPane',icon:icon,title:item.name,bubblingMouseEvents:false}).addTo(shopsLayer).on('click',function() { panel.hidden = false; show(item); el('list').hidden = true; });
         });
     }

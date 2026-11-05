@@ -9841,7 +9841,7 @@ function addTourMarkers() {
     logGpsLayerChange("BEFORE tour-refresh", before);
     tourMarkerLayer.clearLayers();
     tourMarkers = [];
-    getVisibleTourMarkerItems().forEach(function(item, index) { var lat = parseFloat(item.mapy); var lng = parseFloat(item.mapx); if (!isFinite(lat) || !isFinite(lng)) return; var meta = getTourTypeMeta(item.contenttypeid); var state = getTourMarkerState(item, index); var liked = isTourLiked(item); var likeKey = getTourLikeKey(item); var classes = [state.visited ? "state-visited" : "", state.selected ? "state-selected" : "", state.nearby ? "state-nearby" : "", state.discoverable ? "state-discoverable" : "", liked ? "state-liked" : ""].filter(Boolean).join(" "); var badge = liked ? "★" : state.visited ? "✓" : state.missionAvailable ? "📷" : state.discoverable ? "◎" : ""; var icon = L.divIcon({ className: "tour-map-marker-wrap", html: "<div class='tour-map-marker " + classes + "' data-place-like-key='" + escapeHtml(likeKey) + "' style='--tour-color:" + meta.color + ";--tour-fill:" + meta.fill + ";--tour-border:" + meta.border + ";'><span class='tour-map-dot'></span><span class='tour-map-label'>" + escapeHtml(meta.label) + "</span>" + (badge ? "<span class='tour-map-badge'>" + badge + "</span>" : "") + "</div>", iconSize: [84, 30], iconAnchor: [10, 15] }); var marker = L.marker([lat, lng], { pane: "tourPane", icon: icon, title: (getTourTypeName(item.contenttypeid) || meta.label) + " - " + (getTourDisplayTitle(item) || "") }).addTo(tourMarkerLayer); marker._tourItem = item; marker.on("click", function() { focusTourItemBelowPanel(item); }); tourMarkers.push(marker); });
+    getVisibleTourMarkerItems().forEach(function(item, index) { var lat = parseFloat(item.mapy); var lng = parseFloat(item.mapx); if (!isFinite(lat) || !isFinite(lng)) return; var meta = getTourTypeMeta(item.contenttypeid); var state = getTourMarkerState(item, index); var liked = isTourLiked(item); var likeKey = getTourLikeKey(item); var classes = [state.visited ? "state-visited" : "", state.selected ? "state-selected" : "", state.nearby ? "state-nearby" : "", state.discoverable ? "state-discoverable" : "", liked ? "state-liked" : ""].filter(Boolean).join(" "); var badge = liked ? "★" : state.visited ? "✓" : state.missionAvailable ? "📷" : state.discoverable ? "◎" : ""; var icon = L.divIcon({ className: "tour-map-marker-wrap", html: mapPlaceSymbolHtml(({"39":"food","38":"shopping","32":"lodging","25":"activity","28":"activity"})[String(item.contenttypeid)] || "discovery", classes, likeKey, meta.color), iconSize: [28,28], iconAnchor: [14,14] }); var marker = L.marker([lat, lng], { pane: "tourPane", icon: icon, title: (getTourTypeName(item.contenttypeid) || meta.label) + " - " + (getTourDisplayTitle(item) || "") }).addTo(tourMarkerLayer); marker._tourItem = item; marker.on("click", function() { focusTourItemBelowPanel(item); }); tourMarkers.push(marker); });
     refreshGpsVisualsAfterPlaceLayerChange("tour-refresh", before);
 }
 
@@ -9929,8 +9929,7 @@ function renderLibraryMarkers(lang) {
         var likeKey = getMapPlaceLikeKey("library", [item.LBRRY_SEQ_NO || item.LBRRY_NAME, lat, lng]);
         var icon = L.divIcon({
             className: "library-map-marker-wrap",
-            html: "<div class='library-map-marker" + (likedTourKeys.has(likeKey) ? " state-liked" : "") + "' data-place-like-key='" + escapeHtml(likeKey) + "'><span class='library-map-dot'></span><span class='library-map-label'>" + escapeHtml(label) + "</span><span class='place-liked-star'>★</span></div>",
-            iconSize: [92, 28], iconAnchor: [10, 14]
+            html: mapPlaceSymbolHtml("library", likedTourKeys.has(likeKey) ? "state-liked" : "", likeKey), iconSize: [28,28], iconAnchor: [14,14]
         });
         var marker = L.marker([lat, lng], { pane: "libraryPane", icon: icon, title: label + " - " + getLibraryDisplayName(item) }).addTo(libraryMarkerLayer);
         marker.on("click", function() { showLibraryPopup(item); });
@@ -10113,7 +10112,7 @@ function renderParkingMarkers(tileIds) {
     }); });
     items.sort(function(a, b) { return a._distance - b._distance; }).slice(0, MAP_VIEWPORT_MARKER_LIMIT).forEach(function(item) {
         var likeKey = getMapPlaceLikeKey("parking", [item.i || item.n, item.y, item.x]);
-        var icon = L.divIcon({ className:"library-map-marker-wrap parking-map-marker-wrap", html:"<div class='library-map-marker" + (likedTourKeys.has(likeKey) ? " state-liked" : "") + "' data-place-like-key='" + escapeHtml(likeKey) + "' style='--tour-color:" + PARKING_COLOR + ";'><span class='library-map-dot' style='background:" + PARKING_COLOR + ";'></span><span class='library-map-label'>" + escapeHtml(text.label) + "</span><span class='place-liked-star'>★</span></div>", iconSize:[76,28], iconAnchor:[10,14] });
+        var icon = L.divIcon({ className:"library-map-marker-wrap parking-map-marker-wrap", html: mapPlaceSymbolHtml("parking", likedTourKeys.has(likeKey) ? "state-liked" : "", likeKey), iconSize:[28,28], iconAnchor:[14,14] });
         var marker = L.marker([item.y, item.x], { pane:"parkingPane", icon:icon, title:text.label + " - " + (item.n || "") }).addTo(parkingLayerGroup);
         marker.on("click", function() { showParkingPopup(item); }); parkingMarkers.push(marker);
     });
@@ -10365,7 +10364,7 @@ function renderFishingMarkers() {
     }).sort(function(a, b) { return a._distance - b._distance; }).slice(0, MAP_VIEWPORT_MARKER_LIMIT).forEach(function(item) {
         var hookSvg = "<svg viewBox='0 0 24 24' aria-hidden='true'><circle cx='8' cy='4.5' r='2.5'></circle><path d='M8 7v8.1a5.4 5.4 0 0 0 10.8 0v-4.4l-3.8 4.1'></path></svg>";
         var likeKey = getMapPlaceLikeKey("fishing", [item.name, item.lat, item.lng]);
-        var icon = L.divIcon({ className:"library-map-marker-wrap fishing-map-marker-wrap", html:"<div class='library-map-marker fishing-map-marker" + (likedTourKeys.has(likeKey) ? " state-liked" : "") + "' data-place-like-key='" + escapeHtml(likeKey) + "'><span class='fishing-map-icon'>" + hookSvg + "</span><span class='library-map-label fishing-map-label'>" + escapeHtml(text.label) + "</span><span class='place-liked-star'>★</span></div>", iconSize:[76,28], iconAnchor:[10,14] });
+        var icon = L.divIcon({ className:"library-map-marker-wrap fishing-map-marker-wrap", html: mapPlaceSymbolHtml("fishing", likedTourKeys.has(likeKey) ? "state-liked" : "", likeKey), iconSize:[28,28], iconAnchor:[14,14] });
         var marker = L.marker([item.lat, item.lng], { pane:"fishingPane", icon:icon, title:text.label + " - " + (item.name || "") }).addTo(fishingLayerGroup);
         marker.on("click", function() { showFishingPopup(item); }); fishingMarkers.push(marker);
     });
@@ -10595,8 +10594,7 @@ function createRestroomMarker(item) {
     var likeKey = getMapPlaceLikeKey("restroom", [item._giloaKey || item.name || item.addr, item.lat, item.lng]);
     var icon = L.divIcon({
         className: "library-map-marker-wrap restroom-map-marker-wrap",
-        html: "<div class='library-map-marker" + (likedTourKeys.has(likeKey) ? " state-liked" : "") + "' data-place-like-key='" + escapeHtml(likeKey) + "' style='--tour-color:" + RESTROOM_MARKER_COLOR + ";'><span class='library-map-dot' style='background:" + RESTROOM_MARKER_COLOR + ";'></span><span class='library-map-label'>" + escapeHtml(label) + "</span><span class='place-liked-star'>★</span></div>",
-        iconSize: [76, 28], iconAnchor: [10, 14]
+        html: mapPlaceSymbolHtml("restroom", likedTourKeys.has(likeKey) ? "state-liked" : "", likeKey), iconSize:[28,28], iconAnchor:[14,14]
     });
     var marker = L.marker([item.lat, item.lng], { pane: "restroomPane", icon: icon, title: label + " - " + (item.name || "") }).addTo(restroomMarkerLayer);
     marker.on("click", function() { showRestroomPopup(item); });
@@ -10917,6 +10915,15 @@ function toggleMapLayerOrderEdit() {
 window.toggleMapLayerOrderEdit = toggleMapLayerOrderEdit;
 // Optional modules call this after inserting their dynamic tiles.
 window.refreshMapLayerTileOrder = renderMapLayerTileOrder;
+// Visual symbols share the sidebar artwork; data, popups and recording are unchanged.
+function mapPlaceSymbolHtml(key, classes, likeKey, color) {
+    var row = document.getElementById("layer-toggle-" + key);
+    var parent = row && row.closest(".map-layer-item");
+    var icon = parent && parent.querySelector(".map-layer-menu-icon");
+    var artwork = icon && icon.querySelector("svg");
+    var svg = artwork ? artwork.outerHTML : mapLayerMenuIcon(key);
+    return '<span class="map-place-symbol ' + escapeHtml(classes || "") + '" data-place-like-key="' + escapeHtml(likeKey || "") + '" style="--tour-color:' + escapeHtml(color || "#86daff") + '">' + svg + '<span class="place-liked-star">★</span></span>';
+}
 function mapLayerMenuIcon(key) {
     return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (MAP_LAYER_MENU_ICONS[key] || MAP_LAYER_MENU_ICONS.discovery) + '</svg>';
 }

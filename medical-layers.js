@@ -64,7 +64,7 @@
         var center = getMapSearchCenter(), seen = new Set(), items = [];
         ids.forEach(function(id) { (state[kind].cache[id] || []).forEach(function(item) { if (!isWithinMapSearchCenter(Number(item.y), Number(item.x), getMapSearchRadius()) || seen.has(item.i)) return; seen.add(item.i); item._d = center.distanceTo([item.y,item.x]); items.push(item); }); });
         items.sort(function(a,b) { return a._d-b._d; }).slice(0, 100).forEach(function(item) {
-            var icon = L.divIcon({className:"library-map-marker-wrap", html:"<div class='library-map-marker' style='--tour-color:" + CONFIG[kind].color + ";'><span class='library-map-dot' style='background:" + CONFIG[kind].color + ";'></span><span class='library-map-label'>" + escape(label(kind)) + "</span></div>", iconSize:[76,28], iconAnchor:[10,14]});
+            var icon = L.divIcon({className:"library-map-marker-wrap", html:mapPlaceSymbolHtml(kind,"","",CONFIG[kind].color), iconSize:[28,28], iconAnchor:[14,14]});
             var marker = L.marker([item.y,item.x], {pane:"markerPane",icon:icon,title:label(kind) + " - " + item.n}).addTo(state[kind].layer);
             marker.on("click", function() { popup(kind,item); }); state[kind].markers.push(marker);
         });
