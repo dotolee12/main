@@ -1,5 +1,9 @@
 # Project GILOA
 
+## 코드를 수정하기 전에
+
+[FEATURE_MAP.md](FEATURE_MAP.md)를 먼저 읽으세요. 기능별 원본은 `features/`와 기존 독립 기능 파일에 있습니다. 루트의 `script.js`, `style.css`, `index.html`은 자동 조립 결과입니다. 원본 수정 후 `npm run features:build`와 `npm run features:check`를 실행하세요. 모든 파일 역할은 [파일 목록](docs/FEATURE_FILES.md), 함수 위치는 [함수 목록](docs/FEATURE_SYMBOLS.md)에서 찾습니다.
+
 길로아(GILOA)는 사람들이 걸어온 길과 장소의 기억을 지도 위에 남기고, 주변을 새롭게 발견하도록 돕는 프로젝트입니다.
 
 GILOA is a project that helps people preserve the paths and places they have experienced and rediscover the world around them.

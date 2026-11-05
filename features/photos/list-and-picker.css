@@ -1,0 +1,22 @@
+#photo-list-container { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-content: start; }
+.photo-list-item { border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); cursor: pointer; position: relative; aspect-ratio: 1; background: rgba(255,255,255,0.04); transition: 0.2s; }
+.photo-list-item:hover { border-color: #4db8ff; transform: scale(1.02); }
+.photo-list-item img { width:100%; height:100%; object-fit:cover; display:block; }
+.photo-list-date { position: absolute; bottom:0; left:0; right:0; padding: 4px 6px; font-size: 10px; color: rgba(255,255,255,0.8); background: linear-gradient(transparent, rgba(0,0,0,0.65)); }
+.photo-list-del { position: absolute; top:4px; right:4px; width:26px; height:26px; padding:0; border:0; border-radius: 50%; background: rgba(255,60,60,0.9); color: #fff; font-size: 15px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0; transition: opacity 0.15s; }
+.photo-list-item:hover .photo-list-del, .photo-list-item:focus-visible .photo-list-del { opacity: 1; }
+.photo-list-item:focus-visible { outline:2px solid #4fc3f7; outline-offset:2px; }
+@media (hover:none), (pointer:coarse) { .photo-list-del { opacity:1; } }
+
+.photo-menu { position: absolute; right: 86px; bottom: 150px; background: rgba(20,20,35,0.96); border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; z-index: 1100; overflow: hidden; opacity: 0; pointer-events: none; transform: translateY(8px); transition: opacity 0.2s ease, transform 0.2s ease; backdrop-filter: blur(12px); }
+.photo-menu.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
+.photo-menu-title { padding: 11px 20px 8px; color: rgba(255,255,255,.62); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+.photo-menu-item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 20px; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; transition: background 0.15s; }
+.photo-menu-item:hover { background: rgba(255,255,255,0.08); }
+.photo-menu-item:not(:last-child) { border-bottom: 1px solid rgba(255,255,255,0.07); }
+.photo-menu-item:focus-visible { outline: 2px solid #4fc3f7; outline-offset: -3px; }
+.photo-menu-icon { font-size: 20px; }
+.photo-menu-label { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; }
+#photo-menu-overlay { position: fixed; inset: 0; z-index: 1099; display: none; }
+#photo-menu-overlay.show { display: block; }
+

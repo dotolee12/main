@@ -1,0 +1,138 @@
+:root {
+    --giloa-primary: #1a2035;
+    --giloa-secondary: #4fc3f7;
+    --giloa-secondary-soft: rgba(79,195,247,.16);
+    --giloa-gold: #ffd66b;
+    --giloa-memory: #ffb36b;
+    --giloa-success: #b8ff40;
+    --giloa-danger: #ff6b6b;
+    --giloa-panel: rgba(26,32,53,.92);
+    --giloa-panel-strong: rgba(18,23,40,.97);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: var(--giloa-primary); font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: pan-x pan-y pinch-zoom; }
+
+/* Remove delayed/double-tap behaviour from controls in older Android WebViews. */
+button, [role="button"], a, input, select, label {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Keep browser/WebView pinch zoom available on text-heavy interface surfaces. */
+#sidebar, #tour-panel, #help-popup, #hud, .language-onboarding,
+.special-place-editor, .photo-menu, .discovery-toast {
+    touch-action: pan-x pan-y pinch-zoom;
+}
+
+/* Only the first-run state machine may present dialogue during onboarding. */
+body.gft-active #gilo-dialogue-layer,
+body.gft-active .giloa-tutorial,
+
+.user-id-modal {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    inset: 0;
+    z-index: 5000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(4, 8, 18, 0.72);
+    backdrop-filter: blur(12px);
+}
+.user-id-modal.show { display: flex; }
+.user-id-box {
+    width: min(360px, 100%);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 14px;
+    background: rgba(20,20,32,0.96);
+    color: #fff;
+    padding: 22px;
+    box-shadow: 0 18px 60px rgba(0,0,0,0.4);
+}
+.user-id-title { font-size: 20px; font-weight: 800; margin-bottom: 8px; letter-spacing: 0; }
+.user-id-copy { font-size: 13px; line-height: 1.6; color: rgba(255,255,255,0.58); margin-bottom: 16px; }
+.user-id-input {
+    width: 100%;
+    height: 46px;
+    border: 1px solid rgba(77,184,255,0.34);
+    border-radius: 10px;
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 0 12px;
+    outline: none;
+    margin-top: 10px;
+}
+.user-id-input::placeholder { color: rgba(255,255,255,0.32); }
+.user-id-error {
+    min-height: 18px;
+    margin-top: 8px;
+    color: #ff8a8a;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.5;
+}
+.user-id-submit {
+    width: 100%;
+    height: 46px;
+    margin-top: 12px;
+    border: 0;
+    border-radius: 10px;
+    background: #4db8ff;
+    color: #06111f;
+    font-size: 15px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.cloud-account-card { margin-bottom: 16px; padding: 15px; border: 1px solid rgba(79,195,247,.24); border-radius: 14px; background: rgba(255,255,255,.055); }
+.cloud-account-card h2 { margin: 0 0 6px; font-size: 16px; color: #fff; }
+.cloud-account-card > p { margin: 0 0 10px; color: rgba(255,255,255,.68); font-size: 12px; line-height: 1.55; }
+.cloud-account-input { width: 100%; min-height: 42px; margin-top: 8px; padding: 0 11px; border: 1px solid rgba(255,255,255,.18); border-radius: 9px; background: rgba(8,13,27,.62); color: #fff; font-size: 14px; }
+.cloud-account-actions { display: flex; gap: 8px; margin-top: 10px; }
+.cloud-account-actions button { flex: 1; min-height: 40px; border: 0; border-radius: 9px; background: var(--giloa-secondary); color: #08131f; font-weight: 850; cursor: pointer; }
+.cloud-account-actions button.secondary { border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.08); color: #fff; }
+.cloud-account-text-button { display: block; margin: 10px auto 0; padding: 4px 8px; border: 0; background: transparent; color: #8ee8ff; font-size: 12px; text-decoration: underline; cursor: pointer; }
+.cloud-account-status { min-height: 18px; margin-top: 9px !important; color: #8ee8ff !important; }
+.cloud-account-status.is-error { color: #ff9b9b !important; }
+
+#map-wrap {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    inset: 0;
+    z-index: 1;
+    background:
+        linear-gradient(rgba(77,184,255,0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(77,184,255,0.08) 1px, transparent 1px),
+        radial-gradient(circle at 50% 45%, rgba(77,184,255,0.16), transparent 34%),
+        #10131d;
+    background-size: 64px 64px, 64px 64px, 100% 100%, auto;
+}
+#map { width: 100%; height: 100%; overflow: hidden; background: transparent; }
+.leaflet-container { background: transparent !important; }
+.leaflet-tile-pane { opacity: .88; filter: grayscale(.96) saturate(.12) contrast(.78) brightness(1.08); }
+#map-wrap.fog-disabled .leaflet-tile-pane { opacity: .94; filter: saturate(.92) contrast(.92) brightness(1.03); }
+#map-wrap::after {
+    content: "Map loading";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 50;
+    transform: translate(-50%, -50%);
+    color: rgba(255,255,255,0.44);
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0;
+    pointer-events: none;
+}
+#map-wrap.tiles-ready::after { display: none; }
+#map-wrap.tiles-error::after { content: "Map network unavailable - check app internet permission"; }
+

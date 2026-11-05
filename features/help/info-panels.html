@@ -1,0 +1,70 @@
+<div id="giloa-sources" class="giloa-sources" aria-hidden="true" hidden>
+  <div class="giloa-sources-scrim" onclick="closeGiloaSources()"></div>
+  <section class="giloa-sources-card" role="dialog" aria-modal="true" aria-labelledby="giloa-sources-title">
+    <header class="giloa-sources-head">
+      <div><span>DATA &amp; MAP CREDITS</span><h2 id="giloa-sources-title" data-i18n-extra="sourcesTitle">길로아 출처</h2></div>
+      <button type="button" onclick="closeGiloaSources()" data-i18n-extra-aria="closeSources" aria-label="출처 닫기">&times;</button>
+    </header>
+    <p class="giloa-sources-intro" data-i18n-extra="sourcesIntro">길로아의 ‘나의 대동여지도’에는 다음 기관과 서비스의 데이터가 사용됩니다.</p>
+    <div class="giloa-sources-list">
+      <article><strong data-i18n-extra="sourceTourismTypes">관광지 · 음식점 · 숙박 · 축제 · 관광사진</strong><span data-i18n-extra="sourceTourism">ⓒ한국관광공사 TourAPI</span></article>
+      <article><strong data-i18n-extra="sourceTrailsType">공식 탐방로</strong><span data-i18n-extra="sourceTrails">한국관광공사 두루누비 · 한국등산·트레킹지원센터 국가숲길</span></article>
+      <article><strong data-i18n-extra="sourceFacilitiesTypes">도서관 · 공중화장실</strong><span data-i18n-extra="sourceSeoul">서울 열린데이터광장 · 카카오맵</span></article>
+      <article><strong data-i18n-extra="sourceParkingType">주차장</strong><span data-i18n-extra="sourceParking">공공데이터포털 · 전국주차장정보표준데이터</span></article>
+      <article><strong data-i18n-extra="sourceFishingType">낚시터</strong><span data-i18n-extra="sourceFishing">행정안전부 · 전국 낚시터정보</span></article>
+      <article><strong data-i18n-extra="sourceDirectionsTypes">장소 검색 · 교통정보 · 길찾기</strong><span data-i18n-extra="sourceKakao">카카오맵</span></article>
+      <article><strong data-i18n-extra="sourceMapType">기본 지도</strong><span data-i18n-extra="sourceMap">ⓒ OpenStreetMap contributors · ⓒ CARTO</span></article>
+      <article class="giloa-sources-mascots"><strong data-i18n-extra="sourceMascotsType">지역 마스코트·캐릭터</strong><span data-i18n-extra-html="sourceMascots">포미·포수 ⓒ 김포시<br>고양고양이 ⓒ 고양특례시</span></article>
+    </div>
+    <p class="giloa-sources-note" data-i18n-extra="sourcesNote">지역 마스코트와 캐릭터의 명칭·이미지 저작권은 각 지자체에 있습니다. 그 밖의 데이터 저작권은 해당 제공기관과 원저작자에게 있으며, 사진 등 개별 콘텐츠에는 별도의 출처가 표시될 수 있습니다.</p>
+  </section>
+</div>
+
+<div id="giloa-info" class="giloa-info" aria-hidden="true" hidden>
+  <div class="giloa-info-scrim" onclick="closeGiloaInfoPage()"></div>
+  <section class="giloa-info-card" role="dialog" aria-modal="true" aria-labelledby="giloa-info-title">
+    <header class="giloa-info-head">
+      <div><span id="giloa-info-kicker">GILOA</span><h2 id="giloa-info-title">프라이버시</h2></div>
+      <button type="button" onclick="closeGiloaInfoPage()" data-i18n-extra-aria="close" aria-label="닫기">&times;</button>
+    </header>
+    <p id="giloa-info-intro" class="giloa-info-intro"></p>
+    <div id="giloa-info-list" class="giloa-info-list"></div>
+  </section>
+</div>
+
+<section id="giloa-update-notice" 
+class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="true" aria-labelledby="giloa-update-title" onclick="dismissGiloaUpdateNotice()">
+  <div class="giloa-update-glow" aria-hidden="true"></div>
+  <div class="giloa-update-card">
+    <span class="giloa-update-kicker">GILOA UPDATE · 1.4</span>
+    <h2 id="giloa-update-title" data-i18n-extra="updateTitle">길로아가 더 단단해졌어요</h2>
+    <p data-i18n-extra="updateIntro">당신의 기록을 오래 지키고, 사진과 발걸음을 더 정확히 남길 수 있도록 다듬었습니다.</p>
+    <ul>
+      <li><strong data-i18n-extra="updatePhotoTitle">사진 위치 자동 기록</strong><span data-i18n-extra="updatePhotoCopy">휴대폰 사진의 촬영 위치를 찾아 지도 위에 놓아요.</span></li>
+      <li><strong data-i18n-extra="updateGpsTitle">안정적인 발걸음</strong><span data-i18n-extra="updateGpsCopy">GPS가 갑자기 튀어도 이동 거리로 잘못 기록되지 않게 했어요.</span></li>
+      <li><strong data-i18n-extra="updateRecordsTitle">기록 이중 보호</strong><span data-i18n-extra="updateRecordsCopy">업데이트 뒤에도 경로·사진·기억·성장 기록을 안전하게 복원해요.</span></li>
+      <li><strong data-i18n-extra="updateMapTitle">정돈된 지도 화면</strong><span data-i18n-extra="updateMapCopy">길로의 한마디와 컨트롤이 겹치지 않고, 데이터 출처도 한곳에서 확인할 수 있어요.</span></li>
+    </ul>
+    <span class="giloa-update-dismiss" data-i18n-extra="updateDismiss">화면을 탭하면 시작해요</span>
+  </div>
+</section>
+
+<div id="giloa-story-hub" class="giloa-story-hub" aria-hidden="true" hidden>
+  <div class="giloa-story-hub-scrim" onclick="closeGiloaStoryHub()"></div>
+  <section class="giloa-story-hub-card" role="dialog" aria-modal="true" aria-labelledby="giloa-story-hub-title">
+    <header><div><span>GILOA STORY</span><h2 id="giloa-story-hub-title" data-i18n-extra="storyTitle">길로아 이야기</h2></div><button type="button" onclick="closeGiloaStoryHub()" data-i18n-extra-aria="close" aria-label="닫기">&times;</button></header>
+    <p class="giloa-story-hub-intro" data-i18n-extra="storyIntro">아직 만나지 못한 세상을 당신만의 대동여지도로 만들어 가는 이야기입니다.</p>
+    <button class="giloa-story-replay" type="button" onclick="replayGiloaStoryFromHub()" data-i18n-extra="storyReplay">길로아 이야기 다시 보기</button>
+    <section class="giloa-story-update-history" aria-labelledby="giloa-story-update-title">
+      <span>UPDATE STORY · 1.4</span>
+      <h3 id="giloa-story-update-title" data-i18n-extra="updateTitle">길로아가 더 단단해졌어요</h3>
+      <ul>
+        <li data-i18n-extra="storyUpdatePhoto">휴대폰 사진의 촬영 위치를 읽어 지도에 자동 배치</li>
+        <li data-i18n-extra="storyUpdateGps">GPS 위치 튐과 잘못된 이동 거리 기록 방지</li>
+        <li data-i18n-extra="storyUpdateRecords">업데이트 후 사용자 기록 이중 백업 및 자동 복원</li>
+        <li data-i18n-extra="storyUpdateMap">길로의 한마디 배치 개선과 데이터·지역 마스코트 출처 정리</li>
+      </ul>
+    </section>
+  </section>
+</div>
+

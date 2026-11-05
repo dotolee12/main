@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <script>
+    // Kakao 지도/장소 검색과 위치 권한은 file:// 환경에서 정상 동작하지 않는다.
+    // 사용자가 index.html을 직접 열어도 로컬 웹 서버로 자동 전환한다.
+  </script>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://dapi.kakao.com https://*.kakao.com https://*.daum.net https://*.daumcdn.net https://*.kakaocdn.net; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; connect-src 'self' https: data: blob:; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+<script id="giloa-startup-recovery-code">
+(function () {
+  // This runs independently of the application bundle. It never clears data
+  // or reloads an active trip automatically.
+  function ready() { return !!document.querySelector(".giloa-location-consent") || document.documentElement.dataset.giloaReady === "true" || !!(window.GiloaBoot && window.GiloaBoot.interactive); }
+  function words() {
+    var texts = {
+      ko:["화면을 끝까지 불러오지 못했어요. 기존 기록은 지우지 않습니다.","화면 다시 불러오기"],
+      en:["The app did not finish loading. Your saved records are not cleared.","Reload screen"],
+      ja:["画面を読み込めませんでした。保存済みの記録は削除しません。","画面を再読み込み"],
+      zh:["界面未能完成加载，不会清除已保存的记录。","重新加载界面"],
+      es:["La aplicación no terminó de cargar. No se borran tus registros.","Recargar pantalla"],
+      fr:["Le chargement n’a pas abouti. Vos données ne sont pas effacées.","Recharger la page"]
+    };
+    return texts[(document.documentElement.lang || "ko").slice(0,2)] || texts.en;
+  }
+  function remove() { var box = document.getElementById("giloa-startup-recovery"); if (box) box.remove(); }
+  function show() {
+    if (ready() || !document.body || document.getElementById("giloa-startup-recovery")) return;
+    var text = words(), box = document.createElement("section"), message = document.createElement("p"), button = document.createElement("button");
+    box.id = "giloa-startup-recovery"; box.setAttribute("role","status");
+    box.style.cssText = "position:fixed;z-index:100001;left:12px;right:12px;bottom:max(20px,env(safe-area-inset-bottom));max-width:420px;margin:auto;padding:16px;border:1px solid #80d4ae;border-radius:14px;background:#202236;color:white;font:14px/1.5 sans-serif;box-shadow:0 8px 30px #0008";
+    message.textContent = text[0]; button.type = "button"; button.textContent = text[1];
+    button.style.cssText = "min-height:44px;padding:9px 14px;border:0;border-radius:9px;background:#a1edca;color:#172e2c;font:inherit;cursor:pointer";
+    button.onclick = function() { window.location.reload(); };
+    box.appendChild(message); box.appendChild(button); document.body.appendChild(box);
+  }
+  window.addEventListener("giloa:ready",remove);
+  setTimeout(show,25000);
+})();
+</script>
+<title data-i18n-extra="pageTitle">나의 대동여지도 - Project Giloa</title>
+<script>
+  // A web-app manifest is valid only from an HTTP(S) origin. Loading it from
+  // file:// creates a permanent CORS error even though the map itself renders.
+  if (/^https?:$/.test(window.location.protocol)) {
+    var manifestLink = document.createElement("link");
+    manifestLink.rel = "manifest";
+    manifestLink.href = "./manifest.json";
+    document.head.appendChild(manifestLink);
+  }
+</script>
+<meta name="theme-color" content="#0d0d18">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<!-- 흰 화면 방지: 외부 CSS가 도착하기 전에도 즉시 어두운 배경으로 첫 페인트가 되도록
+     최소한의 임계 CSS를 인라인으로 먼저 적용한다. 네트워크가 느려도 사용자는
+     "빈 흰 화면" 대신 앱의 다크 배경을 바로 보게 된다. -->
+<style>
+html,body{background:#1a2035;margin:0;height:100%;width:100%;overflow:hidden}
+#giloa-boot-splash{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;background:#1a2035;color:#fff;overflow:hidden;opacity:1;transition:opacity .28s ease;touch-action:manipulation}
+#giloa-boot-splash.gbs-hide{opacity:0;pointer-events:none}
+.gbs-slide{position:absolute;inset:0;opacity:0;transition:opacity .45s ease;pointer-events:none}
+.gbs-slide.is-active{opacity:1;transform:scale(1)}
+.gbs-slide::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,13,27,.08) 25%,rgba(8,13,27,.38) 58%,rgba(8,13,27,.96) 100%)}
+.gbs-slide img{width:100%;height:calc(100% - max(190px,28vh) - env(safe-area-inset-bottom));object-fit:contain;object-position:center;display:block}
+.gbs-ui{position:absolute;z-index:3;left:0;right:0;bottom:max(24px,env(safe-area-inset-bottom));padding:22px 24px 10px;text-align:left}
+.gbs-brand{display:flex;align-items:center;gap:9px;margin-bottom:12px;font:900 13px/1.2 system-ui,sans-serif;letter-spacing:.18em}.gbs-brand i{width:10px;height:10px;border-radius:50%;background:#4fc3f7;box-shadow:0 0 18px rgba(79,195,247,.9)}
+.gbs-title{margin:0 0 7px;font:900 clamp(22px,6.2vw,34px)/1.22 system-ui,sans-serif;letter-spacing:-.035em}.gbs-copy{margin:0;max-width:540px;color:rgba(255,255,255,.72);font:650 13px/1.55 system-ui,sans-serif}
+.gbs-progress{display:flex;gap:5px;margin-top:16px}.gbs-progress i{height:3px;flex:1;max-width:34px;border-radius:99px;background:rgba(255,255,255,.22);overflow:hidden}.gbs-progress i::after{content:"";display:block;width:0;height:100%;background:#4fc3f7}.gbs-progress i.is-active::after{width:100%;transition:width 2s linear}
+.gbs-status{margin-top:10px;color:#8ee8ff;font:750 11px/1.3 system-ui,sans-serif}.gbs-skip{display:none;position:absolute;z-index:4;top:max(16px,env(safe-area-inset-top));right:16px;min-height:38px;padding:0 13px;border:1px solid rgba(79,195,247,.5);border-radius:999px;background:rgba(26,32,53,.72);color:#dff7ff;font:800 11px system-ui,sans-serif;backdrop-filter:blur(10px)}
+#giloa-boot-splash.gbs-long .gbs-skip{display:block}
+@media (prefers-reduced-motion:reduce){.gbs-slide,.gbs-progress i::after{transition:none!important}}
+</style>
+<!-- config.js가 참조하기 전에 먼저 값이 설정되어야 하므로, defer로 미루는
+     본문 스크립트들보다 앞선 head 단계에서 실행한다. -->
+<script>window.GILOA_TESTER_ENROLLMENT_OPEN = false;</script>
+<!-- 큰 벤더/앱 스크립트를 head 단계에서 미리 프리로드하여, 본문 파싱이 끝날 때까지
+     기다리지 않고 CSS와 동시에 다운로드가 시작되도록 한다. (버퍼링 단축) -->
+<link rel="preload" as="script" href="./vendor/leaflet.js?v=app-local-9">
+<link rel="preload" as="script" href="./script.js?v=app-local-233">
+<link rel="stylesheet" href="./vendor/leaflet.css?v=app-local-9">
+<link rel="stylesheet" href="./vendor/MarkerCluster.css?v=app-local-9">
+<link rel="stylesheet" href="./vendor/MarkerCluster.Default.css?v=app-local-9">
+<link rel="stylesheet" href="./style.css?v=app-local-175">
+<!-- 튜토리얼/타임트레이스 CSS는 첫 화면에 필요하지 않으므로 렌더 차단 없이
+     비동기로 불러온다 (media=print 트릭 후 onload에서 all로 전환). -->
+<link rel="stylesheet" href="./time-trace.css?v=app-local-1" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="./tutorial.css?v=app-local-131" media="print" onload="this.media='all'">
+<noscript>
+  <link rel="stylesheet" href="./time-trace.css?v=app-local-1">
+  <link rel="stylesheet" href="./tutorial.css?v=app-local-131">
+</noscript>
+<link rel="stylesheet" href="./parking.css?v=4">
+<link rel="stylesheet" href="./photo-items.css?v=2">
+</head>
+<body>
+<!-- 앱 로딩 스플래시: 페이지가 파싱되는 즉시(다른 스크립트/스타일과 무관하게) 표시되고,
+     아래쪽에 있는 인라인 스크립트가 window의 load 이벤트에서 닫는다. 기존 온보딩/지도
+     로직은 전혀 건드리지 않고, 그 위에 얹히는 별도 레이어라서 기존 흐름에 영향이 없다.
+     목적: "로딩 중 빈 화면"을 없애서 로딩 시간 자체가 아니라 체감 대기를 줄인다. -->
+<div id="giloa-boot-splash" aria-live="polite" aria-label="GILOA loading">
+  <div class="gbs-slide is-active"><img src="./images/startup/01-memories.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img src="./images/startup/02-horizon.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img src="./images/startup/03-hello.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img src="./images/startup/04-photo.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img src="./images/startup/05-fog-map.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img src="./images/startup/06-discovery.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img src="./images/startup/07-glowing-map.png" alt="" decoding="async"></div>
+  <button id="gbs-skip" class="gbs-skip" type="button">지도 먼저 보기</button>
+  <div class="gbs-ui">
+    <div class="gbs-brand"><i></i><span>GILOA</span></div>
+    <h1 id="gbs-title" class="gbs-title"></h1>
+    <p id="gbs-copy" class="gbs-copy"></p>
+    <div id="gbs-progress" class="gbs-progress" aria-hidden="true"></div>
+    <div id="gbs-status" class="gbs-status">기록을 안전하게 불러오는 중…</div>
+  </div>
+</div>
+<script>
+(function () {
+  var splash=document.getElementById("giloa-boot-splash"), slides=[].slice.call(document.querySelectorAll(".gbs-slide"));
+  if(!splash||!slides.length)return;
+  var title=document.getElementById("gbs-title"),copy=document.getElementById("gbs-copy"),status=document.getElementById("gbs-status"),progress=document.getElementById("gbs-progress"),skip=document.getElementById("gbs-skip");
+  var lang=(function(){try{var v=localStorage.getItem("giloa-language-v1")||localStorage.getItem("giloa-ui-language")||"";if(v)return v.slice(0,2)}catch(_){}return (navigator.language||"ko").slice(0,2)})();
+if(["ko","en","ja","zh","es","fr"].indexOf(lang)<0)lang="en";  var words={
+    ko:[
+      ["걸었던 길이 나만의 지도가 됩니다.","길로아는 목적지만 찾는 지도가 아니라, 내가 실제로 걸은 길과 기억을 남깁니다."],
+      ["가보지 않은 곳은 아직 안개 속에 있어요.","걸음을 옮길수록 안개가 걷히고 내가 아는 세상이 넓어집니다."],
+      ["길로가 여행을 함께 배워갑니다.","현재 위치에서 시작해 주변의 장소와 새로운 길을 하나씩 발견해 보세요."],
+      ["사진은 장소의 기억이 됩니다.","촬영 위치를 지도에 남기고, 다시 찾아가 시간에 따라 달라진 모습을 비교할 수 있어요."],
+      ["걸을수록 나만의 대동여지도가 완성됩니다.","발걸음과 머문 시간, 사진과 발견이 하나의 지도에 쌓입니다."],
+      ["멀리 가지 않아도 발견은 시작됩니다.","유명한 목적지뿐 아니라 지금 내 주변의 작은 장소도 여행이 될 수 있어요."],
+      ["지금 여기에서 시작하세요.","길로아는 준비가 끝나는 즉시 지도를 열어 드릴게요."]
+    ],
+    en:[["The paths you walk become your map.","GILOA records the routes and memories you actually experience."],["Unvisited places remain in the fog.","As you move, the fog clears and your known world grows."],["Gilo learns the journey with you.","Start where you are and discover nearby places and new paths."],["Photos become memories of places.","Keep where a photo was taken and revisit it to compare change over time."],["Every walk builds your own Daedongyeojido.","Routes, stays, photos and discoveries gather on one map."],["Discovery can begin nearby.","Even small places around you can become part of the journey."],["Start from here, now.","GILOA will open the map as soon as your records are ready."]],
+    ja:[["歩いた道が、自分だけの地図になります。","GILOAは実際に歩いた道と記憶を残す地図です。"],["まだ行っていない場所は霧の中。","歩くほど霧が晴れ、知っている世界が広がります。"],["Giloが一緒に旅を学びます。","今いる場所から周辺の場所と新しい道を見つけましょう。"],["写真は場所の記憶になります。","撮影地点を残し、再訪して時間の変化を比べられます。"],["歩くほど自分だけの大東輿地図が完成します。","足跡・滞在・写真・発見が一枚の地図に積み重なります。"],["遠くへ行かなくても発見は始まります。","今いる場所の小さな発見も旅になります。"],["今、ここから始めましょう。","記録の準備ができ次第、すぐ地図を開きます。"]],
+    zh:[["走过的路，会成为属于你的地图。","GILOA记录你真正走过的路线与记忆。"],["未曾到访的地方仍在迷雾中。","每走一步，迷雾都会散去，你熟悉的世界也会变大。"],["Gilo会和你一起学习旅行。","从当前位置出发，发现周边地点和新的道路。"],["照片会成为地点的记忆。","记录拍摄位置，再次到访时比较时间带来的变化。"],["走得越多，属于你的大东舆地图越完整。","足迹、停留、照片与发现都会积累在同一张地图上。"],["不用远行，也能开始发现。","你身边不起眼的小地方也可以成为旅行的一部分。"],["就从现在、这里开始。","记录准备完成后，GILOA会立即打开地图。"]],
+    es:[
+  ["Los caminos que recorres se convierten en tu mapa.","GILOA registra las rutas que realmente recorres y los recuerdos que creas."],
+  ["Los lugares que aún no has visitado permanecen entre la niebla.","A medida que avanzas, la niebla se disipa y el mundo que conoces se expande."],
+  ["Gilo aprende a viajar contigo.","Empieza donde estás y descubre lugares cercanos y nuevos caminos."],
+  ["Las fotos se convierten en recuerdos de los lugares.","Guarda dónde tomaste cada foto y vuelve después para comparar cómo cambia con el tiempo."],
+  ["Cada paseo completa tu propio Daedongyeojido.","Las rutas, las estancias, las fotos y los descubrimientos se reúnen en un solo mapa."],
+  ["No hace falta ir lejos para empezar a descubrir.","Incluso los pequeños lugares que te rodean pueden formar parte del viaje."],
+  ["Empieza aquí y ahora.","GILOA abrirá el mapa en cuanto tus registros estén listos."]
+],
+fr:[
+  ["Les chemins que vous parcourez deviennent votre carte.","GILOA enregistre les itinéraires que vous parcourez réellement et les souvenirs que vous créez."],
+  ["Les lieux que vous n’avez pas encore visités restent dans la brume.","À mesure que vous avancez, la brume se dissipe et le monde que vous connaissez s’agrandit."],
+  ["Gilo apprend à voyager avec vous.","Partez de votre position et découvrez les lieux proches et de nouveaux chemins."],
+  ["Les photos deviennent des souvenirs des lieux.","Conservez le lieu de chaque photo et revenez plus tard pour observer les changements au fil du temps."],
+  ["Chaque promenade complète votre propre Daedongyeojido.","Les itinéraires, les pauses, les photos et les découvertes se rassemblent sur une seule carte."],
+  ["Il n’est pas nécessaire d’aller loin pour commencer à découvrir.","Même les petits lieux autour de vous peuvent faire partie du voyage."],
+  ["Commencez ici et maintenant.","GILOA ouvrira la carte dès que vos données seront prêtes."]
+]
+  };
+var statusText={
+  ko:"기록을 안전하게 불러오는 중…",
+  en:"Restoring your journey…",
+  ja:"旅の記録を安全に読み込み中…",
+  zh:"正在安全恢复你的旅行记录…",
+  es:"Restaurando tu viaje de forma segura…",
+  fr:"Récupération sécurisée de votre parcours…"
+};
+
+var skipText={
+  ko:"지도 먼저 보기",
+  en:"Open map now",
+  ja:"先に地図を見る",
+  zh:"先查看地图",
+  es:"Abrir el mapa ahora",
+  fr:"Ouvrir la carte maintenant"
+};
+ status.textContent=statusText[lang];skip.textContent=skipText[lang];
+  slides.forEach(function(_,i){var dot=document.createElement("i");if(i===0)dot.className="is-active";progress.appendChild(dot)});
+  // Pick one random startup image, and show the text that belongs to that image.
+  var dots=[].slice.call(progress.children),index=Math.floor(Math.random()*slides.length),timer=null,started=Date.now(),hidden=false;
+  function show(i){index=i%slides.length;slides.forEach(function(el,n){el.classList.toggle("is-active",n===index)});dots.forEach(function(el,n){el.className=n===index?"is-active":""});title.textContent=words[lang][index][0];copy.textContent=words[lang][index][1]}
+  show(index);
+  setTimeout(function(){if(!hidden)splash.classList.add("gbs-long")},5000);
+  function hide(){if(hidden)return;hidden=true;clearInterval(timer);splash.classList.add("gbs-hide");setTimeout(function(){if(splash.parentNode)splash.parentNode.removeChild(splash)},320)}
+  function setStatus(message){if(status&&message)status.textContent=message}
+  skip.addEventListener("click",hide);
+  window.GiloaBoot={
+    markInteractive:function(){this.interactive=true;var elapsed=Date.now()-started;setTimeout(hide,Math.max(0,450-elapsed))},
+    hide:hide,
+    setStatus:setStatus,
+    showResume:function(){/* HTML already painted; native pre-paint black screen requires Android SplashScreen. */},
+    startedAt:started
+  };
+  // Last-resort escape hatch. Never leave a permanent blocking layer even if an optional init task fails.
+  setTimeout(hide,20000);
+})();
+</script>
+<div id="region-edge-frame" aria-hidden="true" hidden></div>

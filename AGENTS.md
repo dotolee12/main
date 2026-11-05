@@ -1,6 +1,17 @@
 # GILOA 작업 지침
 
-이 프로젝트를 수정하거나 빌드하기 전에 반드시 `GILOA_CORE_RULES.md` 전체를 읽고 준수한다.
+이 프로젝트를 수정하거나 빌드하기 전에 **먼저 `FEATURE_MAP.md`를 읽고**, 이어서 `GILOA_CORE_RULES.md` 전체를 읽고 준수한다.
+
+## 기능을 찾아 수정하는 순서
+
+1. `FEATURE_MAP.md`에서 요청한 기능의 주 담당 원본과 관련 파일을 찾고 실제 내용을 읽는다.
+2. 목록에 없으면 `docs/FEATURE_FILES.md`, `docs/FEATURE_SYMBOLS.md`와 동의어·영문명·HTML ID·CSS 선택자·함수명을 검색한다. 비슷한 기능 파일을 읽고 실제 로드·호출 관계를 확인한 뒤 수정한다. 추측으로 관련 없는 파일을 바꾸지 않는다.
+3. `features/`의 기능별 원본과 기존 독립 기능 파일을 수정한다. 루트 `script.js`, `style.css`, `index.html`은 조립 결과이므로 직접 수정하지 않는다.
+4. `npm run features:build`로 결과와 자동 문서를 갱신하고 `npm run features:check`, `npm run test:features` 및 관련 회귀 검사를 수행한다.
+5. 새 기능·이동·담당 파일 변경은 같은 작업에서 `FEATURE_MAP.md`와 `features/bundles.json`에 반영한다. 원본과 생성 결과를 함께 커밋한다.
+6. 수정 허용 범위를 작업 시작에 정하고, 변경 내역에 요청하지 않은 기능 수정이 섞였는지 배포 전에 확인한다. 검사 통과를 실제 기기 검증으로 표현하지 않는다.
+
+세부 검색 절차와 명령 실행 위치는 `FEATURE_MAP.md`를 따른다.
 
 # 길로아 코드 작업 방식
 

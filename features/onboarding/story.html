@@ -1,0 +1,143 @@
+<section id="giloa-story-intro" class="gsi" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="gsi-onboarding-title">
+  <div class="gsi-glow" aria-hidden="true"></div>
+
+  <div id="gsi-onboarding" class="gsi-onboarding">
+    <header class="gsi-onboarding-head">
+      <div class="gsi-brand-logo" data-i18n-extra-aria="brandLabel" aria-label="GILOA 나의 대동여지도">
+        <img src="./gilo many appearance/길로아 대동여지도.png" width="1536" height="1024" decoding="async" data-i18n-extra-alt="brandLabel" alt="GILOA 나의 대동여지도">
+        <div id="gsi-brand-localized" hidden><strong>GILOA</strong><span data-i18n-extra="brandSubtitle"></span></div>
+      </div>
+      <label class="gsi-language-picker">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 4 6 4 9s-1 6-4 9c-3-3-4-6-4-9s1-6 4-9Z"/></svg>
+        <span id="gsi-language-label">언어</span>
+        <select id="gsi-language-select" aria-label="언어 선택">
+          <option value="ko">한국어</option><option value="en">English</option><option value="ja">日本語</option>
+          <option value="zh">中文</option><option value="fr">Français</option><option value="es">Español</option>
+        </select>
+      </label>
+      <button id="gsi-onboarding-close" class="gsi-onboarding-close" type="button" data-i18n-extra-aria="closeIntro" aria-label="온보딩 닫기">&times;</button>
+    </header>
+
+    <div class="gsi-onboarding-scroll">
+      <div class="gsi-heading">
+        <h1 id="gsi-onboarding-title"></h1>
+        <p id="gsi-onboarding-description"></p>
+      </div>
+
+      <div id="gsi-world-visual" class="gsi-world-visual gsi-discovery-map" role="img">
+        <svg class="gsi-discovery-map-art" viewBox="0 0 640 360" aria-hidden="true">
+          <defs>
+            <linearGradient id="gsi-map-bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#173354"/><stop offset=".56" stop-color="#0b1d35"/><stop offset="1" stop-color="#07101f"/></linearGradient>
+            <radialGradient id="gsi-user-glow"><stop stop-color="#4fc3f7" stop-opacity=".45"/><stop offset="1" stop-color="#4fc3f7" stop-opacity="0"/></radialGradient>
+            <filter id="gsi-soft-glow"><feGaussianBlur stdDeviation="7"/></filter>
+          </defs>
+          <rect width="640" height="360" rx="28" fill="url(#gsi-map-bg)"/>
+          <g class="gsi-map-grid"><path d="M0 62h640M0 132h640M0 202h640M0 272h640M92 0v360M198 0v360M304 0v360M410 0v360M516 0v360"/><path d="M-30 290 96 216l82 34 84-143 87 67 110-98 205 86"/><path d="M52-20 143 94l-40 102 129 87 121-42 82 139"/></g>
+          <path class="gsi-preview-route-halo" d="M120 278c58-48 102-26 136-85 33-58 86-63 126-20 43 47 84 18 141-61"/>
+          <path class="gsi-preview-route" d="M120 278c58-48 102-26 136-85 33-58 86-63 126-20 43 47 84 18 141-61"/>
+          <circle cx="320" cy="205" r="102" fill="url(#gsi-user-glow)"/>
+          <g class="gsi-preview-fog"><circle cx="18" cy="50" r="116"/><circle cx="628" cy="332" r="128"/><circle cx="570" cy="18" r="76"/></g>
+        </svg>
+        <span class="gsi-scan-ring" aria-hidden="true"></span>
+        <div class="gsi-you-marker"><i></i><b id="gsi-you-copy">지금, 여기</b></div>
+        <div class="gsi-place-pin gsi-place-tour"><span aria-hidden="true">⌂</span><b id="gsi-place-tour">여행지</b></div>
+        <div class="gsi-place-pin gsi-place-food"><span aria-hidden="true">♨</span><b id="gsi-place-food">음식점</b></div>
+        <div class="gsi-place-pin gsi-place-library"><span aria-hidden="true">▤</span><b id="gsi-place-library">도서관</b></div>
+        <div class="gsi-place-pin gsi-place-lodging"><span aria-hidden="true">▰</span><b id="gsi-place-lodging">숙박</b></div>
+        <div class="gsi-place-pin gsi-place-restroom"><span aria-hidden="true">◆</span><b id="gsi-place-restroom">화장실</b></div>
+        <div class="gsi-place-pin gsi-place-trail"><span aria-hidden="true">⌁</span><b id="gsi-place-trail">산책로</b></div>
+        <span class="gsi-mystery gsi-mystery-one" aria-hidden="true">?</span>
+        <span class="gsi-mystery gsi-mystery-two" aria-hidden="true">?</span>
+        <div id="gsi-gilo-hint" class="gsi-gilo-hint">주변을 둘러봐요!</div>
+        <img class="gsi-preview-gilo" src="./gilo many appearance/gilo-tutorial-welcome-transparent.png" width="1024" height="1024" decoding="async" alt="Gilo">
+      </div>
+
+      <ul class="gsi-feature-hints" aria-label="GILOA features">
+        <li><span aria-hidden="true">⌖</span><b id="gsi-hint-places">장소</b></li>
+        <li><span aria-hidden="true">⌁</span><b id="gsi-hint-trails">산책로</b></li>
+        <li><span aria-hidden="true">★</span><b id="gsi-hint-badges">배지</b></li>
+        <li><span aria-hidden="true">?</span><b id="gsi-hint-missions">미션</b></li>
+      </ul>
+    </div>
+
+<footer class="gsi-onboarding-actions">
+  <div id="gilo-welcome" style="text-align:center;margin:8px 0">
+    <button id="gilo-welcome-play" class="gsi-story-open" type="button" aria-pressed="false" aria-controls="gilo-welcome-audio">🔊 길로의 인사 듣기</button>
+    <small id="gilo-welcome-status" role="status" style="display:block;margin-top:4px;color:inherit;opacity:.75;font-size:11px">Suno로 만든 한국어 환영 음성</small>
+    <audio id="gilo-welcome-audio" preload="none" src="./assets/audio/giloa-suno-welcome.mp3"></audio>
+  </div>
+
+  <button id="adventure-music-start" class="gsi-start" type="button" aria-controls="adventure-music-audio">음악과 함께 시작</button>
+  <p id="adventure-music-caption" class="adventure-music-caption">시작 음악: 길로의 모험 · 한 번 재생</p>
+  <button id="adventure-music-intro-stop" class="gsi-story-open" type="button" hidden style="min-height:44px" aria-controls="adventure-music-audio">음악 끄기</button>
+  <button id="gsi-start" class="gsi-start" type="button">
+    <span id="gsi-start-copy">시작하기</span>
+    <span aria-hidden="true">›</span>
+  </button>
+
+  <div class="gsi-secondary-actions">
+        <button id="gsi-story-open" class="gsi-story-open" type="button"><span id="gsi-story-open-copy">길로 이야기</span><span aria-hidden="true">›</span></button>
+        <button id="gsi-detail-open" class="gsi-story-open" type="button"><span id="gsi-detail-open-copy">기능 자세히 보기</span><span aria-hidden="true">›</span></button>
+      </div>
+    </footer>
+  </div>
+
+  <div id="gsi-feature-guide" class="gsi-feature-guide" aria-hidden="true" hidden>
+    <div class="gsi-feature-guide-scrim" data-gsi-guide-close></div>
+    <section class="gsi-feature-guide-card" role="dialog" aria-modal="true" aria-labelledby="gsi-feature-guide-title">
+      <header><h2 id="gsi-feature-guide-title">길로아 기능 자세히 보기</h2><button type="button" data-gsi-guide-close data-i18n-extra-aria="close" aria-label="닫기">&times;</button></header>
+      <img id="gsi-feature-guide-image" data-src="./giloa many function.png" width="1024" height="1536" alt="길로아 주요 기능 안내">
+      <div id="gsi-feature-guide-localized" class="gsi-feature-guide-localized" hidden>
+        <p class="gsi-feature-guide-lead" data-i18n-extra="guideIntro"></p>
+        <ol>
+          <li><h3 data-i18n-extra="guideLanguageTitle"></h3><p data-i18n-extra="guideLanguageCopy"></p></li>
+          <li><h3 data-i18n-extra="guidePlacesTitle"></h3><p data-i18n-extra="guidePlacesCopy"></p></li>
+          <li><h3 data-i18n-extra="guideCardsTitle"></h3><p data-i18n-extra="guideCardsCopy"></p></li>
+          <li><h3 data-i18n-extra="guideFeaturesTitle"></h3><p data-i18n-extra="guideFeaturesCopy"></p><ul class="gsi-guide-features"><li data-i18n-extra="guidePlacesFeature"></li><li data-i18n-extra="guideTrailsFeature"></li><li data-i18n-extra="guideBadgesFeature"></li><li data-i18n-extra="guideMissionsFeature"></li></ul></li>
+          <li><h3 data-i18n-extra="guideStartTitle"></h3><p data-i18n-extra="guideStartCopy"></p></li>
+          <li><h3 data-i18n-extra="guideStoryTitle"></h3><p data-i18n-extra="guideStoryCopy"></p></li>
+        </ol>
+      </div>
+    </section>
+  </div>
+
+  <div id="gsi-story" class="gsi-story" hidden>
+    <button id="gsi-story-close" class="gsi-story-close" type="button" aria-label="Close">&times;</button>
+    <div class="gsi-story-stage">
+      <div class="gsi-art-wrap"><img id="gsi-art" class="gsi-art" alt=""><div class="gsi-art-fallback" aria-hidden="true">✦</div></div>
+      <div id="gsi-copy" class="gsi-copy" aria-live="polite"></div>
+    </div>
+    <button id="gsi-next" class="gsi-story-next" type="button"><span id="gsi-next-copy"></span><span aria-hidden="true">›</span></button>
+    <div id="gsi-progress" class="gsi-progress" aria-label="1 / 6"><i id="gsi-progress-bar"></i></div>
+    <div id="gsi-progress-count" class="gsi-progress-count" aria-hidden="true">1 / 6</div>
+  </div>
+</section>
+
+
+<div id="giloa-first-tutorial" class="gft" aria-hidden="true">
+  <div class="gft-map-softener" aria-hidden="true"></div>
+  <div class="gft-blackout" aria-hidden="true"></div>
+  <div class="gft-eyelids" aria-hidden="true"><i></i><i></i></div>
+  <div class="gft-dim" aria-hidden="true"></div>
+  <div id="gft-spotlight" class="gft-spotlight" aria-hidden="true"></div>
+  <button id="gft-skip" class="gft-skip" type="button">건너뛰기</button>
+  <section id="gft-guide" class="gft-guide" role="dialog" aria-modal="false" aria-labelledby="gft-copy">
+    <div class="gft-character-wrap" aria-hidden="true">
+      <div class="gft-character-placeholder">GILO</div>
+      <img id="gft-character" class="gft-character" src="" alt="">
+    </div>
+    <div class="gft-bubble">
+      <p id="gft-copy" class="gft-copy" aria-live="polite"></p>
+      <div id="gft-error-detail" class="gft-error-detail" role="status" hidden></div>
+      <div class="gft-actions"><button id="gft-secondary" class="gft-secondary" type="button" hidden></button><button id="gft-next" class="gft-next" type="button">다음</button></div>
+    </div>
+  </section>
+  <div id="gft-skip-confirm" class="gft-confirm" role="alertdialog" aria-modal="true" aria-labelledby="gft-confirm-title" hidden>
+    <div class="gft-confirm-card">
+      <h2 id="gft-confirm-title"></h2>
+      <p id="gft-confirm-copy"></p>
+      <div><button id="gft-continue" type="button"></button><button id="gft-exit" type="button"></button></div>
+    </div>
+  </div>
+</div>
+

@@ -1,0 +1,155 @@
+/* Lightweight TourAPI character loading indicator */
+#gilo-tour-loading {
+    --gilo-base-x: 50vw;
+    --gilo-base-y: 43vh;
+    --gilo-x1: -10vw;
+    --gilo-y1: -3vh;
+    --gilo-x2: 10vw;
+    --gilo-y2: -6vh;
+    --gilo-x3: 2vw;
+    --gilo-y3: 5vh;
+    position: fixed;
+    inset: 0;
+    z-index: 940;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 240ms ease, visibility 240ms ease;
+    contain: layout style;
+}
+#gilo-tour-loading.visible { opacity: 1; visibility: visible; }
+#gilo-tour-loading.completing { opacity: 0; }
+.gilo-loading-runner {
+    position: absolute;
+    left: var(--gilo-base-x);
+    top: var(--gilo-base-y);
+    width: 72px;
+    height: 72px;
+    transform: translate(-50%, -50%);
+    animation: giloScoutPath 1.45s cubic-bezier(.45,.05,.55,.95) infinite;
+    will-change: transform;
+}
+.gilo-loading-halo {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(79,195,247,.16) 0 38%, rgba(26,32,53,.11) 60%, transparent 73%);
+    filter: drop-shadow(0 5px 10px rgba(10,16,32,.28));
+}
+.gilo-loading-character {
+    position: relative;
+    z-index: 2;
+    width: 54px;
+    height: 54px;
+    object-fit: contain;
+    animation: giloScoutBounce .56s ease-in-out infinite alternate;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+.gilo-loading-halo.image-missing .gilo-loading-character { display: none; }
+.gilo-loading-halo.image-missing::before {
+    content: "✦";
+    position: relative;
+    z-index: 2;
+    color: #4fc3f7;
+    font-size: 28px;
+    text-shadow: 0 0 13px rgba(79,195,247,.9);
+}
+.gilo-loading-compass {
+    position: absolute;
+    z-index: 3;
+    right: 5px;
+    bottom: 6px;
+    width: 18px;
+    height: 18px;
+    box-sizing: border-box;
+    border: 2px solid #4fc3f7;
+    border-radius: 50%;
+    background: #1a2035;
+    box-shadow: 0 0 8px rgba(79,195,247,.72);
+}
+.gilo-loading-compass::before,
+.gilo-loading-compass::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 2px;
+    height: 12px;
+    border-radius: 99px;
+    background: linear-gradient(#fff 0 50%, #4fc3f7 50% 100%);
+    transform: translate(-50%, -50%) rotate(28deg);
+}
+.gilo-loading-compass::after { transform: translate(-50%, -50%) rotate(118deg); opacity: .55; }
+.gilo-loading-particle {
+    position: absolute;
+    z-index: 1;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #4fc3f7;
+    box-shadow: 0 0 7px rgba(79,195,247,.95);
+    animation: giloParticleGather 1.05s ease-in infinite;
+}
+.gilo-loading-particle.p1 { left: -2px; top: 13px; animation-delay: -.1s; }
+.gilo-loading-particle.p2 { left: 10px; bottom: 0; animation-delay: -.55s; }
+.gilo-loading-particle.p3 { left: 23px; top: -3px; animation-delay: -.8s; }
+.gilo-loading-particle.p4 { right: 1px; top: 9px; animation-delay: -.3s; }
+.gilo-loading-particle.p5 { right: -4px; bottom: 18px; animation-delay: -.72s; }
+.gilo-loading-particle.p6 { left: 3px; top: 36px; animation-delay: -.95s; }
+.gilo-loading-message {
+    position: absolute;
+    left: 50%;
+    top: calc(var(--gilo-base-y) + 58px);
+    width: min(260px, calc(100vw - 40px));
+    transform: translateX(-50%);
+    padding: 7px 11px;
+    box-sizing: border-box;
+    border: 1px solid rgba(79,195,247,.24);
+    border-radius: 999px;
+    background: rgba(26,32,53,.78);
+    color: rgba(255,255,255,.88);
+    box-shadow: 0 6px 18px rgba(0,0,0,.18);
+    backdrop-filter: blur(8px);
+    font-size: 10px;
+    font-weight: 750;
+    line-height: 1.3;
+    text-align: center;
+    white-space: normal;
+}
+#gilo-tour-loading.completing .gilo-loading-compass { animation: giloCompassComplete 260ms ease-out both; }
+@keyframes giloScoutPath {
+    0%, 100% { transform: translate(-50%, -50%) translate(var(--gilo-x1), var(--gilo-y1)); }
+    34% { transform: translate(-50%, -50%) translate(var(--gilo-x2), var(--gilo-y2)); }
+    68% { transform: translate(-50%, -50%) translate(var(--gilo-x3), var(--gilo-y3)); }
+}
+@keyframes giloScoutBounce {
+    from { transform: translateY(2px) rotate(-2deg); }
+    to { transform: translateY(-5px) rotate(2deg); }
+}
+@keyframes giloParticleGather {
+    0% { transform: translate(0,0) scale(.55); opacity: 0; }
+    25% { opacity: 1; }
+    100% { transform: translate(48px,43px) scale(.12); opacity: 0; }
+}
+@keyframes giloCompassComplete {
+    0% { transform: scale(1); box-shadow: 0 0 8px rgba(79,195,247,.72); }
+    55% { transform: scale(1.55) rotate(20deg); background: #fff; box-shadow: 0 0 22px 8px rgba(79,195,247,.95); }
+    100% { transform: scale(1); box-shadow: 0 0 10px rgba(79,195,247,.75); }
+}
+@media (max-width: 420px) {
+    .gilo-loading-character { width: 48px; height: 48px; }
+    .gilo-loading-runner, .gilo-loading-halo { width: 66px; height: 66px; }
+    .gilo-loading-message { top: calc(var(--gilo-base-y) + 53px); font-size: 9px; width: min(235px, calc(100vw - 40px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .gilo-loading-runner { animation: none; }
+    .gilo-loading-character { animation: none; }
+    .gilo-loading-particle { display: none; }
+    #gilo-tour-loading.completing .gilo-loading-compass { animation-duration: 1ms; }
+}
+

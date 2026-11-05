@@ -1,0 +1,117 @@
+<script id="giloa-place-module-recovery">
+(function () {
+    var pending = {}, retried = {};
+    var modules = { shops:['./local-shops.js?v=11',function(){return !!window.GiloaPlaceSearch;}], medical:['./medical-layers.js?v=map-order-3',function(){return !!window.GiloaMedicalLayers;}], community:['./community-places.js?v=1',function(){return !!window.GiloaCommunityPlaces;}] };
+    function recover(key, manual) {
+        var spec = modules[key];
+        if (spec[1]()) { if (manual && key === 'shops') window.GiloaPlaceSearch.open(); return; }
+        if (pending[key] || (!manual && retried[key])) return;
+        retried[key] = true; pending[key] = true;
+        var script = document.createElement('script');
+        script.src = spec[0] + '&recovery=1';
+        function done() { pending[key] = false; script.remove(); }
+        script.onload = function() { done(); if (manual && window.GiloaPlaceSearch) window.GiloaPlaceSearch.open(); };
+        script.onerror = function() { done(); if (manual) { var button=document.getElementById('place-search-button'); if(button) button.title = document.documentElement.lang === 'ko' ? '연결 후 검색 버튼을 다시 눌러 주세요.' : 'Reconnect and press search again.'; } };
+        document.head.appendChild(script);
+    }
+    window.giloaRetryPlaceModule = function() { recover('shops',true); };
+    document.addEventListener('DOMContentLoaded',function(){ recover('shops',false); recover('medical',false); recover('community',false); });
+    window.addEventListener('online',function(){ retried = {}; recover('shops',false); recover('medical',false); recover('community',false); });
+}());
+</script>
+<!-- defer: 브라우저가 순서를 지키면서도 동시에 병렬로 내려받게 하여,
+     기존의 '하나씩 순차 다운로드+실행' 방식보다 초기 로딩(버퍼링)을 크게 줄인다. -->
+<script src="./vendor/leaflet.js?v=app-local-9" defer></script>
+<script src="./config.js?v=app-local-11" defer></script>
+<script src="./map-bootstrap.js?v=app-local-4" defer></script>
+<script src="./vendor/leaflet.markercluster.js?v=app-local-9" defer></script>
+<script src="./vendor/exifr.full.umd.js?v=7.1.3" defer></script>
+<script src="./region-stay-core.js?v=app-local-1" defer></script>
+<script src="./data/libraries_seoul.bundle.js?v=20261021" defer></script>
+<script src="./privacy-policy.js?v=20261105-recording" defer></script>
+<script src="./gpx-access.js?v=1" defer></script>
+<script src="./script.js?v=app-local-233" defer></script>
+<script src="./parking-ocr.js?v=2" defer></script>
+<script src="./parking.js?v=6" defer></script>
+<script src="./photo-items.js?v=2" defer></script>
+<link rel="stylesheet" href="./local-shops.css?v=8">
+<script src="./local-shops.js?v=11" defer></script>
+<script src="./trip-share.js?v=app-local-1" defer></script>
+<script src="./supabase-sync.js?v=app-local-3" defer></script>
+<script src="./medical-layers.js?v=map-order-3" defer></script>
+<script src="./community-places.js?v=1" defer></script>
+<script src="./time-trace.js?v=app-local-1" defer></script>
+<script src="./hidden-missions.obfuscated.js?v=app-local-2" defer></script>
+<script src="./tutorial.js?v=app-local-134" defer></script>
+<audio id="adventure-music-audio" preload="none" playsinline src="./assets/audio/giloa-adventure.mp3"></audio>
+<script src="./startup-music.js?v=4" defer></script>
+<script>
+if (window.location.protocol !== "file:" && "serviceWorker" in navigator && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
+    window.addEventListener("load", function() {
+    navigator.serviceWorker.register("./sw.js?v=app-local-228", { updateViaCache: "none" })
+            .then(function(registration) { console.log("SW 등록 완료"); return registration.update(); })
+            .catch(function(e) { console.warn("SW 등록 실패", e); });
+    });
+    // Do not force-reload a running trip when a new worker takes control.
+    // The current page already has one consistent set of scripts; the updated
+    // worker is used naturally on the next launch/navigation.
+    navigator.serviceWorker.addEventListener("controllerchange", function() {
+        try { sessionStorage.setItem("giloa-sw-updated-v207", "1"); } catch (_) {}
+        window.dispatchEvent(new Event("giloa:service-worker-updated"));
+    });
+}
+</script>
+<script>
+(function () {
+  var button = document.getElementById("gilo-welcome-play");
+  var audio = document.getElementById("gilo-welcome-audio");
+  var status = document.getElementById("gilo-welcome-status");
+  if (!button || !audio) return;
+  var words = {
+    ko: ["🔊 길로의 인사 듣기", "■ 인사 정지", "Suno로 만든 한국어 환영 음성", "음성을 불러오지 못했어요. 다시 눌러 주세요."],
+    en: ["🔊 Hear Gilo's greeting", "■ Stop greeting", "Korean welcome audio created with Suno", "Audio could not play. Please try again."],
+    ja: ["🔊 ギロの挨拶を聞く", "■ 停止", "Sunoで制作した韓国語の歓迎音声", "再生できませんでした。もう一度お試しください。"],
+    zh: ["🔊 听听Gilo的问候", "■ 停止播放", "使用Suno制作的韩语欢迎语音", "无法播放，请重试。"],
+    es: ["🔊 Escuchar a Gilo", "■ Detener", "Bienvenida en coreano creada con Suno", "No se pudo reproducir. Inténtalo de nuevo."],
+    fr: ["🔊 Écouter Gilo", "■ Arrêter", "Accueil en coréen créé avec Suno", "Lecture impossible. Veuillez réessayer."]
+  };
+  var failed = false, pending = false, request = 0;
+  function copy() {
+    var lang = typeof currentLang === "string" ? currentLang : document.documentElement.lang || "ko";
+    return words[lang.slice(0, 2)] || words.en;
+  }
+  function render() {
+    var w = copy(), playing = !audio.paused;
+    button.textContent = w[playing ? 1 : 0];
+    button.setAttribute("aria-pressed", String(playing));
+    button.disabled = pending;
+    status.textContent = w[failed ? 3 : 2];
+  }
+  function stop() {
+    request++; pending = false;
+    audio.pause(); audio.currentTime = 0; render();
+  }
+  button.addEventListener("click", function () {
+    if (!audio.paused) { stop(); return; }
+    failed = false; pending = true;
+    var id = ++request; render();
+    audio.play().then(function () {
+      if (id !== request) return;
+      pending = false; render();
+    }).catch(function () {
+      if (id !== request) return;
+      pending = false; failed = true; render();
+    });
+  });
+  ["play", "pause", "ended"].forEach(function (event) { audio.addEventListener(event, render); });
+  audio.addEventListener("error", function () { pending = false; failed = true; render(); });
+  var start = document.getElementById("gsi-start");
+  if (start) start.addEventListener("click", stop);
+  window.addEventListener("pagehide", stop);
+  document.addEventListener("visibilitychange", function () { if (document.hidden) stop(); });
+  new MutationObserver(render).observe(document.getElementById("gsi-start-copy"), {childList:true, subtree:true, characterData:true});
+  render();
+})();
+</script>
+</body>
+</html>

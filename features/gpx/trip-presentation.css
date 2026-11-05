@@ -1,0 +1,22 @@
+/* Trip presentation hides only layers; stored journey data and tracking stay intact. */
+#map-wrap.giloa-trip-clean .leaflet-fog-pane,
+#map-wrap.giloa-trip-clean .leaflet-colorReveal-pane,
+#map-wrap.giloa-trip-clean .leaflet-dailyRoute-pane,
+#map-wrap.giloa-trip-clean .leaflet-memory-pane,
+#map-wrap.giloa-trip-clean .leaflet-specialPlace-pane,
+#map-wrap.giloa-trip-clean .leaflet-visitedPlace-pane { display:none !important; }
+#map-wrap.giloa-trip-clean .leaflet-tile-pane { opacity:1; filter:none; }
+.trip-history-toggle { position:absolute;right:10px;top:116px;z-index:1001;border:1px solid #b388ff;background:#20182eee;color:#f5eeff;border-radius:18px;padding:8px 12px;font-size:12px;box-shadow:0 2px 10px #0005; }
+.trip-share-panel { margin-top:16px;border-top:1px solid #b388ff55;padding-top:12px; }
+.trip-share-panel[hidden],.trip-history-toggle[hidden] { display:none !important; }
+.trip-share-panel h3 { font-size:15px;color:#d9c1ff;margin:5px 0; }
+.trip-hint,.trip-share-note,#trip-export-status { font-size:12px;line-height:1.55;color:#d2c8e2; }
+#trip-photo-list { max-height:320px;overflow:auto;margin:10px 0; }
+.trip-photo-row { padding:8px 0;border-bottom:1px solid #ffffff18; }
+.trip-photo-row label { display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer; }
+.trip-photo-row img { width:44px;height:44px;object-fit:cover;border-radius:6px; }
+.trip-photo-row input { width:18px;height:18px;accent-color:#b388ff;flex-shrink:0; }
+.trip-photo-row button { margin-top:6px;border:1px solid #b388ff88;background:#302340;color:#fff;border-radius:5px;padding:4px 8px; }
+.giloa-trip-photo span { display:grid;place-items:center;width:28px;height:28px;border:2px solid #fff;border-radius:50%;background:#7948b8;color:#fff;font-weight:bold;box-shadow:0 1px 5px #0008; }
+#trip-save-zip { background:#7545ad;color:#fff; }
+

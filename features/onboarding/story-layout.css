@@ -1,0 +1,20 @@
+/* Keep the long story comfortably inside the viewport so the surrounding
+ * scrim is an obvious, tappable way back to the live map. */
+.gsi.story-mode {
+    background: rgba(4,8,20,.58);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+}
+
+.gsi.story-mode .gsi-glow {
+    display: none;
+}
+.gsi.story-mode .gsi-story{width:80vw;height:80vh;max-width:760px;max-height:820px;margin:10vh auto;border:1px solid rgba(139,231,255,.28);border-radius:24px;background:linear-gradient(160deg,#202a47 0%,#10162a 72%,#080d1e 100%);box-shadow:0 24px 80px rgba(0,0,0,.58);overflow:hidden}
+.gsi.story-mode .gsi-story-close{top:12px;right:12px}
+@media(max-width:600px){.gsi.story-mode .gsi-story{width:80vw;height:80vh;border-radius:18px}.gsi.story-mode .gsi-story-stage{padding-left:12px;padding-right:12px}}
+
+/* The legacy guide markup can still be present in an already-installed APK.
+ * Its circular blue glow is decorative only and obscures Gilo on small screens.
+ * Keep the character and dialogue, but remove that obsolete effect. */
+.giloa-guide-glow{display:none!important}
+

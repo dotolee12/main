@@ -1,0 +1,141 @@
+<div id="sidebar">
+
+<!-- 헤더 -->
+<div class="sidebar-header">
+  <h2 id="sidebar-title">나의 기록들</h2>
+  <span onclick="toggleSidebar(false)" class="close-btn">&times;</span>
+</div>
+
+<!-- 지도 표시 레이어 토글 -->
+<div id="map-layer-wrap">
+  <div class="fog-toggle-row" id="map-layer-header" onclick="toggleMapLayerPanel()">
+    <span class="fog-toggle-label" id="map-layer-title">지도 표시</span>
+    <button id="map-layer-order-edit" class="map-layer-order-edit" type="button" onclick="event.stopPropagation(); toggleMapLayerOrderEdit();" aria-pressed="false">편집</button>
+    <span id="map-layer-caret" class="map-layer-caret">▾</span>
+  </div>
+  <div id="map-layer-panel" class="map-layer-panel">
+    <div class="map-layer-item" onclick="toggleMapLayer('tourism')">
+      <span class="map-layer-dot" style="--layer-color:#fb923c;"></span>
+      <span class="map-layer-copy"><span class="map-layer-name" id="map-layer-name-tourism">여행지</span><small class="map-layer-source" data-i18n-extra="sourceTourismCredit">출처: ⓒ한국관광공사</small></span>
+      <div id="layer-toggle-tourism" class="toggle-switch small"><div class="toggle-knob"></div></div>
+    </div>
+    <div class="map-layer-item" onclick="toggleMapLayer('library')">
+      <span class="map-layer-dot" style="--layer-color:#60a5fa;"></span>
+      <span class="map-layer-copy"><span class="map-layer-name" id="map-layer-name-library">도서관</span><small class="map-layer-source" data-i18n-extra="sourceSeoul">서울 열린데이터광장 · 카카오맵</small></span>
+      <div id="layer-toggle-library" class="toggle-switch small"><div class="toggle-knob"></div></div>
+    </div>
+    <div class="map-layer-item" onclick="toggleMapLayer('restaurant')">
+      <span class="map-layer-dot" style="--layer-color:#f472b6;"></span>
+      <span class="map-layer-copy"><span class="map-layer-name" id="map-layer-name-restaurant">음식점</span><small class="map-layer-source" data-i18n-extra="sourceTourismCredit">출처: ⓒ한국관광공사</small></span>
+      <div id="layer-toggle-restaurant" class="toggle-switch small"><div class="toggle-knob"></div></div>
+    </div>
+    <div class="map-layer-item" onclick="toggleMapLayer('shopping')">
+      <span class="map-layer-dot" style="--layer-color:#facc15;"></span>
+      <span class="map-layer-copy"><span class="map-layer-name" id="map-layer-name-shopping">쇼핑·동네가게</span><small class="map-layer-source" data-i18n-extra="sourceTourismCredit">출처: ⓒ한국관광공사</small></span>
+      <div id="layer-toggle-shopping" class="toggle-switch small"><div class="toggle-knob"></div></div>
+    </div>
+    <div class="map-layer-item" onclick="toggleMapLayer('lodging')">
+      <span class="map-layer-dot" style="--layer-color:#2dd4bf;"></span>
+      <span class="map-layer-copy"><span class="map-layer-name" id="map-layer-name-lodging">숙박</span><small class="map-layer-source" data-i18n-extra="sourceTourismCredit">출처: ⓒ한국관광공사</small></span>
+      <div id="layer-toggle-lodging" class="toggle-switch small"><div class="toggle-knob"></div></div>
+    </div>
+    <div class="map-layer-item" onclick="toggleMapLayer('restroom')">
+      <span class="map-layer-dot" style="--layer-color:#a3e635;"></span>
+      <span class="map-layer-copy"><span class="map-layer-name" id="map-layer-name-restroom">화장실</span><small class="map-layer-source" data-i18n-extra="sourceRestrooms">서울 열린데이터광장 · 카카오맵</small></span>
+      <div id="layer-toggle-restroom" class="toggle-switch small"><div class="toggle-knob"></div></div>
+    </div>
+    <div class="map-layer-item" onclick="toggleMapLayer('parking')">
+      <span class="map-layer-dot" style="--layer-color:#a78bfa;"></span>
+      <span class="map-layer-copy"><span class="map-layer-name" id="map-layer-name-parking">주차장</span><small class="map-layer-source" data-i18n-extra="sourceParking">공공데이터포털 · 전국주차장정보표준데이터</small></span>
+      <div id="layer-toggle-parking" class="toggle-switch small"><div class="toggle-knob"></div></div>
+    </div>
+    <div class="map-layer-item" onclick="toggleMapLayer('fishing')">
+      <span class="map-layer-dot" style="--layer-color:#38bdf8;"></span>
+      <span class="map-layer-copy"><span class="map-layer-name" id="map-layer-name-fishing">낚시터</span><small class="map-layer-source" data-i18n-extra="sourceFishing">행정안전부 · 전국 낚시터정보</small></span>
+      <div id="layer-toggle-fishing" class="toggle-switch small"><div class="toggle-knob"></div></div>
+    </div>
+    <div class="map-layer-item" onclick="toggleMapLayer('durunubi')">
+      <span class="map-layer-dot" style="--layer-color:#fbbf24;"></span>
+      <span class="map-layer-copy"><span class="map-layer-name" id="map-layer-name-durunubi">공식 탐방로</span><small class="map-layer-source" id="map-layer-source-durunubi">한국관광공사 · 한국등산·트레킹지원센터</small></span>
+      <div id="layer-toggle-durunubi" class="toggle-switch small"><div class="toggle-knob"></div></div>
+    </div>
+    <div class="map-layer-item unavailable" onclick="toggleMapLayer('community')">
+      <span class="map-layer-dot" style="--layer-color:#94a3b8;"></span>
+      <span class="map-layer-copy"><span class="map-layer-name"><span id="map-layer-name-community">주민회관</span> <em id="map-layer-coming-soon">준비중</em></span><small class="map-layer-source" data-i18n-extra="dataPreparing">데이터 준비중</small></span>
+      <div id="layer-toggle-community" class="toggle-switch small"><div class="toggle-knob"></div></div>
+    </div>
+  </div>
+  <div class="sidebar-divider"></div>
+</div>
+
+<!-- 내가 남긴 기록: 사진 / 경로 -->
+<div class="sidebar-tabs" id="top-tabs">
+  <div class="sidebar-tab active" id="tab-photo" onclick="switchAllTab('photo')"><span class="sidebar-tab-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8" cy="9" r="1.8"/><path d="M3 17l5.2-5.2a1.8 1.8 0 0 1 2.6 0l2.1 2.1 4.1-5a1.8 1.8 0 0 1 2.8 0L21 10.4"/></svg></span><span class="sidebar-tab-text">사진</span></div>
+  <div class="sidebar-tab" id="tab-gpx" onclick="switchAllTab('gpx')"><span id="gpx-tab-icon" class="sidebar-tab-icon text-icon">GPX</span><span class="sidebar-tab-text">경로</span></div>
+</div>
+
+<!-- 가운데 콘텐츠 영역 (스크롤) -->
+<div id="sidebar-content">
+
+  <div id="panel-photo" class="tab-panel">
+    <div id="photo-list-container"><p class="empty-message">아직 사진이 없습니다.</p></div>
+  </div>
+
+  <div id="panel-gpx" class="tab-panel" style="display:none;">
+    <form id="gpx-access-form" class="gpx-access-card">
+      <h3 id="gpx-access-title">GPX 이용 권한</h3>
+      <p id="gpx-access-copy">관리자가 발급한 아이디로 이용할 수 있습니다.</p>
+      <label id="gpx-access-id" for="gpx-access-input">발급 아이디</label>
+      <input id="gpx-access-input" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="32" required>
+      <button id="gpx-access-enter" type="submit">이용 시작</button>
+      <p id="gpx-access-status" role="status" aria-live="polite"></p>
+      <p id="gpx-access-note"></p>
+    </form>
+    <button id="gpx-access-lock" type="button" hidden>GPX 잠그기</button>
+    <div id="gpx-access-content" hidden inert>
+
+    <div id="gpx-export-label" class="gpx-section-label">발걸음 추출</div>
+    <div class="gpx-dial-wrap">
+      <div class="gpx-dial-row"><span id="gpx-time-label" class="gpx-dial-icon">시간</span><span id="gpx-recent-label" class="gpx-dial-title">최근</span>
+        <div class="gpx-dial-controls"><button class="dial-btn" onclick="adjustHourDial(-1)">-</button><span class="dial-value" id="dial-hour-label">8시간</span><button class="dial-btn" onclick="adjustHourDial(1)">+</button></div>
+      </div>
+      <div class="gpx-dial-range-info" id="gpx-range-info">오늘 기준 최근 8시간 발걸음</div>
+    </div>
+    <div class="gpx-name-row"><input type="text" id="gpx-export-name" class="gpx-name-input" placeholder="발걸음 이름 (예: 한강 산책)"></div>
+    <button id="gpx-save-btn" class="gpx-action-btn export" onclick="exportGpx()">이 발걸음 저장하기</button>
+    <div class="sidebar-divider" style="margin-top:18px;"></div>
+    <div id="gpx-saved-label" class="gpx-section-label">저장된 발걸음 열기</div>
+    <div id="gpx-saved-list"><p class="empty-message">저장된 발걸음이 없습니다.</p></div>
+    <button id="gpx-import-btn" class="gpx-action-btn import" onclick="chooseGpxFile()" style="margin-top:10px;">파일에서 불러오기</button>
+    <input type="file" id="gpx-file-input" accept=".gpx" style="display:none" onchange="importGpxFile(event)">
+    <div id="gpx-import-status" class="gpx-status"></div>
+    </div>
+  </div>
+
+  <div id="panel-visit" class="tab-panel" style="display:none;">
+    <div id="visit-list"><p class="empty-message">아직 방문한 장소가 없습니다.</p></div>
+  </div>
+
+  <div id="panel-item" class="tab-panel" style="display:none;">
+    <div id="item-list"><p class="empty-message">아직 획득한 아이템이 없습니다.</p></div>
+  </div>
+
+</div>
+
+<!-- 하단 탭: 방문 / 아이템 (고정) -->
+<div id="bottom-tabs">
+  <div class="sidebar-tab" id="tab-visit" onclick="switchAllTab('visit')"><span class="sidebar-tab-icon text-icon">V</span><span class="sidebar-tab-text">방문</span></div>
+  <div class="sidebar-tab" id="tab-item" onclick="switchAllTab('item')"><span class="sidebar-tab-icon text-icon">I</span><span class="sidebar-tab-text">아이템</span></div>
+</div>
+
+<nav id="sidebar-info-links" aria-label="Giloa information">
+  <a id="info-link-sources" data-i18n-extra="sources" href="#giloa-sources" onclick="return openGiloaSources(event)">출처</a>
+  <span aria-hidden="true">/</span>
+  <a id="info-link-account" href="#giloa-info" onclick="return openGiloaInfoPage('account', event)">계정 보호</a>
+  <span aria-hidden="true">/</span>
+  <a id="info-link-privacy" href="#giloa-info" onclick="return openGiloaInfoPage('privacy', event)">프라이버시</a>
+  <span aria-hidden="true">/</span>
+  <a id="info-link-about" href="#giloa-story-hub" onclick="return openGiloaInfoPage('about', event)">길로아 이야기</a>
+</nav>
+</div>
+

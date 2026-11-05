@@ -5,7 +5,13 @@
   "description": "Key-gated protected distribution builder for Giloa",
   "scripts": {
     "protect": "node tools/protected-build.mjs",
-    "protect:check": "node tools/protected-build.mjs --check"
+    "protect:check": "node tools/protected-build.mjs --check",
+    "features:build": "node tools/build-feature-sources.mjs --write",
+    "features:check": "node tools/build-feature-sources.mjs --check",
+    "features:find": "node tools/build-feature-sources.mjs --find",
+    "test:features": "node --test tests/feature-layout.test.cjs",
+    "preprotect": "npm run features:check",
+    "preprotect:check": "npm run features:check"
   },
   "devDependencies": {
     "clean-css": "5.3.3",

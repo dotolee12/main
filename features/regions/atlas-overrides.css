@@ -1,0 +1,21 @@
+/* Region badge atlas: live detection status line under the progress row. */
+.region-badge-atlas-status{grid-column:1/-1;margin-top:2px;color:rgba(255,255,255,.5);font-size:10px;line-height:1.5;letter-spacing:.01em}
+@media(max-width:560px){.region-badge-atlas-status{grid-column:1}}
+/* Region badge atlas: visible diagnostic button and on-screen report. */
+.region-badge-atlas-head-actions{display:flex;align-items:center;gap:8px}
+#region-badge-atlas-diagnose{height:32px;padding:0 12px;border:1px solid rgba(184,115,51,.5);border-radius:999px;background:rgba(184,115,51,.14);color:#e5b77d;font-size:11px;font-weight:800;white-space:nowrap;cursor:pointer}
+#region-badge-atlas-diagnose:active{background:rgba(184,115,51,.3)}
+#region-badge-atlas-build{color:#c98a4c;font-size:10px;font-weight:900;letter-spacing:.04em}
+.region-badge-atlas-diagnostic[hidden]{display:none}
+.region-badge-atlas-diagnostic{margin:10px 0 0;padding:12px 14px;max-height:42vh;overflow:auto;border:1px solid rgba(184,115,51,.34);border-radius:14px;background:rgba(4,8,16,.72);color:rgba(255,255,255,.82);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:1.65;white-space:pre-wrap;word-break:break-all;-webkit-user-select:text;user-select:text}
+.region-badge-atlas-diagnostic-wrap[hidden]{display:none}
+.region-badge-atlas-diagnostic-wrap{margin:0 0 14px}
+.region-badge-atlas-diagnostic-actions{display:flex;gap:8px;margin-top:8px}
+.region-badge-atlas-diagnostic-actions button{flex:1;height:34px;padding:0 10px;border:1px solid rgba(184,115,51,.5);border-radius:10px;background:rgba(184,115,51,.14);color:#e5b77d;font-size:11px;font-weight:800;cursor:pointer}
+.region-badge-atlas-diagnostic-actions button:disabled{opacity:.55}
+
+/* Regional edge frame: 3px viewport border tinted per municipality. */
+#region-edge-frame[hidden]{display:none}
+#region-edge-frame{position:fixed;top:0;right:0;bottom:0;left:0;border:3px solid transparent;pointer-events:none;z-index:9998;transition:border-color .45s ease,box-shadow .45s ease}
+@supports(padding:env(safe-area-inset-top)){#region-edge-frame{top:env(safe-area-inset-top);right:env(safe-area-inset-right);bottom:env(safe-area-inset-bottom);left:env(safe-area-inset-left)}}
+

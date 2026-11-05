@@ -1,0 +1,72 @@
+<div id="photo-menu" class="photo-menu" role="dialog" data-i18n-extra-aria="addPhoto" aria-label="사진 추가">
+    <div class="photo-menu-title" data-i18n-extra="addPhoto">사진 추가</div>
+
+    <button type="button" class="photo-menu-item" onclick="triggerCamera()">
+        <span class="photo-menu-icon" aria-hidden="true">●</span>
+        <span id="photo-camera-label" class="photo-menu-label">카메라로 촬영</span>
+    </button>
+
+    <button type="button" class="photo-menu-item" onclick="triggerGallery()">
+        <span class="photo-menu-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="16" rx="2.5"/>
+                <circle cx="8" cy="9" r="1.8"/>
+                <path d="M3 17l5.2-5.2a1.8 1.8 0 0 1 2.6 0l2.1 2.1 4.1-5a1.8 1.8 0 0 1 2.8 0L21 10.4"/>
+            </svg>
+        </span>
+        <span id="photo-gallery-label" class="photo-menu-label">내 기기 사진에서 선택</span>
+    </button>
+
+    <button type="button" class="photo-menu-item" onclick="closePhotoMenu();TimeTraceEngine.openLibrary()">
+        <span class="photo-menu-icon" aria-hidden="true">◫</span>
+        <span id="time-trace-menu-label" class="photo-menu-label">시간의 흔적</span>
+    </button>
+</div>
+
+<div id="photo-menu-overlay" onclick="closePhotoMenu()"></div>
+<input type="file" id="camera-input" accept="image/*" capture="environment" hidden onchange="handlePhotos(event)">
+<input type="file" id="gallery-input" accept="image/*" multiple hidden onchange="handlePhotos(event)">
+
+<div id="photo-location-dialog" class="photo-location-dialog" aria-hidden="true">
+  <section class="photo-location-card" role="dialog" aria-modal="true" aria-labelledby="photo-location-title" aria-describedby="photo-location-description">
+    <h2 id="photo-location-title">이 사진의 촬영 위치를 찾지 못했어요.</h2>
+    <p id="photo-location-description" class="photo-location-decision">촬영 위치를 직접 지정하거나 위치 없이 보관할 수 있어요.</p>
+    <p id="photo-location-pick-hint" class="photo-location-pick-hint" hidden>지도에서 사진을 촬영한 위치를 눌러 주세요.</p>
+    <div class="photo-location-actions photo-location-decision">
+      <button id="photo-location-map" type="button" class="photo-location-button primary" onclick="beginPhotoLocationMapPick()">지도에서 위치 선택</button>
+      <button id="photo-location-current" type="button" class="photo-location-button secondary" onclick="useCurrentPhotoLocation()">현재 위치 사용</button>
+      <button id="photo-location-keep" type="button" class="photo-location-button secondary" onclick="keepPhotoWithoutLocation()">위치 없이 보관</button>
+      <button id="photo-location-cancel" type="button" class="photo-location-button text" onclick="cancelPhotoLocationChoice()">취소</button>
+    </div>
+    <button id="photo-location-pick-cancel" type="button" class="photo-location-button secondary photo-location-pick-cancel" onclick="stopPhotoLocationMapPick()" hidden>위치 선택 취소</button>
+  </section>
+</div>
+
+<section id="time-trace-panel" class="time-trace-panel" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="time-trace-title">
+  <div class="time-trace-scrim" data-time-trace-close></div>
+  <div class="time-trace-card">
+    <button type="button" class="time-trace-close" data-time-trace-close aria-label="닫기">&times;</button>
+    <header><span class="time-trace-kicker">TIME TRACE</span><h2 id="time-trace-title">시간의 흔적</h2><p id="time-trace-subtitle"></p></header>
+    <div id="time-trace-list" class="time-trace-list"></div>
+  </div>
+</section>
+
+<section id="time-trace-camera" class="time-trace-camera" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="time-trace-camera-title">
+  <div class="time-trace-camera-shell">
+    <button type="button" class="time-trace-close camera-close" data-time-trace-camera-close aria-label="닫기">&times;</button>
+    <h2 id="time-trace-camera-title">윤곽을 맞춰보세요</h2>
+    <div class="time-trace-preview"><video id="time-trace-video" autoplay playsinline muted></video><img id="time-trace-overlay" alt=""><div id="time-trace-camera-fallback"></div></div>
+    <label class="time-trace-opacity"><span id="time-trace-opacity-label">과거 사진 투명도</span><input id="time-trace-opacity" type="range" min="15" max="70" value="35"></label>
+    <p id="time-trace-heading-hint" class="time-trace-heading-hint"></p>
+    <div class="time-trace-actions"><button id="time-trace-capture" type="button" class="primary">다시 촬영</button><button id="time-trace-external-camera" type="button">휴대전화 카메라 사용</button></div>
+  </div>
+</section>
+
+<section id="time-trace-result" class="time-trace-result" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="time-trace-result-title">
+  <div class="time-trace-result-card"><button type="button" class="time-trace-close" data-time-trace-result-close aria-label="닫기">&times;</button><h2 id="time-trace-result-title"></h2><div id="time-trace-score" class="time-trace-score"></div><p id="time-trace-score-copy"></p><div class="time-trace-actions"><button id="time-trace-retry" type="button">다시 찍기</button><button id="time-trace-accept" type="button" class="primary">이 사진으로 기록하기</button></div></div>
+</section>
+
+<section id="time-trace-compare" class="time-trace-compare" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="time-trace-compare-title">
+  <div class="time-trace-compare-card"><button type="button" class="time-trace-close" data-time-trace-compare-close aria-label="닫기">&times;</button><h2 id="time-trace-compare-title">시간의 흔적</h2><div class="time-trace-compare-frame"><img id="time-trace-before" alt=""><div id="time-trace-after-wrap"><img id="time-trace-after" alt=""></div><input id="time-trace-compare-slider" type="range" min="0" max="100" value="50" aria-label="Before After"></div><div class="time-trace-compare-labels"><span id="time-trace-before-label">일주일 전</span><span id="time-trace-after-label">지금</span></div><div id="time-trace-timeline" class="time-trace-timeline"></div></div>
+</section>
+
