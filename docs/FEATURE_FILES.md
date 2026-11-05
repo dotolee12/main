@@ -86,6 +86,8 @@
 
 | 수정할 파일 | 역할 |
 |---|---|
+| [item-recognition.js](../item-recognition.js) | 사진 물건 자동 판별·확신도 및 애매한 결과 처리·분석 취소 |
+| [item-recognition-worker.js](../item-recognition-worker.js) | 기기 내 COCO-SSD CPU 추론·사진 외부 전송 없음·요청 시 모델 다운로드 |
 | [item-icons.js](../item-icons.js) | 기본 그림 아이콘·이름 기반 종류 제안 — 사진 자동 인식 아님 |
 | [parking.js](../parking.js) | 개인 주차 위치·층·구역·파란 위치 점 탭 |
 | [parking.css](../parking.css) | 개인 주차 화면 디자인 |

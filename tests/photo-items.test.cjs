@@ -74,3 +74,22 @@ test('manual choice survives name changes and unrecognized objects have a visibl
  for(const lang of ['ko','en','ja','zh']){a.w.document.documentElement.lang=lang;await tick();assert.equal(a.el('[data-symbol]').value,'flower');assert(a.el('[data-style] option').textContent);}
  const safe=a.w.GiloaItemIcons.svg('<script>');assert(!safe.includes('<script'));assert(!/href=|<image|<foreignObject|onload=/.test(safe));assert.equal(a.w.GiloaItemIcons.suggest('phone'),'phone');assert.equal(a.w.GiloaItemIcons.suggest('携帯電話'),'phone');assert.equal(a.w.GiloaItemIcons.suggest('手机'),'phone');a.w.close();
 });
+test('a successful photo recognition selects the icon and fills a blank name, without saving before review',async()=>{
+ const a=start();await tick();let answer,cancelled=0;
+ a.w.GiloaItemRecognition={recognize:()=>({promise:new Promise(r=>answer=r),cancel:()=>cancelled++})};
+ a.open();a.el('[data-style]').value='symbol';a.el('[data-style]').dispatchEvent(new a.w.Event('change'));a.select();assert(a.el('[data-save]').disabled);
+ answer({type:'phone',score:.92});await tick();assert.equal(a.el('[data-symbol]').value,'phone');assert.equal(a.el('[data-name]').value,'휴대폰');assert.equal(a.shared.size,0);assert(!a.el('[data-save]').disabled);
+ a.save();await tick();await tick();assert.equal(Array.from(a.shared.values())[0].symbolId,'phone');a.w.close();
+});
+test('late recognition cannot replace a manual icon or a newer photo; closing cancels recognition',async()=>{
+ const a=start();await tick();const pending=[];let cancelled=0;
+ a.w.GiloaItemRecognition={recognize:()=>{let resolve;const promise=new Promise(r=>resolve=r);pending.push(resolve);return {promise,cancel:()=>cancelled++};}};
+ a.open();a.el('[data-style]').value='symbol';a.el('[data-style]').dispatchEvent(new a.w.Event('change'));a.select();a.name('my item');
+ a.el('[data-symbol]').value='flower';a.el('[data-symbol]').dispatchEvent(new a.w.Event('change'));pending[0]({type:'phone'});await tick();assert.equal(a.el('[data-symbol]').value,'flower');assert(cancelled>0);
+ a.select();a.select();pending[1]({type:'phone'});await tick();assert.notEqual(a.el('[data-symbol]').value,'phone');a.el('[data-cancel]').click();pending[2]({type:'book'});await tick();assert.equal(a.el('dialog').open,false);assert.equal(a.shared.size,0);a.w.close();
+});
+test('uncertain recognition and load errors preserve typed names and allow manual saving',async()=>{
+ const a=start();await tick();a.w.GiloaItemRecognition={recognize:()=>({promise:Promise.resolve(null),cancel(){}})};
+ a.open();a.el('[data-style]').value='symbol';a.el('[data-style]').dispatchEvent(new a.w.Event('change'));a.select();a.name('a keepsake');await tick();assert.match(a.el('[data-recognition-status]').textContent,/알아보지/);assert.equal(a.el('[data-name]').value,'a keepsake');assert(!a.el('[data-save]').disabled);
+ a.w.GiloaItemRecognition={recognize:()=>({promise:Promise.reject(new Error('offline')),cancel(){}})};a.el('[data-recognize]').click();await tick();assert.match(a.el('[data-recognition-status]').textContent,/인터넷/);assert(!a.el('[data-save]').disabled);a.w.close();
+});

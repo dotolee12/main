@@ -14,10 +14,18 @@
         zh:{style:'物品外观',symbol:'简洁图标',photo:'保留照片',kind:'图标类型',edit:'更换图标',iconHint:'根据名称推荐类型，并非自动识别照片。您可以自行选择图标。',privacy:'不会上传照片。仅在此设备保存所选图标或裁剪后的照片及名称。',editor:'创建物品',required:'请选择照片并输入名称。',iconUnavailable:'图标加载失败，请刷新或选择照片模式。'}
     };
     Object.keys(EXTRA).forEach(function(lang) { Object.assign(TEXT[lang], EXTRA[lang]); });
+    var RECOGNITION_TEXT = {
+        ko:{iconHint:'사진을 보고 지원하는 물건의 아이콘과 이름을 제안해요. 결과가 다르면 종류를 직접 바꿔 주세요.',auto:'사진 자동 판별',autoLoading:'인식 도구를 준비하고 있어요. 처음에는 인터넷 다운로드가 필요해요. 사진은 기기 안에서만 분석해요.',autoAnalyzing:'사진에서 물건을 찾고 있어요…',autoFound:'{name} 아이콘을 자동으로 골랐어요. 확인 후 저장해 주세요.',autoUnknown:'확실하게 알아보지 못했어요. 아이콘 종류와 이름을 직접 선택해 주세요.',autoError:'자동 판별을 사용할 수 없어요. 인터넷 연결을 확인하거나 아이콘을 직접 선택해 주세요.',autoManual:'직접 선택한 아이콘을 사용해요.',autoPhoto:'사진을 선택하면 자동으로 판별해요. 지원하지 않는 물건은 직접 선택해 주세요.'},
+        en:{iconHint:'The photo suggests a supported object icon and name. Change the type if the result is wrong.',auto:'Identify photo',autoLoading:'Preparing the recognition tool. The first use needs an internet download. Photos are analyzed only on this device.',autoAnalyzing:'Looking for an object…',autoFound:'Found {name} and selected its icon. Review before saving.',autoUnknown:'No clear match. Choose the icon type and name yourself.',autoError:'Recognition is unavailable. Check your connection or choose an icon yourself.',autoManual:'Using your chosen icon.',autoPhoto:'Choose a photo for automatic recognition. Unsupported objects need a manual choice.'},
+        ja:{iconHint:'写真から対応する物のアイコンと名前を提案します。違う場合は種類を変更してください。',auto:'写真を自動判別',autoLoading:'認識ツールを準備中です。初回はダウンロードが必要です。写真は端末内だけで解析します。',autoAnalyzing:'写真の中の物を探しています…',autoFound:'{name}を見つけ、アイコンを選びました。確認して保存してください。',autoUnknown:'はっきり判別できませんでした。種類と名前を選んでください。',autoError:'自動判別を利用できません。接続を確認するか手動で選んでください。',autoManual:'手動で選んだアイコンを使用します。',autoPhoto:'写真を選ぶと自動判別します。未対応の物は手動で選んでください。'},
+        zh:{iconHint:'根据照片推荐支持的物品图标及名称。结果不符时请手动更改类型。',auto:'自动识别照片',autoLoading:'正在准备识别工具。首次使用需要联网下载，照片仅在此设备中分析。',autoAnalyzing:'正在照片中寻找物品…',autoFound:'识别到{name}并选择了图标，请确认后保存。',autoUnknown:'未能明确识别，请手动选择图标类型和名称。',autoError:'暂时无法识别，请检查网络或手动选择图标。',autoManual:'使用您手动选择的图标。',autoPhoto:'选择照片后自动识别，不支持的物品请手动选择。'}
+    };
+    Object.keys(RECOGNITION_TEXT).forEach(function(lang) { Object.assign(TEXT[lang], RECOGNITION_TEXT[lang]); });
     var section, dialog, form, canvas, zoom, nameInput, status, saveButton, camera, gallery, grid;
     var dbPromise, records = [], urls = [], source = null, sourceURL = '', generation = 0, busy = false, loadedPhoto = false, loadFailed = false, lastStatus = '', returnFocus, loadSerial = 0;
     var crop = {zoom:1,x:0,y:0}, drag = null;
     var editingRecord = null, mode = 'symbol', manualSymbol = false, styleSelect, symbolSelect, symbolPreview;
+    var recognitionTask = null, recognitionState = '', recognizedType = '', recognitionAttempted = false, photoCanRecognize = false;
     function icons() { return window.GiloaItemIcons; }
     function words() {
         var lang = typeof currentLang === 'string' ? currentLang : document.documentElement.lang;
@@ -96,12 +104,14 @@
         ctx.drawImage(source, g.x,g.y,g.side,g.side,0,0,target.width,target.height);
     }
     function releaseSource() {
+        stopRecognition(); recognizedType = ''; recognitionAttempted = false; photoCanRecognize = false; recognitionState = '';
         if (source) { source.onload = source.onerror = null; source.src = ''; }
         source = null; loadedPhoto = false; if (sourceURL) URL.revokeObjectURL(sourceURL); sourceURL = ''; camera.value = gallery.value = ''; drag = null;
     }
     function refreshSave() {
         var visualReady = mode === 'symbol' ? !!icons() && (!!editingRecord || loadedPhoto) : loadedPhoto;
-        saveButton.disabled = busy || !visualReady || !nameInput.value.trim();
+        saveButton.disabled = busy || !visualReady || !nameInput.value.trim() || (mode === 'symbol' && !!recognitionTask);
+        var analyze = dialog.querySelector('[data-recognize]'); if (analyze) analyze.disabled = busy || !loadedPhoto || !photoCanRecognize || !!recognitionTask;
     }
     function updateAppearance() {
         if (!styleSelect) return;
@@ -110,11 +120,50 @@
         symbolSelect.closest('label').hidden = mode !== 'symbol'; symbolPreview.hidden = mode !== 'symbol';
         dialog.querySelector('[data-photo-text="hint"]').textContent = mode === 'symbol' ? words().iconHint : words().hint;
         if (icons()) {
-            if (!manualSymbol) symbolSelect.value = icons().suggest(nameInput.value);
+            if (!manualSymbol) symbolSelect.value = recognizedType || icons().suggest(nameInput.value);
             symbolPreview.querySelector('img').src = icons().url(symbolSelect.value);
             symbolPreview.querySelector('img').alt = symbolSelect.selectedOptions[0] ? symbolSelect.selectedOptions[0].textContent : '';
         } else if (mode === 'symbol') setStatus('iconUnavailable');
-        refreshSave();
+        renderRecognition(); refreshSave();
+    }
+    function stopRecognition() {
+        var old = recognitionTask; recognitionTask = null; if (old) old.cancel();
+    }
+    function renderRecognition() {
+        var node = dialog.querySelector('[data-recognition-status]'); if (!node) return;
+        var key = recognitionState || 'autoPhoto';
+        var kind = icons() && icons().list(typeof currentLang === 'string' ? currentLang : document.documentElement.lang).find(function(k) { return k.id === recognizedType; });
+        node.textContent = (words()[key] || '').replace('{name}',kind ? kind.name : '');
+        node.closest('[data-recognition]').hidden = mode !== 'symbol';
+    }
+    function startRecognition(force) {
+        if (!loadedPhoto || !photoCanRecognize || mode !== 'symbol' || busy || (manualSymbol && !force)) return;
+        stopRecognition(); if (force) { manualSymbol = false; recognizedType = ''; }
+        recognitionAttempted = true; var request = generation; recognitionState = 'autoLoading';
+        if (!window.GiloaItemRecognition) { recognitionState = 'autoError'; renderRecognition(); refreshSave(); return; }
+        var task;
+        try {
+            task = window.GiloaItemRecognition.recognize(source,function(phase) {
+                if (generation !== request || recognitionTask !== task) return;
+                recognitionState = phase === 'analyzing' ? 'autoAnalyzing' : 'autoLoading'; renderRecognition();
+            });
+            recognitionTask = task; renderRecognition(); refreshSave();
+        } catch (_) { recognitionState = 'autoError'; renderRecognition(); refreshSave(); return; }
+        task.promise.then(function(result) {
+            if (request !== generation || recognitionTask !== task || manualSymbol || busy) return;
+            recognitionTask = null;
+            if (result && icons()) {
+                recognizedType = icons().valid(result.type); recognitionState = 'autoFound';
+                if (!nameInput.value.trim()) {
+                    var kind = icons().list(typeof currentLang === 'string' ? currentLang : document.documentElement.lang).find(function(k) { return k.id === recognizedType; });
+                    if (kind) nameInput.value = kind.name;
+                }
+            } else recognitionState = 'autoUnknown';
+            updateAppearance();
+        },function() {
+            if (request !== generation || recognitionTask !== task) return;
+            recognitionTask = null; recognitionState = 'autoError'; renderRecognition(); refreshSave();
+        });
     }
     function resetPhoto() { generation++; releaseSource(); canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height); zoom.value = '1'; refreshSave(); }
     function close() {
@@ -132,7 +181,7 @@
     }
     function select(input) {
         var file = input.files && input.files[0]; if (!file || busy) return;
-        loadPhoto(file);
+        manualSymbol = false; loadPhoto(file);
     }
     function loadPhoto(file) {
         resetPhoto(); var request = generation;
@@ -143,8 +192,8 @@
         image.onload = function() {
             if (request !== generation) return;
             if (!image.naturalWidth || image.naturalWidth * image.naturalHeight > 64000000) { resetPhoto(); setStatus('large'); return; }
-            loadedPhoto = true; crop = {zoom:1,x:image.naturalWidth/2,y:image.naturalHeight/2};
-            setStatus(''); draw(); updateAppearance();
+            loadedPhoto = true; photoCanRecognize = file.type !== 'image/svg+xml'; crop = {zoom:1,x:image.naturalWidth/2,y:image.naturalHeight/2};
+            setStatus(''); draw(); updateAppearance(); startRecognition(false);
         };
         image.onerror = function() { if (request === generation) { resetPhoto(); setStatus('invalid'); } };
         image.src = sourceURL;
@@ -199,10 +248,16 @@
         panel.insertBefore(section, panel.firstChild); grid = section.querySelector('.photo-items-grid');
         section.querySelector('button').addEventListener('click',open);
         dialog = document.createElement('dialog'); dialog.id = 'photo-item-editor'; dialog.className = 'photo-item-editor'; dialog.setAttribute('aria-labelledby','photo-item-title');
-        dialog.innerHTML = '<form><header><h2 id="photo-item-title" data-photo-text="editor"></h2><button type="button" class="photo-item-close" data-close aria-label="Close">×</button></header><div class="photo-item-pickers"><button type="button" data-camera data-photo-text="camera"></button><button type="button" data-gallery data-photo-text="gallery"></button></div><input type="file" accept="image/*" capture="environment" data-camera-input hidden><input type="file" accept="image/*" data-gallery-input hidden><p class="photo-item-hint" id="photo-item-hint" data-photo-text="hint"></p><label><span data-photo-text="style"></span><select data-style><option value="symbol" data-photo-text="symbol"></option><option value="photo" data-photo-text="photo"></option></select></label><label><span data-photo-text="kind"></span><select data-symbol></select></label><div class="photo-symbol-preview" data-symbol-preview><img width="256" height="256" alt=""></div><canvas width="320" height="320" tabindex="0" aria-describedby="photo-item-hint"></canvas><label><span data-photo-text="zoom"></span><input type="range" min="1" max="4" step="0.01" value="1" data-zoom></label><label><span data-photo-text="name"></span><input type="text" maxlength="60" required autocomplete="off" data-name></label><p class="photo-item-privacy" data-photo-text="privacy"></p><p data-status role="status" aria-live="polite"></p><footer><button type="button" data-cancel data-photo-text="cancel"></button><button type="submit" data-save data-photo-text="save" disabled></button></footer></form>';
+        dialog.innerHTML = '<form><header><h2 id="photo-item-title" data-photo-text="editor"></h2><button type="button" class="photo-item-close" data-close aria-label="Close">×</button></header><div class="photo-item-pickers"><button type="button" data-camera data-photo-text="camera"></button><button type="button" data-gallery data-photo-text="gallery"></button></div><input type="file" accept="image/*" capture="environment" data-camera-input hidden><input type="file" accept="image/*" data-gallery-input hidden><p class="photo-item-hint" id="photo-item-hint" data-photo-text="hint"></p><div class="photo-item-recognition" data-recognition><p data-recognition-status role="status" aria-live="polite"></p><button type="button" data-recognize data-photo-text="auto"></button></div><label><span data-photo-text="style"></span><select data-style><option value="symbol" data-photo-text="symbol"></option><option value="photo" data-photo-text="photo"></option></select></label><label><span data-photo-text="kind"></span><select data-symbol></select></label><div class="photo-symbol-preview" data-symbol-preview><img width="256" height="256" alt=""></div><canvas width="320" height="320" tabindex="0" aria-describedby="photo-item-hint"></canvas><label><span data-photo-text="zoom"></span><input type="range" min="1" max="4" step="0.01" value="1" data-zoom></label><label><span data-photo-text="name"></span><input type="text" maxlength="60" required autocomplete="off" data-name></label><p class="photo-item-privacy" data-photo-text="privacy"></p><p data-status role="status" aria-live="polite"></p><footer><button type="button" data-cancel data-photo-text="cancel"></button><button type="submit" data-save data-photo-text="save" disabled></button></footer></form>';
         document.body.appendChild(dialog); form = dialog.querySelector('form'); canvas = dialog.querySelector('canvas'); zoom = dialog.querySelector('[data-zoom]'); nameInput = dialog.querySelector('[data-name]'); status = dialog.querySelector('[data-status]'); saveButton = dialog.querySelector('[data-save]'); camera = dialog.querySelector('[data-camera-input]'); gallery = dialog.querySelector('[data-gallery-input]');
         styleSelect = dialog.querySelector('[data-style]'); symbolSelect = dialog.querySelector('[data-symbol]'); symbolPreview = dialog.querySelector('[data-symbol-preview]');
-        styleSelect.onchange = updateAppearance; symbolSelect.onchange = function() { manualSymbol = true; updateAppearance(); };
+        styleSelect.onchange = function() {
+            updateAppearance();
+            if (mode === 'photo') { if (recognitionTask) recognitionAttempted = false; stopRecognition(); refreshSave(); }
+            else if (!recognitionAttempted) startRecognition(false);
+        };
+        symbolSelect.onchange = function() { manualSymbol = true; stopRecognition(); recognitionState = 'autoManual'; updateAppearance(); };
+        dialog.querySelector('[data-recognize]').onclick = function() { startRecognition(true); };
         dialog.querySelector('[data-camera]').onclick = function() { camera.click(); }; dialog.querySelector('[data-gallery]').onclick = function() { gallery.click(); };
         dialog.querySelector('[data-close]').onclick = close; dialog.querySelector('[data-cancel]').onclick = close;
         dialog.addEventListener('cancel',function(e) { e.preventDefault(); close(); });
