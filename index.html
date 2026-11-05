@@ -737,6 +737,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 
   <button id="adventure-music-start" class="gsi-start" type="button" aria-controls="adventure-music-audio">음악과 함께 시작</button>
   <p id="adventure-music-caption" class="adventure-music-caption">시작 음악: 길로의 모험 · 한 번 재생</p>
+  <button id="adventure-music-intro-stop" class="gsi-story-open" type="button" hidden style="min-height:44px" aria-controls="adventure-music-audio">음악 끄기</button>
   <button id="gsi-start" class="gsi-start" type="button">
     <span id="gsi-start-copy">시작하기</span>
     <span aria-hidden="true">›</span>
@@ -945,11 +946,11 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <script src="./hidden-missions.obfuscated.js?v=app-local-2" defer></script>
 <script src="./tutorial.js?v=app-local-134" defer></script>
 <audio id="adventure-music-audio" preload="none" playsinline src="./assets/audio/giloa-adventure.mp3"></audio>
-<script src="./startup-music.js?v=2" defer></script>
+<script src="./startup-music.js?v=3" defer></script>
 <script>
 if (window.location.protocol !== "file:" && "serviceWorker" in navigator && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
     window.addEventListener("load", function() {
-    navigator.serviceWorker.register("./sw.js?v=app-local-220", { updateViaCache: "none" })
+    navigator.serviceWorker.register("./sw.js?v=app-local-221", { updateViaCache: "none" })
             .then(function(registration) { console.log("SW 등록 완료"); return registration.update(); })
             .catch(function(e) { console.warn("SW 등록 실패", e); });
     });

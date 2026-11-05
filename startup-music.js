@@ -4,6 +4,7 @@
     var audio = document.getElementById("adventure-music-audio");
     var toggle = document.getElementById("adventure-music-toggle");
     var start = document.getElementById("adventure-music-start");
+    var introStop = document.getElementById("adventure-music-intro-stop");
     var silent = document.getElementById("gsi-start");
     var silentCopy = document.getElementById("gsi-start-copy");
     var status = document.getElementById("adventure-music-status");
@@ -28,6 +29,7 @@
     function render() {
         var w = copy(), playing = !audio.paused && !audio.ended;
         start.textContent = w[0];
+        if (introStop) { introStop.textContent=w[4]; introStop.hidden=!(playing || pending); }
         if (silentCopy && silentCopy.textContent !== w[1]) silentCopy.textContent = w[1];
         silent.setAttribute("aria-label", w[1]);
         document.getElementById("adventure-music-caption").textContent = w[2];
@@ -69,6 +71,7 @@
     function startOnEntry() { if (enabled && !pending && audio.paused) play(); }
     window.GiloaStartupMusic = { start:startOnEntry };
     silent.addEventListener("click", function () { if (!startingWithMusic) startOnEntry(); });
+    if (introStop) introStop.addEventListener("click",function(event) { event.stopPropagation();setEnabled(false);stop(); });
     toggle.addEventListener("click", function (event) {
         event.stopPropagation();
         if (pending || !audio.paused) { setEnabled(false); stop(); } else { setEnabled(true); play(); }

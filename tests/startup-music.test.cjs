@@ -31,6 +31,8 @@ const tick=()=>new Promise(resolve=>setTimeout(resolve,5));
     assert.equal(playCount,2); assert.equal(finishCount,2); assert.equal(playing,true); assert.equal(greetingStops,2);
     assert.equal(el('adventure-music-toggle').getAttribute('aria-pressed'),'true');
     assert.equal(song.volume,0.35);
+    el('adventure-music-intro-stop').click();assert.equal(playing,false);assert.equal(finishCount,2);
+    el('adventure-music-toggle').click();await tick();assert.equal(playing,true);
     el('adventure-music-toggle').click(); assert.equal(playing,false); assert.equal(song.currentTime,0);
     assert.equal(w.localStorage.getItem('giloa-startup-music-enabled-v1'),'false');
     const beforeMuted=playCount;w.GiloaStartupMusic.start();await tick();assert.equal(playCount,beforeMuted);
