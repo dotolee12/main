@@ -6,7 +6,7 @@ const {JSDOM} = require(process.env.GPX_TEST_DEPS ? path.join(process.env.GPX_TE
 const source = fs.readFileSync(path.join(__dirname,'..','local-shops.js'),'utf8');
 const fixture = {id:'123',place_name:'동네 빵집',x:'127.1',y:'37.5',road_address_name:'서울 송파구 동네로 1',phone:'02-123-4567'};
 const tick = () => new Promise(resolve=>setTimeout(resolve,10));
-function start(savedSettings, mainMapOnly) {
+function start(savedSettings, mainMapOnly, combined) {
     const dom = new JSDOM('<html lang="ko"><body><div id="controls"></div><div id="daily-task-widget"><button id="daily-task-tag">할 일</button></div><div id="map-layer-panel"></div><div id="map"></div></body></html>',{url:'https://giloa.test',runScripts:'outside-only'});
     const w = dom.window, handlers={}, calls=[], markers=[];
     const map = {createPane:()=>({style:{}}),on:(name,fn)=>{handlers[name]=fn;},getCenter:()=>({lat:37.5,lng:127.1}),distance:(a,b)=>Math.hypot((a.lat??a[0])-b[0],(a.lng??a[1])-b[1])*100000,panTo:()=>{}};
@@ -21,11 +21,24 @@ function start(savedSettings, mainMapOnly) {
     w.fetch=()=>Promise.resolve({ok:true,json:()=>Promise.resolve({elements:[]})});
     w.AbortController=AbortController;
     w.localStorage.setItem('journey-fixture','GPS/photos/GPX/levels');
+    const tourCalls=[];
+    if (combined) {
+        const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+        const original=new JSDOM(html).window.document.querySelector('#layer-toggle-shopping').closest('.map-layer-item');
+        w.document.getElementById('map-layer-panel').appendChild(w.document.importNode(original,true));
+        const row=w.document.getElementById('layer-toggle-shopping').closest('.map-layer-item');
+        row.querySelector('.map-layer-dot').outerHTML='<span class="map-layer-menu-icon"><svg data-original-icon="shopping"><path d="M5 7h14l-1 14H6L5 7zm3 0a4 4 0 018 0M9 12h.01M15 12h.01"/></svg></span>';
+        w.MAP_LAYER_UNAVAILABLE={};w.captureGpsIntegrity=()=>({});w.logGpsLayerChange=()=>{};w.refreshGpsVisualsAfterPlaceLayerChange=()=>{};
+        w.addTourMarkers=()=>tourCalls.push('render');w.refreshTourData=()=>tourCalls.push('refresh');w.syncMapLayerToggleUI=()=>{};
+        const main=fs.readFileSync(path.join(__dirname,'..','script.js'),'utf8');
+        w.eval(main.slice(main.indexOf('function applyMapLayerChange('),main.indexOf('function fetchRestroomsFromKakaoForCurrentArea(')));
+        row.onclick=()=>w.toggleMapLayer('shopping');
+    }
     w.eval(source);
     const el = key=>w.document.querySelector('[data-shops="'+key+'"]');
     const open=()=>{if(!el('query').value)el('query').value=fixture.place_name;w.document.getElementById('place-search-button').click();};
     const search=()=>el('form').dispatchEvent(new w.Event('submit',{cancelable:true}));
-    return {w,dom,handlers,calls,markers,response,el,open,search};
+    return {w,dom,handlers,calls,markers,response,el,open,search,tourCalls};
 }
 test('nearby search displays safe markers, details and seller search without writing records',async()=>{
     const a=start(); a.open(); await tick();
@@ -95,10 +108,10 @@ test('closing or clearing prevents late searches and link responses from replaci
     a.dom.window.close();
 });
 test('shops load together without a category selector; keyword search is unrestricted and rejects invalid points',async()=>{
-    const a=start(); a.w.document.getElementById('map-layer-localshops').click(); await tick();
+    const a=start(); a.w.document.getElementById('map-layer-shopping').click(); await tick();
     assert.equal(a.el('category'),null);
     assert.deepEqual(a.calls.filter(x=>x.type==='category').map(x=>x.q),['CS2','MT1','CE7']);
-    assert(a.calls.some(x=>x.type==='keyword'&&x.q==='마트')); a.w.document.getElementById('map-layer-localshops').click(); a.open(); await tick();
+    assert(a.calls.some(x=>x.type==='keyword'&&x.q==='마트')); a.w.document.getElementById('map-layer-shopping').click(); a.open(); await tick();
     a.el('query').value='빵'; a.response.data=[fixture,fixture,{...fixture,id:'bad',y:'oops'},{...fixture,id:'far',y:'39'}]; a.search(); await tick();
     assert.equal(a.calls.at(-1).type,'keyword'); assert.equal(a.calls.at(-1).q,'빵');
     assert.equal(a.calls.at(-1).opts.category_group_code,undefined); assert.equal(a.markers.length,2);
@@ -135,7 +148,7 @@ test('combined market search excludes shoe and phone shops with mart in their na
         {...fixture,id:'shoe',place_name:'ABC마트',category_name:'쇼핑,유통 > 신발 > ABC마트'},
         {...fixture,id:'phone',place_name:'폰마트',category_name:'쇼핑,유통 > 통신판매'}
     ]:[];
-    a.w.document.getElementById('map-layer-localshops').click(); await tick(); assert.equal(a.markers.length,1); assert.equal(a.markers[0].opts.title,'동네마트'); a.dom.window.close();
+    a.w.document.getElementById('map-layer-shopping').click(); await tick(); assert.equal(a.markers.length,1); assert.equal(a.markers[0].opts.title,'동네마트'); a.dom.window.close();
 });
 test('Korean, English, Japanese and Chinese labels, Escape and map close work',async()=>{
     const a=start();
@@ -163,7 +176,7 @@ test('hospital cafe convenience and tourism use unrestricted shared search while
     a.dom.window.close();
 });
 test('local shop layer persists visibility independently of search and existing map selections',async()=>{
-    const a=start(); const toggle=a.w.document.getElementById('map-layer-localshops');
+    const a=start(); const toggle=a.w.document.getElementById('map-layer-shopping');
     toggle.click(); await tick(); assert(a.w.mapLayerSettings.localshops); assert.equal(a.markers.length,1);
     assert(a.w.document.getElementById('local-shops-panel').hidden);
     const saved=JSON.parse(a.w.localStorage.getItem('layer-settings')); assert(saved.tourism&&saved.hospital&&saved.localshops);
@@ -172,10 +185,10 @@ test('local shop layer persists visibility independently of search and existing 
     a.open(); await tick(); assert.equal(a.markers.length,2); toggle.click(); await tick(); assert.equal(a.markers.length,1);
     assert.equal(a.w.document.getElementById('local-shops-panel').hidden,false);
     a.dom.window.close();
-    const b=start(saved); await tick(); assert.equal(b.markers.length,1); assert.equal(b.w.document.getElementById('map-layer-localshops').getAttribute('aria-pressed'),'true'); b.dom.window.close();
+    const b=start(saved); await tick(); assert.equal(b.markers.length,1); assert.equal(b.w.document.getElementById('map-layer-shopping').getAttribute('aria-pressed'),'true'); b.dom.window.close();
 });
 test('disabled local shop layer rejects late provider responses',async()=>{
-    const a=start(); a.response.defer=true; const toggle=a.w.document.getElementById('map-layer-localshops');
+    const a=start(); a.response.defer=true; const toggle=a.w.document.getElementById('map-layer-shopping');
     toggle.click(); await tick(); toggle.click();
     a.calls.forEach(call=>call.cb([fixture],'OK')); await tick(); assert.equal(a.markers.length,0); assert.equal(a.w.mapLayerSettings.localshops,false); a.dom.window.close();
 });
@@ -192,7 +205,30 @@ test('existing search button is reused when the bootstrap module is absent but t
 
 test('nearby Daiso stores appear with plain names without including similarly named businesses',async()=>{
     const a=start(); a.response.byQuery=q=>q==='다이소'?[{...fixture,id:'daiso-1',place_name:'다이소 성남점',category_name:'가정,생활 > 생활용품점 > 다이소'},{...fixture,id:'other',place_name:'다이소앞 식당',category_name:'음식점 > 한식'}]:[];
-    a.w.document.getElementById('map-layer-localshops').click(); await tick();
+    a.w.document.getElementById('map-layer-shopping').click(); await tick();
     assert.equal(a.calls.filter(x=>x.q==='다이소').length,1);assert.equal(a.calls.find(x=>x.q==='다이소').opts.radius,1000);assert.equal(a.markers.length,1);
     const badge=a.markers[0].opts.icon.html;assert.equal(badge.dataset.brand,'daiso');assert.equal(badge.querySelector('img'),null);assert.equal(badge.querySelector('.local-shop-pin-name').textContent,'다이소');assert.equal(a.w.localStorage.getItem('journey-fixture'),'GPS/photos/GPX/levels');a.dom.window.close();
+});
+
+test('single shopping tile preserves original icon and toggles tourism shopping and nearby shops together',async()=>{
+    const a=start({shopping:false,localshops:false,tourism:true,hospital:true},false,true);
+    const row=a.w.document.getElementById('map-layer-shopping');
+    assert.equal(a.w.document.querySelectorAll('#layer-toggle-shopping').length,1);
+    assert.equal(a.w.document.querySelector('#map-layer-localshops'),null);
+    assert(row.querySelector('svg[data-original-icon=shopping]'));
+    assert.equal(row.querySelector('.map-layer-name').textContent,'쇼핑·동네가게');
+    row.click();await tick();assert.equal(a.w.mapLayerSettings.shopping,true);assert.equal(a.w.mapLayerSettings.localshops,true);
+    assert.deepEqual(a.tourCalls,['render','refresh']);assert(a.markers.length>0);
+    a.el('query').value='별도 검색';a.open();await tick();const searchCount=a.markers.filter(x=>x.target===a.markers.at(-1).target).length;
+    row.click();assert.equal(a.w.mapLayerSettings.shopping,false);assert.equal(a.w.mapLayerSettings.localshops,false);
+    assert.equal(a.tourCalls.at(-1),'render');assert.equal(a.markers.length,searchCount);
+    const settings=JSON.parse(a.w.localStorage.getItem('layer-settings'));assert.equal(settings.shopping,false);assert.equal(settings.localshops,false);assert.equal(settings.tourism,true);
+    assert.equal(a.w.localStorage.getItem('journey-fixture'),'GPS/photos/GPX/levels');a.w.close();
+});
+test('either prior selection restores combined shopping and off survives reopening',async()=>{
+    for(const settings of [{shopping:false,localshops:true},{shopping:true,localshops:false}]){
+        const a=start({...settings,tourism:true});await tick();assert.equal(a.w.mapLayerSettings.shopping,true);assert(a.markers.length>0);
+        a.w.document.getElementById('map-layer-shopping').click();const saved=JSON.parse(a.w.localStorage.getItem('layer-settings'));a.w.close();
+        const b=start(saved);await tick();assert.equal(b.w.mapLayerSettings.shopping,false);assert.equal(b.markers.length,0);b.w.close();
+    }
 });

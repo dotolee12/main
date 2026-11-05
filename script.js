@@ -662,6 +662,9 @@ function loadMapLayerSettings() {
         // Before shopping became its own layer, it followed the tourism switch.
         // Keep each existing user's visibility choice when migrating that setting.
         if (raw && !Object.prototype.hasOwnProperty.call(saved, "shopping")) saved.shopping = !!saved.tourism;
+        // Either old shop selection enables the single combined shopping tile.
+        saved.shopping = !!(saved.shopping || saved.localshops);
+        saved.localshops = saved.shopping;
         return Object.assign({}, MAP_LAYER_DEFAULTS, saved);
     } catch (e) { return Object.assign({}, MAP_LAYER_DEFAULTS); }
 }
@@ -11110,9 +11113,11 @@ function applyMapLayerChange(key) {
 function toggleMapLayer(key) {
     if (MAP_LAYER_UNAVAILABLE[key]) return;
     mapLayerSettings[key] = !mapLayerSettings[key];
+    if (key === "shopping") mapLayerSettings.localshops = mapLayerSettings.shopping;
     saveMapLayerSettings();
     syncMapLayerToggleUI(key);
     applyMapLayerChange(key);
+    if (key === "shopping") window.dispatchEvent(new CustomEvent("giloa:shopping-layer-change"));
 }
 function fetchRestroomsFromKakaoForCurrentArea(center, radius, requestSeq) {
     if (!mapLayerSettings.restroom || navigator.onLine === false) return Promise.resolve([]);
@@ -11975,12 +11980,12 @@ UI_TEXT.fr = {
     help_tab_market:"Prix locaux", help_tab_settings:"Réglages", help_language_title:"Langue", focus_location:"Aller à ma position", photo_camera:"Prendre une photo", photo_gallery:"Choisir dans la galerie", market_title:"Guide des prix locaux", market_description:"Affiche des prix habituels dans cette zone à titre indicatif.", market_meal:"Repas", market_cafe:"Cafés", market_necessities:"Produits essentiels", market_transport:"Transport", market_source:"Prix de référence basés sur des données publiques.", market_loading:"Chargement des prix locaux.", market_empty:"Aucune information de prix pour cette zone.", market_updated:"Mis à jour", market_current_area:"Zone actuelle"
 };
 Object.assign(UI_TEXT.fr, { map_layer_durunubi:"Itinéraires officiels", map_layer_durunubi_source:"Office du tourisme de Corée · Centre coréen de randonnée" });
-Object.assign(UI_TEXT.ko, { map_layer_shopping:"쇼핑" });
-Object.assign(UI_TEXT.en, { map_layer_shopping:"Shopping" });
-Object.assign(UI_TEXT.ja, { map_layer_shopping:"ショッピング" });
-Object.assign(UI_TEXT.zh, { map_layer_shopping:"购物" });
-Object.assign(UI_TEXT.es, { map_layer_shopping:"Compras" });
-Object.assign(UI_TEXT.fr, { map_layer_shopping:"Shopping" });
+Object.assign(UI_TEXT.ko, { map_layer_shopping:"쇼핑·동네가게" });
+Object.assign(UI_TEXT.en, { map_layer_shopping:"Shopping & local shops" });
+Object.assign(UI_TEXT.ja, { map_layer_shopping:"買い物・近所のお店" });
+Object.assign(UI_TEXT.zh, { map_layer_shopping:"购物·附近商店" });
+Object.assign(UI_TEXT.es, { map_layer_shopping:"Compras y tiendas locales" });
+Object.assign(UI_TEXT.fr, { map_layer_shopping:"Shopping et commerces" });
 Object.assign(UI_TEXT.ko, { map_group_discovery:"볼거리", map_group_food:"먹고·쇼핑", map_group_convenience:"여행 편의", map_group_activity:"활동", map_group_mixed:"일부", map_group_on:"켜짐", map_group_off:"꺼짐" });
 Object.assign(UI_TEXT.en, { map_group_discovery:"See & Discover", map_group_food:"Eat & Shop", map_group_convenience:"Travel Essentials", map_group_activity:"Activities", map_group_mixed:"Some", map_group_on:"On", map_group_off:"Off" });
 Object.assign(UI_TEXT.ja, { map_group_discovery:"見どころ", map_group_food:"食事・ショッピング", map_group_convenience:"旅行の便利情報", map_group_activity:"アクティビティ", map_group_mixed:"一部", map_group_on:"オン", map_group_off:"オフ" });

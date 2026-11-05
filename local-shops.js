@@ -16,10 +16,10 @@
     Object.assign(TEXT.en,{hint:'Show convenience stores, supermarkets and cafés together within 1 km. Search any place by name. Results are limited.',query:'Search a place name'});
     Object.assign(TEXT.ja,{hint:'半径1kmのコンビニ・スーパー・カフェを一緒に表示します。店名検索は分類で制限しません。表示件数には制限があります。',query:'店名を検索'});
     Object.assign(TEXT.zh,{hint:'同时显示1公里内的便利店、超市和咖啡店。店名搜索不限类别，结果数量有限。',query:'搜索店名'});
-    Object.assign(TEXT.ko,{title:'장소 검색',hint:'병원·카페·편의점·관광지 등 종류에 관계없이 검색해요. 종류를 입력하면 지도 중심 1km, 장소 이름을 입력하면 더 넓은 범위에서 찾아요.',query:'병원, 카페, 관광지 또는 장소 이름',search:'검색',empty:'검색된 장소가 없어요. 검색어나 지도 위치를 바꿔 보세요.',loading:'장소를 찾고 있어요…',count:'검색 결과 {n}곳',clear:'검색 결과 지우기',find:'웹에서 더 보기 ↗',layerTitle:'동네가게',layerHint:'카페 · 편의점 · 마트 · 다이소',prompt:'찾고 싶은 장소를 입력해 주세요.'});
-    Object.assign(TEXT.en,{title:'Place search',hint:'Search hospitals, cafés, shops and attractions. Categories search within 1 km; place names search a wider area.',query:'Hospital, café, attraction or place name',search:'Search',empty:'No places found. Try another query or area.',loading:'Finding places…',count:'{n} places found',clear:'Clear search results',find:'More on the web ↗',layerTitle:'Local shops',layerHint:'Cafés · convenience stores · supermarkets · DAISO',prompt:'Enter a place or category.'});
-    Object.assign(TEXT.ja,{title:'場所を検索',hint:'病院・カフェ・店舗・観光地を検索します。分類は半径1km、店名は広い範囲で検索します。',query:'病院・カフェ・観光地・店名',search:'検索',empty:'場所が見つかりません。検索語や地域を変えてください。',loading:'検索中…',count:'検索結果 {n}件',clear:'検索結果を消す',find:'ウェブで詳しく見る ↗',layerTitle:'近所のお店',layerHint:'カフェ・コンビニ・スーパー・ダイソー',prompt:'場所や種類を入力してください。'});
-    Object.assign(TEXT.zh,{title:'地点搜索',hint:'搜索医院、咖啡店、商店和景点。类别搜索范围为1公里，店名搜索范围更广。',query:'医院、咖啡店、景点或店名',search:'搜索',empty:'未找到地点，请更换关键词或区域。',loading:'正在搜索地点…',count:'找到 {n} 个地点',clear:'清除搜索结果',find:'查看更多网页 ↗',layerTitle:'附近商店',layerHint:'咖啡店・便利店・超市・大创',prompt:'请输入地点或类别。'});
+    Object.assign(TEXT.ko,{title:'장소 검색',hint:'병원·카페·편의점·관광지 등 종류에 관계없이 검색해요. 종류를 입력하면 지도 중심 1km, 장소 이름을 입력하면 더 넓은 범위에서 찾아요.',query:'병원, 카페, 관광지 또는 장소 이름',search:'검색',empty:'검색된 장소가 없어요. 검색어나 지도 위치를 바꿔 보세요.',loading:'장소를 찾고 있어요…',count:'검색 결과 {n}곳',clear:'검색 결과 지우기',find:'웹에서 더 보기 ↗',layerTitle:'쇼핑·동네가게',layerHint:'카페 · 편의점 · 마트 · 다이소',prompt:'찾고 싶은 장소를 입력해 주세요.'});
+    Object.assign(TEXT.en,{title:'Place search',hint:'Search hospitals, cafés, shops and attractions. Categories search within 1 km; place names search a wider area.',query:'Hospital, café, attraction or place name',search:'Search',empty:'No places found. Try another query or area.',loading:'Finding places…',count:'{n} places found',clear:'Clear search results',find:'More on the web ↗',layerTitle:'Shopping & local shops',layerHint:'Cafés · convenience stores · supermarkets · DAISO',prompt:'Enter a place or category.'});
+    Object.assign(TEXT.ja,{title:'場所を検索',hint:'病院・カフェ・店舗・観光地を検索します。分類は半径1km、店名は広い範囲で検索します。',query:'病院・カフェ・観光地・店名',search:'検索',empty:'場所が見つかりません。検索語や地域を変えてください。',loading:'検索中…',count:'検索結果 {n}件',clear:'検索結果を消す',find:'ウェブで詳しく見る ↗',layerTitle:'買い物・近所のお店',layerHint:'カフェ・コンビニ・スーパー・ダイソー',prompt:'場所や種類を入力してください。'});
+    Object.assign(TEXT.zh,{title:'地点搜索',hint:'搜索医院、咖啡店、商店和景点。类别搜索范围为1公里，店名搜索范围更广。',query:'医院、咖啡店、景点或店名',search:'搜索',empty:'未找到地点，请更换关键词或区域。',loading:'正在搜索地点…',count:'找到 {n} 个地点',clear:'清除搜索结果',find:'查看更多网页 ↗',layerTitle:'购物·附近商店',layerHint:'咖啡店・便利店・超市・大创',prompt:'请输入地点或类别。'});
     // Plain store names only. Place results remain transient and are not stored.
     var BRANDS = [
         {id:'daiso',label:'다이소',match:/^(아성)?다이소|^daiso(?=[가-힣0-9]|$)/},
@@ -220,14 +220,14 @@
             } catch (_) { if (current()) el('status').textContent = words().error; }
         } finally { if (current()) el('search').disabled = false; }
     }
-    function shopsOn() { return typeof mapLayerSettings === 'object' ? !!mapLayerSettings.localshops : localEnabled; }
+    function shopsOn() { return typeof mapLayerSettings === 'object' ? !!mapLayerSettings.shopping : localEnabled; }
     function syncShopRow(message) {
         if (!layerRow) return;
         var on = shopsOn(), toggle = layerRow.querySelector('.toggle-switch');
         layerRow.querySelector('.map-layer-name').textContent = words().layerTitle;
-        layerRow.querySelector('.map-layer-source').textContent = message || words().layerHint;
+        layerRow.querySelector('.map-layer-source').textContent = message || words().layerHint + ' · © Korea Tourism Organization · Kakao Maps / © OpenStreetMap';
         toggle.classList.toggle('on',on); toggle.classList.toggle('off',!on); layerRow.setAttribute('aria-pressed',String(on));
-        if (typeof syncMapLayerItemUI === 'function') syncMapLayerItemUI('localshops');
+        if (typeof syncMapLayerItemUI === 'function') syncMapLayerItemUI('shopping');
     }
     function renderShops() {
         shopsLayer.clearLayers(); if (!shopsOn()) return;
@@ -249,18 +249,39 @@
         if (!current()) return;
         shopsItems = found; renderShops(); syncShopRow();
     }
-    function toggleShops() {
-        localEnabled = !shopsOn();
-        if (typeof mapLayerSettings === 'object') { mapLayerSettings.localshops = localEnabled; if (typeof saveMapLayerSettings === 'function') saveMapLayerSettings(); }
+    function shoppingChanged() {
+        localEnabled = shopsOn();
         syncShopRow();
         if (localEnabled) refreshShops(); else { shopsRequest++; shopsItems = []; shopsLayer.clearLayers(); }
     }
+    function toggleShops() {
+        if (typeof toggleMapLayer === 'function') { toggleMapLayer('shopping'); return; }
+        localEnabled = !shopsOn();
+        if (typeof mapLayerSettings === 'object') {
+            mapLayerSettings.shopping = localEnabled;
+            mapLayerSettings.localshops = localEnabled;
+            if (typeof saveMapLayerSettings === 'function') saveMapLayerSettings();
+        }
+        shoppingChanged();
+    }
     function addShopRow() {
         var target = document.getElementById('map-layer-panel'); if (!target) return;
-        if (typeof MAP_LAYER_TILE_KEYS !== 'undefined' && MAP_LAYER_TILE_KEYS.indexOf('localshops') < 0) MAP_LAYER_TILE_KEYS.push('localshops');
-        layerRow = document.createElement('div'); layerRow.className = 'map-layer-item'; layerRow.id = 'map-layer-localshops'; layerRow.setAttribute('role','button'); layerRow.tabIndex = 0;
-        layerRow.innerHTML = '<span class="map-layer-menu-icon" aria-hidden="true">🛍</span><span class="map-layer-copy"><span class="map-layer-name" id="map-layer-name-localshops"></span><small class="map-layer-source" id="map-layer-source-localshops"></small></span><div id="layer-toggle-localshops" class="toggle-switch small"><div class="toggle-knob"></div></div>';
-        layerRow.onclick = toggleShops; target.appendChild(layerRow); syncShopRow();
+        if (typeof mapLayerSettings === 'object') {
+            var on = !!(mapLayerSettings.shopping || mapLayerSettings.localshops);
+            var changed = mapLayerSettings.shopping !== on || mapLayerSettings.localshops !== on;
+            mapLayerSettings.shopping = mapLayerSettings.localshops = on;
+            if (changed && on && typeof saveMapLayerSettings === 'function') saveMapLayerSettings();
+        }
+        var toggle = document.getElementById('layer-toggle-shopping');
+        layerRow = toggle && toggle.closest('.map-layer-item');
+        if (!layerRow) {
+            layerRow = document.createElement('div'); layerRow.className = 'map-layer-item';
+            layerRow.innerHTML = '<span class="map-layer-menu-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 7h14l-1 14H6L5 7zm3 0a4 4 0 018 0M9 12h.01M15 12h.01"/></svg></span><span class="map-layer-copy"><span class="map-layer-name" id="map-layer-name-shopping"></span><small class="map-layer-source"></small></span><div id="layer-toggle-shopping" class="toggle-switch small"><div class="toggle-knob"></div></div>';
+            layerRow.onclick = toggleShops; target.appendChild(layerRow);
+        }
+        layerRow.id = 'map-layer-shopping'; layerRow.setAttribute('role','button'); layerRow.tabIndex = 0;
+        layerRow.querySelector('.map-layer-source').removeAttribute('data-i18n-extra');
+        syncShopRow();
         if (typeof syncMapLayerItemUI !== 'function') layerRow.onkeydown = function(event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleShops(); } };
         if (typeof window.refreshMapLayerTileOrder === 'function') window.refreshMapLayerTileOrder();
     }
@@ -294,6 +315,7 @@
         });
         document.addEventListener('keydown',function(event) { if (event.key === 'Escape' && !panel.hidden) { close(); button.focus(); } });
         new MutationObserver(function() { render(); renderShops(); syncShopRow(); }).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
+        window.addEventListener('giloa:shopping-layer-change',shoppingChanged);
         addShopRow(); render(); if (shopsOn()) refreshShops();
         window.GiloaPlaceSearch = { open:function() { if (panel.hidden) button.onclick(); } };
     }
