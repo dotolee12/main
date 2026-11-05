@@ -1,6 +1,7 @@
 /* Nearby shops: transient search results only; never writes journey or place storage. */
 (function () {
     'use strict';
+    if (window.GiloaPlaceSearch) return;
     var TEXT = {
         ko:{title:'동네 가게',hint:'지도 중심 반경 1km에서 가까운 가게를 찾아요. 검색 결과는 일부만 표시돼요.',query:'가게 이름 또는 상품',search:'이 지역 가게 보기',all:'상점',cafe:'카페',food:'음식점',convenience:'편의점',market:'마트',clear:'가게 표시 끄기',loading:'가게를 찾고 있어요…',empty:'검색된 가게가 없어요. 검색어나 지도 위치를 바꿔 보세요.',error:'가게 검색에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.',offline:'온라인에서 가게를 검색할 수 있어요.',count:'가까운 가게 {n}곳',source:'가게 정보: 카카오맵',osm:'링크 정보: © OpenStreetMap contributors',detail:'카카오맵 상세',buy:'온라인 구매·주문 ↗',website:'가게 웹사이트 ↗',find:'가게·판매처 검색 ↗',checking:'등록된 판매 링크를 확인하고 있어요…',missing:'등록된 판매 링크를 찾지 못했어요. 판매처 검색을 이용해 주세요.',linkError:'판매 링크를 확인하지 못했어요. 판매처 검색을 이용해 주세요.',linkHint:'공개 지도에 등록된 링크예요. 판매 상품·지점은 연결된 사이트에서 확인해 주세요.',close:'닫기',moved:'지도를 이동했어요. 버튼을 눌러 이 지역을 다시 검색하세요.'},
         en:{title:'Local shops',hint:'Find nearby shops within 1 km of the map center. Results are limited.',query:'Shop name or product',search:'Find shops in this area',all:'Shops',cafe:'Cafés',food:'Restaurants',convenience:'Convenience stores',market:'Supermarkets',clear:'Hide shops',loading:'Finding shops…',empty:'No shops found. Try another search or area.',error:'Shop search unavailable. Please try again.',offline:'Go online to search for shops.',count:'{n} nearby shops',source:'Places: Kakao Maps',osm:'Links: © OpenStreetMap contributors',detail:'Kakao Maps details',buy:'Buy / order online ↗',website:'Shop website ↗',find:'Search shop / sellers ↗',checking:'Checking registered sales links…',missing:'No registered sales link found. Try the seller search.',linkError:'Could not check sales links. Try the seller search.',linkHint:'Links from public map data. Check products and branch details on the linked site.',close:'Close',moved:'Map moved. Search again to find shops in this area.'},
@@ -254,12 +255,12 @@
     }
     function setup() {
         if (panel) return;
-        shopMap = window.giloaMapBootstrap;
+        shopMap = window.giloaMapBootstrap || (typeof map !== 'undefined' && map && typeof map.createPane === 'function' ? map : null);
         var tasks = document.getElementById('daily-task-widget'), taskButton = document.getElementById('daily-task-tag'); if (!shopMap || !window.L || !tasks || !taskButton) return;
         shopMap.createPane('localShopsPane').style.zIndex = '645';
         layer = L.layerGroup().addTo(shopMap);
         shopsLayer = L.layerGroup().addTo(shopMap);
-        button = document.createElement('button'); button.id = 'place-search-button'; button.type = 'button';
+        button = document.getElementById('place-search-button') || document.createElement('button'); button.id = 'place-search-button'; button.type = 'button';
         button.innerHTML = '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg>';
         button.setAttribute('aria-expanded','false'); button.setAttribute('aria-controls','local-shops-panel'); tasks.insertBefore(button,taskButton);
         panel = document.createElement('section'); panel.id = 'local-shops-panel'; panel.hidden = true; panel.setAttribute('role','dialog'); panel.setAttribute('aria-labelledby','local-shops-title');
@@ -283,6 +284,7 @@
         document.addEventListener('keydown',function(event) { if (event.key === 'Escape' && !panel.hidden) { close(); button.focus(); } });
         new MutationObserver(function() { render(); renderShops(); syncShopRow(); }).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
         addShopRow(); render(); if (shopsOn()) refreshShops();
+        window.GiloaPlaceSearch = { open:function() { if (panel.hidden) button.onclick(); } };
     }
     window.addEventListener('giloa:ready',setup); setup();
 }());

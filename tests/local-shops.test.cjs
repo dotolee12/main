@@ -6,12 +6,12 @@ const {JSDOM} = require(process.env.GPX_TEST_DEPS ? path.join(process.env.GPX_TE
 const source = fs.readFileSync(path.join(__dirname,'..','local-shops.js'),'utf8');
 const fixture = {id:'123',place_name:'동네 빵집',x:'127.1',y:'37.5',road_address_name:'서울 송파구 동네로 1',phone:'02-123-4567'};
 const tick = () => new Promise(resolve=>setTimeout(resolve,10));
-function start(savedSettings) {
+function start(savedSettings, mainMapOnly) {
     const dom = new JSDOM('<html lang="ko"><body><div id="controls"></div><div id="daily-task-widget"><button id="daily-task-tag">할 일</button></div><div id="map-layer-panel"></div><div id="map"></div></body></html>',{url:'https://giloa.test',runScripts:'outside-only'});
     const w = dom.window, handlers={}, calls=[], markers=[];
     const map = {createPane:()=>({style:{}}),on:(name,fn)=>{handlers[name]=fn;},getCenter:()=>({lat:37.5,lng:127.1}),distance:(a,b)=>Math.hypot((a.lat??a[0])-b[0],(a.lng??a[1])-b[1])*100000,panTo:()=>{}};
     function makeLayer() { const layer={addTo:()=>layer,clearLayers:()=>{for(let i=markers.length-1;i>=0;i--)if(markers[i].target===layer)markers.splice(i,1);}};return layer; }
-    w.giloaMapBootstrap = map;
+    if (mainMapOnly) { w.map = map; const button=w.document.createElement("button"); button.id="place-search-button"; w.document.getElementById("daily-task-widget").prepend(button); } else w.giloaMapBootstrap = map;
     w.L = {layerGroup:makeLayer,divIcon:x=>x,DomEvent:{disableClickPropagation:()=>{},disableScrollPropagation:()=>{}},marker:(point,opts)=>{const m={point,opts,addTo:target=>{m.target=target;return m;},on:(event,fn)=>{m[event]=fn;return m;}};markers.push(m);return m;}};
     const response = {data:[fixture],status:'OK'};
     function places() { const call=(type,q,cb,opts)=>{calls.push({type,q,cb,opts}); if (!response.defer) cb(response.byQuery ? response.byQuery(q,type) : response.data,response.status);}; this.keywordSearch=(...args)=>call('keyword',...args); this.categorySearch=(...args)=>call('category',...args); }
@@ -175,4 +175,14 @@ test('disabled local shop layer rejects late provider responses',async()=>{
     const a=start(); a.response.defer=true; const toggle=a.w.document.getElementById('map-layer-localshops');
     toggle.click(); await tick(); toggle.click();
     a.calls.forEach(call=>call.cb([fixture],'OK')); await tick(); assert.equal(a.markers.length,0); assert.equal(a.w.mapLayerSettings.localshops,false); a.dom.window.close();
+});
+
+test('existing search button is reused when the bootstrap module is absent but the main map is ready',async()=>{
+    const b=start(undefined,true);
+    const existing=b.w.document.getElementById('place-search-button');
+    b.w.GiloaPlaceSearch.open(); await tick();
+    assert.equal(b.w.document.querySelectorAll('#place-search-button').length,1);
+    assert.equal(b.w.document.getElementById('place-search-button'),existing);
+    assert.equal(b.w.document.getElementById('local-shops-panel').hidden,false);
+    b.dom.window.close();
 });

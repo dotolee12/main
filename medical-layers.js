@@ -1,5 +1,6 @@
 (function () {
     "use strict";
+    if (window.GiloaMedicalLayers) return;
     var CONFIG = {
         hospital: { color:"#ef4444", labels:{ko:"병원",en:"Hospitals",ja:"病院",zh:"医院",es:"Hospitales",fr:"Hôpitaux"} },
         pharmacy: { color:"#14b8a6", labels:{ko:"약국",en:"Pharmacies",ja:"薬局",zh:"药店",es:"Farmacias",fr:"Pharmacies"} }

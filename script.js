@@ -9936,6 +9936,7 @@ function renderLibraryMarkers(lang) {
         libraryMarkers.push(marker);
     });
     refreshGpsVisualsAfterPlaceLayerChange("library-refresh", before);
+    if (!libraryMarkers.length) fetchNearbyLibraryFallback();
 }
 
 function showLibraryPopup(item) {
@@ -9981,11 +9982,39 @@ function fetchLibraryJson() {
     });
 }
 
+// Seoul's bundled catalogue remains authoritative; find libraries elsewhere when it has no nearby entries.
+var nearbyLibraryArea = "", nearbyLibrarySeq = 0;
+function fetchNearbyLibraryFallback() {
+    if (!mapLayerSettings.library || navigator.onLine === false) return Promise.resolve(false);
+    var center = getMapSearchCenter(), radius = getMapSearchRadius();
+    var area = center.lat.toFixed(3) + ":" + center.lng.toFixed(3) + ":" + radius;
+    if (nearbyLibraryArea === area) return Promise.resolve(false);
+    nearbyLibraryArea = area;
+    var seq = ++nearbyLibrarySeq;
+    return loadKakaoTrafficSdk().then(function() {
+        return new Promise(function(resolve) {
+            var timer = setTimeout(function(){resolve([]);},9000);
+            new kakao.maps.services.Places().keywordSearch("도서관",function(rows,status){
+                clearTimeout(timer);
+                resolve(status === kakao.maps.services.Status.OK ? rows || [] : []);
+            },{location:new kakao.maps.LatLng(center.lat,center.lng),radius:radius,size:15,sort:kakao.maps.services.SortBy.DISTANCE});
+        });
+    }).then(function(rows) {
+        if (seq !== nearbyLibrarySeq || !mapLayerSettings.library || getMapSearchCenter().distanceTo(center) > 150) return false;
+        rows.forEach(function(row) {
+            var lat = Number(row.y), lng = Number(row.x), id = "kakao-library-" + row.id;
+            if (!row.id || !row.place_name || !isFinite(lat) || !isFinite(lng) || !isWithinMapSearchCenter(lat,lng,radius)) return;
+            if (!libraryItems.some(function(item){return item.LBRRY_SEQ_NO === id;})) libraryItems.push({LBRRY_SEQ_NO:id,LBRRY_NAME:String(row.place_name),ADRES:String(row.road_address_name || row.address_name || ""),XCNTS:lat,YDNTS:lng,TEL_NO:String(row.phone || "")});
+        });
+        if (rows.length) renderLibraryMarkers(currentLang);
+        return rows.length > 0;
+    }).catch(function(){ nearbyLibraryArea = ""; return false; });
+}
 function fetchLibraries() {
     fetchLibraryJson().then(function(data) {
         var body = data && data.SeoulPublicLibraryInfo;
         var freshItems = body && Array.isArray(body.row) ? body.row : [];
-        if (freshItems.length) libraryItems = freshItems;
+        if (freshItems.length) libraryItems = freshItems.concat(libraryItems.filter(function(item){return String(item.LBRRY_SEQ_NO || "").indexOf("kakao-library-") === 0;}));
         librariesLoaded = true;
         if (mapLayerSettings.library) { renderLibraryMarkers(); translateLibraryItemsForLang(currentLang); }
     }).catch(function(err) { console.warn("?쒖슱 ?꾩꽌愿 API ?ㅻ쪟", err); });
@@ -11182,12 +11211,10 @@ function fetchRestroomsForCurrentArea(options) {
     }
     function fetchOnlineFallbacks() {
         if (navigator.onLine === false) return Promise.resolve(!!(cached && cached.items.length));
-        return fetchRestroomsFromOsm(center, radius, { force: !!options.force, signal: controller && controller.signal }).then(function(items) {
-            if (applyItems(items)) return true;
-            return fetchRestroomsFromKakaoForCurrentArea(center, radius, requestSeq).then(applyItems);
-        }).catch(function() {
-            return fetchRestroomsFromKakaoForCurrentArea(center, radius, requestSeq).then(applyItems);
-        });
+        // Start both providers together so slow OSM requests never delay Kakao markers.
+        var kakaoResult = fetchRestroomsFromKakaoForCurrentArea(center, radius, requestSeq).then(applyItems).catch(function(){return false;});
+        var osmResult = fetchRestroomsFromOsm(center, radius, { force: !!options.force, signal: controller && controller.signal }).then(applyItems).catch(function(){return false;});
+        return Promise.all([kakaoResult,osmResult]).then(function(results){return results.some(Boolean);});
     }
 
     var isSeoul = isLikelySeoulArea(center);
@@ -13746,7 +13773,7 @@ var STATIC_EXTRA_I18N = (function() {
         sourcesIntro:["길로아의 ‘나의 대동여지도’에는 다음 기관과 서비스의 데이터가 사용됩니다.","GILOA's My Journey Map uses data from the following organizations and services.","GILOAの「私だけの旅地図」は、以下の機関とサービスのデータを使用しています。","GILOA 的“我的旅行地图”使用以下机构和服务提供的数据。","Mi mapa de viajes de GILOA utiliza datos de las siguientes organizaciones y servicios.","Ma carte de voyage de GILOA utilise les données des organismes et services suivants."],
         sourceTourismCredit:["출처: ⓒ한국관광공사","Source: ⓒ Korea Tourism Organization","出典：ⓒ韓国観光公社","来源：ⓒ韩国观光公社","Fuente: ⓒ Organización de Turismo de Corea","Source : ⓒ Office du tourisme de Corée"],
         sourceTourism:["ⓒ한국관광공사 TourAPI","ⓒ Korea Tourism Organization TourAPI","ⓒ韓国観光公社 TourAPI","ⓒ韩国观光公社 TourAPI","ⓒ Organización de Turismo de Corea TourAPI","ⓒ Office du tourisme de Corée TourAPI"],
-        sourceSeoul:["서울 열린데이터광장","Seoul Open Data Plaza","ソウル開放データ広場","首尔开放数据广场","Portal de datos abiertos de Seúl","Portail des données ouvertes de Séoul"],
+        sourceSeoul:["서울 열린데이터광장 · 카카오맵","Seoul Open Data Plaza · KakaoMap","ソウル開放データ広場 · KakaoMap","首尔开放数据广场 · KakaoMap","Portal de datos abiertos de Seúl · KakaoMap","Portail des données ouvertes de Séoul · KakaoMap"],
         sourceRestrooms:["서울 열린데이터광장 · 카카오맵","Seoul Open Data Plaza · KakaoMap","ソウル開放データ広場 · KakaoMap","首尔开放数据广场 · KakaoMap","Datos abiertos de Seúl · KakaoMap","Données ouvertes de Séoul · KakaoMap"],
         sourceParking:["공공데이터포털 · 전국주차장정보표준데이터","Korea Public Data Portal · National Parking Information Standard Data","韓国公共データポータル · 全国駐車場情報標準データ","韩国公共数据门户 · 全国停车场信息标准数据","Portal de datos públicos de Corea · Datos nacionales normalizados de aparcamientos","Portail des données publiques de Corée · Données nationales normalisées sur les parkings"],
         sourceFishing:["행정안전부 · 전국 낚시터정보","Ministry of the Interior and Safety · National Fishing Site Information","韓国行政安全部 · 全国釣り場情報","韩国行政安全部 · 全国垂钓场信息","Ministerio del Interior y Seguridad de Corea · Información nacional de lugares de pesca","Ministère coréen de l’Intérieur et de la Sécurité · Informations nationales sur les sites de pêche"],

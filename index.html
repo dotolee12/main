@@ -78,7 +78,7 @@ html,body{background:#1a2035;margin:0;height:100%;width:100%;overflow:hidden}
 <!-- 큰 벤더/앱 스크립트를 head 단계에서 미리 프리로드하여, 본문 파싱이 끝날 때까지
      기다리지 않고 CSS와 동시에 다운로드가 시작되도록 한다. (버퍼링 단축) -->
 <link rel="preload" as="script" href="./vendor/leaflet.js?v=app-local-9">
-<link rel="preload" as="script" href="./script.js?v=app-local-228">
+<link rel="preload" as="script" href="./script.js?v=app-local-229">
 <link rel="stylesheet" href="./vendor/leaflet.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.Default.css?v=app-local-9">
@@ -215,7 +215,7 @@ var skipText={
     </div>
     <div class="map-layer-item" onclick="toggleMapLayer('library')">
       <span class="map-layer-dot" style="--layer-color:#60a5fa;"></span>
-      <span class="map-layer-copy"><span class="map-layer-name" id="map-layer-name-library">도서관</span><small class="map-layer-source" data-i18n-extra="sourceSeoul">서울 열린데이터광장</small></span>
+      <span class="map-layer-copy"><span class="map-layer-name" id="map-layer-name-library">도서관</span><small class="map-layer-source" data-i18n-extra="sourceSeoul">서울 열린데이터광장 · 카카오맵</small></span>
       <div id="layer-toggle-library" class="toggle-switch small"><div class="toggle-knob"></div></div>
     </div>
     <div class="map-layer-item" onclick="toggleMapLayer('restaurant')">
@@ -344,7 +344,7 @@ var skipText={
     <div class="giloa-sources-list">
       <article><strong data-i18n-extra="sourceTourismTypes">관광지 · 음식점 · 숙박 · 축제 · 관광사진</strong><span data-i18n-extra="sourceTourism">ⓒ한국관광공사 TourAPI</span></article>
       <article><strong data-i18n-extra="sourceTrailsType">공식 탐방로</strong><span data-i18n-extra="sourceTrails">한국관광공사 두루누비 · 한국등산·트레킹지원센터 국가숲길</span></article>
-      <article><strong data-i18n-extra="sourceFacilitiesTypes">도서관 · 공중화장실</strong><span data-i18n-extra="sourceSeoul">서울 열린데이터광장</span></article>
+      <article><strong data-i18n-extra="sourceFacilitiesTypes">도서관 · 공중화장실</strong><span data-i18n-extra="sourceSeoul">서울 열린데이터광장 · 카카오맵</span></article>
       <article><strong data-i18n-extra="sourceParkingType">주차장</strong><span data-i18n-extra="sourceParking">공공데이터포털 · 전국주차장정보표준데이터</span></article>
       <article><strong data-i18n-extra="sourceFishingType">낚시터</strong><span data-i18n-extra="sourceFishing">행정안전부 · 전국 낚시터정보</span></article>
       <article><strong data-i18n-extra="sourceDirectionsTypes">장소 검색 · 교통정보 · 길찾기</strong><span data-i18n-extra="sourceKakao">카카오맵</span></article>
@@ -481,6 +481,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <span id="adventure-music-status" class="music-screen-reader" role="status" aria-live="polite"></span>
 
 <div id="daily-task-widget">
+  <button id="place-search-button" type="button" aria-label="장소 검색" title="장소 검색" aria-expanded="false" aria-controls="local-shops-panel" onclick="window.GiloaPlaceSearch ? window.GiloaPlaceSearch.open() : window.giloaRetryPlaceModule()"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg></button>
   <button id="daily-task-tag" type="button" onclick="toggleDailyTasks()" aria-expanded="false" aria-controls="daily-task-panel">
     <span id="daily-task-tag-label" class="daily-task-tag-label">할 일</span>
     <span id="daily-task-tag-count">0/3</span>
@@ -900,6 +901,27 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 </div>
 </section>
 
+<script id="giloa-place-module-recovery">
+(function () {
+    var pending = {}, retried = {};
+    var modules = { shops:['./local-shops.js?v=8',function(){return !!window.GiloaPlaceSearch;}], medical:['./medical-layers.js?v=map-order-3',function(){return !!window.GiloaMedicalLayers;}] };
+    function recover(key, manual) {
+        var spec = modules[key];
+        if (spec[1]()) { if (manual && key === 'shops') window.GiloaPlaceSearch.open(); return; }
+        if (pending[key] || (!manual && retried[key])) return;
+        retried[key] = true; pending[key] = true;
+        var script = document.createElement('script');
+        script.src = spec[0] + '&recovery=1';
+        function done() { pending[key] = false; script.remove(); }
+        script.onload = function() { done(); if (manual && window.GiloaPlaceSearch) window.GiloaPlaceSearch.open(); };
+        script.onerror = function() { done(); if (manual) { var button=document.getElementById('place-search-button'); if(button) button.title = document.documentElement.lang === 'ko' ? '연결 후 검색 버튼을 다시 눌러 주세요.' : 'Reconnect and press search again.'; } };
+        document.head.appendChild(script);
+    }
+    window.giloaRetryPlaceModule = function() { recover('shops',true); };
+    document.addEventListener('DOMContentLoaded',function(){ recover('shops',false); recover('medical',false); });
+    window.addEventListener('online',function(){ retried = {}; recover('shops',false); recover('medical',false); });
+}());
+</script>
 <!-- defer: 브라우저가 순서를 지키면서도 동시에 병렬로 내려받게 하여,
      기존의 '하나씩 순차 다운로드+실행' 방식보다 초기 로딩(버퍼링)을 크게 줄인다. -->
 <script src="./vendor/leaflet.js?v=app-local-9" defer></script>
@@ -911,13 +933,13 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <script src="./data/libraries_seoul.bundle.js?v=20261021" defer></script>
 <script src="./privacy-policy.js?v=20261021" defer></script>
 <script src="./gpx-access.js?v=1" defer></script>
-<script src="./script.js?v=app-local-228" defer></script>
+<script src="./script.js?v=app-local-229" defer></script>
 <script src="./parking.js?v=2" defer></script>
 <link rel="stylesheet" href="./local-shops.css?v=7">
-<script src="./local-shops.js?v=7" defer></script>
+<script src="./local-shops.js?v=8" defer></script>
 <script src="./trip-share.js?v=app-local-1" defer></script>
 <script src="./supabase-sync.js?v=app-local-3" defer></script>
-<script src="./medical-layers.js?v=map-order-2" defer></script>
+<script src="./medical-layers.js?v=map-order-3" defer></script>
 <script src="./time-trace.js?v=app-local-1" defer></script>
 <script src="./hidden-missions.obfuscated.js?v=app-local-2" defer></script>
 <script src="./tutorial.js?v=app-local-134" defer></script>
@@ -926,7 +948,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <script>
 if (window.location.protocol !== "file:" && "serviceWorker" in navigator && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
     window.addEventListener("load", function() {
-    navigator.serviceWorker.register("./sw.js?v=app-local-214", { updateViaCache: "none" })
+    navigator.serviceWorker.register("./sw.js?v=app-local-215", { updateViaCache: "none" })
             .then(function(registration) { console.log("SW 등록 완료"); return registration.update(); })
             .catch(function(e) { console.warn("SW 등록 실패", e); });
     });
