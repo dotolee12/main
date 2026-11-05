@@ -15,6 +15,10 @@
     Object.assign(TEXT.en,{hint:'Show convenience stores, supermarkets and cafés together within 1 km. Search any place by name. Results are limited.',query:'Search a place name'});
     Object.assign(TEXT.ja,{hint:'半径1kmのコンビニ・スーパー・カフェを一緒に表示します。店名検索は分類で制限しません。表示件数には制限があります。',query:'店名を検索'});
     Object.assign(TEXT.zh,{hint:'同时显示1公里内的便利店、超市和咖啡店。店名搜索不限类别，结果数量有限。',query:'搜索店名'});
+    Object.assign(TEXT.ko,{title:'장소 검색',hint:'병원·카페·편의점·관광지 등 종류에 관계없이 검색해요. 종류를 입력하면 지도 중심 1km, 장소 이름을 입력하면 더 넓은 범위에서 찾아요.',query:'병원, 카페, 관광지 또는 장소 이름',search:'검색',empty:'검색된 장소가 없어요. 검색어나 지도 위치를 바꿔 보세요.',loading:'장소를 찾고 있어요…',count:'검색 결과 {n}곳',clear:'검색 결과 지우기',find:'웹에서 더 보기 ↗',layerTitle:'동네가게',layerHint:'카페 · 편의점 · 마트',prompt:'찾고 싶은 장소를 입력해 주세요.'});
+    Object.assign(TEXT.en,{title:'Place search',hint:'Search hospitals, cafés, shops and attractions. Categories search within 1 km; place names search a wider area.',query:'Hospital, café, attraction or place name',search:'Search',empty:'No places found. Try another query or area.',loading:'Finding places…',count:'{n} places found',clear:'Clear search results',find:'More on the web ↗',layerTitle:'Local shops',layerHint:'Cafés · convenience stores · supermarkets',prompt:'Enter a place or category.'});
+    Object.assign(TEXT.ja,{title:'場所を検索',hint:'病院・カフェ・店舗・観光地を検索します。分類は半径1km、店名は広い範囲で検索します。',query:'病院・カフェ・観光地・店名',search:'検索',empty:'場所が見つかりません。検索語や地域を変えてください。',loading:'検索中…',count:'検索結果 {n}件',clear:'検索結果を消す',find:'ウェブで詳しく見る ↗',layerTitle:'近所のお店',layerHint:'カフェ・コンビニ・スーパー',prompt:'場所や種類を入力してください。'});
+    Object.assign(TEXT.zh,{title:'地点搜索',hint:'搜索医院、咖啡店、商店和景点。类别搜索范围为1公里，店名搜索范围更广。',query:'医院、咖啡店、景点或店名',search:'搜索',empty:'未找到地点，请更换关键词或区域。',loading:'正在搜索地点…',count:'找到 {n} 个地点',clear:'清除搜索结果',find:'查看更多网页 ↗',layerTitle:'附近商店',layerHint:'咖啡店・便利店・超市',prompt:'请输入地点或类别。'});
     // Static brand artwork only. Place results remain transient and are not stored.
     var BRANDS = [
         {id:'seven-eleven',label:'7-Eleven',match:/^(세븐일레븐|7eleven|seveneleven)/},
@@ -27,6 +31,7 @@
         {id:'lotte-mart',label:'LOTTE MART',match:/^(롯데마트|lottemart)/}
     ];
     var shopMap, panel, button, layer, items = [], selected = null, request = 0, linkRequest = 0, controller = null;
+    var shopsLayer, shopsItems = [], shopsRequest = 0, shopsTimer = null, layerRow, localEnabled = false;
     function words() { var lang = typeof currentLang === 'string' ? currentLang : document.documentElement.lang; return TEXT[String(lang || 'ko').slice(0,2)] || TEXT.en; }
     function el(key) { return panel.querySelector('[data-shops="' + key + '"]'); }
     function text(tag, value, parent) { var node = document.createElement(tag); node.textContent = value || ''; if (parent) parent.appendChild(node); return node; }
@@ -62,14 +67,16 @@
         el('external').href = 'https://map.kakao.com/link/search/' + encodeURIComponent([area,query].filter(Boolean).join(' '));
     }
     function validPoint(lat, lng) { return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180; }
-    function shop(item, center) {
+    function shop(item, center, localOnly) {
         var lat = Number(item.y), lng = Number(item.x);
-        if (!item.id || !item.place_name || !validPoint(lat,lng) || shopMap.distance(center,[lat,lng]) > 1000) return null;
+        if (!item.id || !item.place_name || !validPoint(lat,lng) || (localOnly && shopMap.distance(center,[lat,lng]) > 1000)) return null;
         return {id:String(item.id),name:String(item.place_name),address:String(item.road_address_name || item.address_name || ''),phone:String(item.phone || ''),lat:lat,lng:lng,distance:Math.round(shopMap.distance(center,[lat,lng]))};
     }
     function cancelLinks() { linkRequest++; if (controller) controller.abort(); controller = null; }
-    function close() { panel.hidden = true; request++; cancelLinks(); el('search').disabled = false; }
+    function close() { panel.hidden = true; button.setAttribute('aria-expanded','false'); request++; cancelLinks(); el('search').disabled = false; }
     function clear() { close(); items = []; selected = null; layer.clearLayers(); button.classList.remove('is-active'); }
+    function distanceLabel(item) { return item.distance < 1000 ? item.distance + 'm' : (item.distance / 1000).toFixed(1) + 'km'; }
+    function focusPlace(item) { if (item.distance > 1000 && typeof shopMap.setView === 'function') shopMap.setView([item.lat,item.lng],16); else shopMap.panTo([item.lat,item.lng]); }
     function render() {
         var w = words();
         button.title = w.title; button.setAttribute('aria-label',w.title);
@@ -79,9 +86,9 @@
         el('source').href = fromOsm ? 'https://www.openstreetmap.org/copyright' : 'https://map.kakao.com';
         el('close').setAttribute('aria-label',w.close); el('query').placeholder = w.query; el('query').setAttribute('aria-label',w.query);
         externalSearch();
-        el('list').replaceChildren(); layer.clearLayers();
+        el('list').hidden = false; el('list').replaceChildren(); layer.clearLayers();
         items.forEach(function(item) {
-            var row = text('button','',el('list')); row.appendChild(badge(item)); text('span',item.name + ' · ' + item.distance + 'm',row); row.type = 'button'; row.onclick = function() { show(item); shopMap.panTo([item.lat,item.lng]); };
+            var row = text('button','',el('list')); row.appendChild(badge(item)); text('span',item.name + ' · ' + distanceLabel(item),row); row.type = 'button'; row.onclick = function() { show(item); focusPlace(item); };
             var icon = L.divIcon({className:'local-shop-marker',html:badge(item),iconSize:[56,44],iconAnchor:[28,44]});
             L.marker([item.lat,item.lng],{pane:'localShopsPane',icon:icon,title:item.name,bubblingMouseEvents:false}).addTo(layer).on('click',function() { panel.hidden = false; show(item); });
         });
@@ -95,31 +102,33 @@
         status.textContent = buy || website ? w.linkHint : w.missing;
         if (buy || website) link(box,w.osm,'https://www.openstreetmap.org/copyright');
     }
-    async function osmSearch(center, query, id) {
+    async function osmSearch(center, query, isCurrent) {
         var timeout = new AbortController(), timer = setTimeout(function() { timeout.abort(); },9000);
         try {
             var around = '(around:1000,' + center.lat.toFixed(6) + ',' + center.lng.toFixed(6) + ');';
-            var q = '[out:json][timeout:6];(nwr["shop"]' + around + 'nwr["amenity"="cafe"]' + around + (query ? 'nwr["amenity"="pharmacy"]' + around + 'nwr["amenity"="restaurant"]' + around : '') + ');out center tags 150;';
+            var q = '[out:json][timeout:6];(nwr' + (query ? '["shop"]' : '["shop"~"^(convenience|supermarket|grocery|greengrocer)$"]') + around + 'nwr["amenity"="cafe"]' + around + (query ? 'nwr["amenity"~"^(hospital|clinic|doctors|pharmacy|restaurant)$"]' + around + 'nwr["tourism"]' + around : '') + ');out center tags 150;';
             var response = await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:new URLSearchParams({data:q}),signal:timeout.signal,cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer'});
             if (!response.ok) throw new Error('OSM unavailable');
-            var data = await response.json(); if (id !== request) return [];
+            var data = await response.json(); if (!isCurrent()) return [];
             return (data.elements || []).map(function(item) {
                 var p = item.center || item, tags = item.tags || {}, lat = Number(p.lat), lng = Number(p.lon);
                 var name = tags['name:ko'] || tags.name || tags.brand;
                 if (!name || !validPoint(lat,lng) || shopMap.distance(center,[lat,lng]) > 1000) return null;
-                if (query && !searchName([tags.name,tags['name:ko'],tags.brand,tags['brand:ko'],tags.operator,tags.shop,tags.cuisine].join(' ')).includes(searchName(query))) return null;
+                var category = query && categoryFor(query), categoryMatch = category && ({HP8:/^(hospital|clinic|doctors)$/.test(tags.amenity || ''),PM9:tags.amenity === 'pharmacy',CE7:tags.amenity === 'cafe',CS2:tags.shop === 'convenience',MT1:/^(supermarket|grocery|greengrocer)$/.test(tags.shop || ''),AT4:!!tags.tourism,FD6:tags.amenity === 'restaurant'})[category];
+                if (query && !categoryMatch && !searchName([tags.name,tags['name:ko'],tags.brand,tags['brand:ko'],tags.operator,tags.shop,tags.cuisine].join(' ')).includes(searchName(query))) return null;
                 return {id:'osm-' + item.type + '-' + item.id,name:name,address:tags['addr:full'] || [tags['addr:city'],tags['addr:street'],tags['addr:housenumber']].filter(Boolean).join(' '),phone:tags.phone || tags['contact:phone'] || '',lat:lat,lng:lng,distance:Math.round(shopMap.distance(center,[lat,lng])),osm:tags};
             }).filter(Boolean).sort(function(a,b) { return a.distance - b.distance; }).slice(0,60);
         } finally { clearTimeout(timer); }
     }
     function show(item) {
         cancelLinks(); selected = item;
+        button.setAttribute('aria-expanded','true');
         var w = words(), box = el('detail'); box.replaceChildren(); box.hidden = false;
         text('h3',item.name,box); text('p',item.address,box);
         if (item.phone) { var phone = text('p',item.phone,box); var digits = item.phone.replace(/[^0-9+]/g,''); if (digits) { phone.replaceChildren(); var a = text('a',item.phone,phone); a.href = 'tel:' + digits; } }
         var actions = text('div','',box); actions.className = 'local-shop-actions';
         if (!item.osm) link(actions,w.detail,'https://place.map.kakao.com/' + encodeURIComponent(item.id));
-        link(actions,w.find,'https://search.naver.com/search.naver?query=' + encodeURIComponent(item.name + ' ' + item.address + ' 온라인 구매'));
+        link(actions,w.find,'https://search.naver.com/search.naver?query=' + encodeURIComponent(item.name + ' ' + item.address));
         var status = text('p',w.checking,box); status.setAttribute('role','status');
         if (item.osm) { showLinks(box,actions,item.osm,status); return; }
         var id = linkRequest;
@@ -140,57 +149,110 @@
             showLinks(box,actions,tags,status);
         }).catch(function() { if (id === linkRequest && !panel.hidden) status.textContent = w.linkError; }).finally(function() { clearTimeout(timer); if (id === linkRequest) controller = null; });
     }
+    function categoryFor(query) {
+        var key = normalize(query), groups = {HP8:['병원','의원','hospital','hospitals','病院','医院'],PM9:['약국','pharmacy','薬局','药店'],CE7:['카페','cafe','cafes','カフェ','咖啡店'],CS2:['편의점','conveniencestore','コンビニ','便利店'],MT1:['마트','슈퍼마켓','supermarket','スーパー','超市'],AT4:['관광지','여행지','attraction','attractions','観光地','景点'],FD6:['음식점','식당','restaurant','レストラン','餐厅']};
+        return Object.keys(groups).find(function(code) { return groups[code].some(function(word) { return normalize(word) === key; }); });
+    }
+    async function findPlaces(center, query, isCurrent) {
+        await loadKakaoTrafficSdk(); if (!isCurrent()) return [];
+        var services = window.kakao.maps.services, category = query && categoryFor(query);
+        function providerSearch(value, isCategory, localOnly) { return new Promise(function(resolve,reject) {
+            var timer = setTimeout(function() { reject(new Error('Place search timeout')); },9000);
+            function done(data,status) { clearTimeout(timer); if (status === services.Status.ZERO_RESULT) resolve([]); else if (status === services.Status.OK) resolve(data || []); else reject(new Error('Place search failed')); }
+            var options = {location:new window.kakao.maps.LatLng(center.lat,center.lng),size:15,sort:localOnly ? services.SortBy.DISTANCE : services.SortBy.ACCURACY};
+            if (localOnly) options.radius = 1000;
+            var places = new services.Places();
+            try { if (isCategory) places.categorySearch(value,done,options); else places.keywordSearch(value,done,options); }
+            catch (error) { clearTimeout(timer); reject(error); }
+        }); }
+        var results;
+        if (query) results = await providerSearch(category || query,!!category,!!category);
+        else {
+            var markets = providerSearch('마트',false,true).then(function(places) { return places.filter(function(place) { return place.category_group_code === 'MT1' || /슈퍼|수퍼|식료품|하나로마트|대형마트/.test(place.category_name || ''); }); });
+            var groups = await Promise.allSettled([providerSearch('CS2',true,true),providerSearch('MT1',true,true),providerSearch('CE7',true,true),markets]);
+            if (groups.every(function(group) { return group.status === 'rejected'; })) throw new Error('Place search failed');
+            results = groups.filter(function(group) { return group.status === 'fulfilled'; }).flatMap(function(group) { return group.value; });
+        }
+        if (!isCurrent()) return [];
+        var seen = new Set();
+        return results.map(function(item) { return shop(item,center,!query || !!category); }).filter(function(item) { if (!item || seen.has(item.id)) return false; seen.add(item.id); return true; }).sort(function(a,b) { return a.distance - b.distance; });
+    }
     async function search() {
         var id = ++request, w = words(); cancelLinks(); selected = null; el('detail').hidden = true;
         items = []; render(); button.classList.remove('is-active'); el('search').disabled = false;
+        var query = el('query').value.trim().slice(0,100);
+        if (!query) { el('status').textContent = w.prompt; return; }
         if (navigator.onLine === false) { el('status').textContent = w.offline; return; }
         el('status').textContent = w.loading; el('search').disabled = true;
-        var center = shopMap.getCenter(), query = el('query').value.trim().slice(0,100);
+        var center = shopMap.getCenter(), current = function() { return id === request; };
         try {
-            await loadKakaoTrafficSdk();
-            if (id !== request) return;
-            var services = window.kakao.maps.services;
-            function providerSearch(value, isCategory) { return new Promise(function(resolve,reject) {
-                var timer = setTimeout(function() { reject(new Error('Shop search timeout')); },9000);
-                function done(data,status) { clearTimeout(timer); if (status === services.Status.ZERO_RESULT) resolve([]); else if (status === services.Status.OK) resolve(data || []); else reject(new Error('Shop search failed')); }
-                var places = new services.Places(), options = {location:new window.kakao.maps.LatLng(center.lat,center.lng),radius:1000,size:15,sort:services.SortBy.DISTANCE};
-                if (isCategory) places.categorySearch(value,done,options);
-                else places.keywordSearch(value,done,options);
-            }); }
-            var results;
-            if (query) results = await providerSearch(query,false);
-            else {
-                var markets = providerSearch('마트',false).then(function(places) {
-                    return places.filter(function(place) { return place.category_group_code === 'MT1' || /슈퍼|수퍼|식료품|하나로마트|대형마트/.test(place.category_name || ''); });
-                });
-                var groups = await Promise.allSettled([providerSearch('CS2',true),providerSearch('MT1',true),providerSearch('CE7',true),markets]);
-                if (groups.every(function(group) { return group.status === 'rejected'; })) throw new Error('Shop search failed');
-                results = groups.filter(function(group) { return group.status === 'fulfilled'; }).flatMap(function(group) { return group.value; });
-            }
-            if (id !== request) return;
-            var seen = new Set();
-            items = results.map(function(item) { return shop(item,center); }).filter(function(item) { if (!item || seen.has(item.id)) return false; seen.add(item.id); return true; }).sort(function(a,b) { return a.distance - b.distance; });
+            items = await findPlaces(center,query,current); if (!current()) return;
             render(); button.classList.toggle('is-active',items.length > 0);
             el('status').textContent = items.length ? words().count.replace('{n}',items.length) : words().empty;
         } catch (_) {
-            if (id !== request) return;
+            if (!current()) return;
             try {
-                items = await osmSearch(center,query,id);
-                if (id !== request) return;
+                items = await osmSearch(center,query,current); if (!current()) return;
                 render(); button.classList.toggle('is-active',items.length > 0);
                 el('status').textContent = (items.length ? words().count.replace('{n}',items.length) : words().empty) + ' ' + words().fallback;
                 el('source').textContent = '© OpenStreetMap contributors'; el('source').href = 'https://www.openstreetmap.org/copyright';
-            } catch (_) { if (id === request) el('status').textContent = words().error; }
+            } catch (_) { if (current()) el('status').textContent = words().error; }
+        } finally { if (current()) el('search').disabled = false; }
+    }
+    function shopsOn() { return typeof mapLayerSettings === 'object' ? !!mapLayerSettings.localshops : localEnabled; }
+    function syncShopRow(message) {
+        if (!layerRow) return;
+        var on = shopsOn(), toggle = layerRow.querySelector('.toggle-switch');
+        layerRow.querySelector('.map-layer-name').textContent = words().layerTitle;
+        layerRow.querySelector('.map-layer-source').textContent = message || words().layerHint;
+        toggle.classList.toggle('on',on); toggle.classList.toggle('off',!on); layerRow.setAttribute('aria-pressed',String(on));
+        if (typeof syncMapLayerItemUI === 'function') syncMapLayerItemUI('localshops');
+    }
+    function renderShops() {
+        shopsLayer.clearLayers(); if (!shopsOn()) return;
+        shopsItems.forEach(function(item) {
+            var icon = L.divIcon({className:'local-shop-marker',html:badge(item),iconSize:[56,44],iconAnchor:[28,44]});
+            L.marker([item.lat,item.lng],{pane:'localShopsPane',icon:icon,title:item.name,bubblingMouseEvents:false}).addTo(shopsLayer).on('click',function() { panel.hidden = false; show(item); el('list').hidden = true; });
+        });
+    }
+    async function refreshShops() {
+        var id = ++shopsRequest; if (!shopsOn()) return;
+        var current = function() { return id === shopsRequest && shopsOn(); }, center = shopMap.getCenter(), found;
+        syncShopRow(words().loading);
+        try { found = await findPlaces(center,'',current); }
+        catch (_) {
+            if (!current()) return;
+            try { found = await osmSearch(center,'',current); }
+            catch (_) { if (current()) syncShopRow(words().error); return; }
         }
-        finally { if (id === request) el('search').disabled = false; }
+        if (!current()) return;
+        shopsItems = found; renderShops(); syncShopRow();
+    }
+    function toggleShops() {
+        localEnabled = !shopsOn();
+        if (typeof mapLayerSettings === 'object') { mapLayerSettings.localshops = localEnabled; if (typeof saveMapLayerSettings === 'function') saveMapLayerSettings(); }
+        syncShopRow();
+        if (localEnabled) refreshShops(); else { shopsRequest++; shopsItems = []; shopsLayer.clearLayers(); }
+    }
+    function addShopRow() {
+        var target = document.getElementById('map-layer-panel'); if (!target) return;
+        if (typeof MAP_LAYER_TILE_KEYS !== 'undefined' && MAP_LAYER_TILE_KEYS.indexOf('localshops') < 0) MAP_LAYER_TILE_KEYS.push('localshops');
+        layerRow = document.createElement('div'); layerRow.className = 'map-layer-item'; layerRow.id = 'map-layer-localshops'; layerRow.setAttribute('role','button'); layerRow.tabIndex = 0;
+        layerRow.innerHTML = '<span class="map-layer-menu-icon" aria-hidden="true">🛍</span><span class="map-layer-copy"><span class="map-layer-name" id="map-layer-name-localshops"></span><small class="map-layer-source" id="map-layer-source-localshops"></small></span><div id="layer-toggle-localshops" class="toggle-switch small"><div class="toggle-knob"></div></div>';
+        layerRow.onclick = toggleShops; target.appendChild(layerRow); syncShopRow();
+        if (typeof syncMapLayerItemUI !== 'function') layerRow.onkeydown = function(event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleShops(); } };
+        if (typeof window.refreshMapLayerTileOrder === 'function') window.refreshMapLayerTileOrder();
     }
     function setup() {
         if (panel) return;
         shopMap = window.giloaMapBootstrap;
-        var controls = document.getElementById('controls'); if (!shopMap || !window.L || !controls) return;
+        var tasks = document.getElementById('daily-task-widget'), taskButton = document.getElementById('daily-task-tag'); if (!shopMap || !window.L || !tasks || !taskButton) return;
         shopMap.createPane('localShopsPane').style.zIndex = '645';
         layer = L.layerGroup().addTo(shopMap);
-        button = text('button','🛍',controls); button.id = 'local-shops-button'; button.type = 'button'; button.className = 'btn';
+        shopsLayer = L.layerGroup().addTo(shopMap);
+        button = document.createElement('button'); button.id = 'place-search-button'; button.type = 'button';
+        button.innerHTML = '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg>';
+        button.setAttribute('aria-expanded','false'); button.setAttribute('aria-controls','local-shops-panel'); tasks.insertBefore(button,taskButton);
         panel = document.createElement('section'); panel.id = 'local-shops-panel'; panel.hidden = true; panel.setAttribute('role','dialog'); panel.setAttribute('aria-labelledby','local-shops-title');
         panel.innerHTML = '<header><h2 id="local-shops-title" data-shops-text="title"></h2><button type="button" data-shops="close">×</button></header><p data-shops-text="hint"></p>' +
             '<form data-shops="form"><input data-shops="query" maxlength="100"><button type="submit" data-shops="search" data-shops-text="search"></button></form>' +
@@ -199,13 +261,19 @@
         var external = document.createElement('a'); external.dataset.shops = 'external'; external.dataset.shopsText = 'external'; external.target = '_blank'; external.rel = 'noopener noreferrer';
         panel.querySelector('footer').prepend(external);
         el('query').addEventListener('input',externalSearch);
-        button.onclick = function() { if (!panel.hidden) { close(); return; } panel.hidden = false; render(); if (!items.length) search(); };
+        button.onclick = function() { if (!panel.hidden) { close(); return; } if (typeof toggleDailyTasks === 'function') toggleDailyTasks(false); panel.hidden = false; button.setAttribute('aria-expanded','true'); render(); if (!items.length) search(); el('query').focus(); };
         el('close').onclick = close; el('clear').onclick = clear; el('form').onsubmit = function(event) { event.preventDefault(); search(); };
         shopMap.on('click',close);
-        shopMap.on('moveend',function() { if (!panel.hidden && items.length && !el('search').disabled) el('status').textContent = words().moved; });
+        shopMap.on('moveend',function() {
+            if (!panel.hidden && items.length && !el('search').disabled) el('status').textContent = words().moved;
+            if (shopsTimer) clearTimeout(shopsTimer);
+            // Invalidate old viewport responses immediately, before the next refresh.
+            shopsRequest++;
+            if (shopsOn()) shopsTimer = setTimeout(function() { shopsTimer = null; refreshShops(); },650);
+        });
         document.addEventListener('keydown',function(event) { if (event.key === 'Escape' && !panel.hidden) { close(); button.focus(); } });
-        new MutationObserver(function() { render(); }).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
-        render();
+        new MutationObserver(function() { render(); renderShops(); syncShopRow(); }).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
+        addShopRow(); render(); if (shopsOn()) refreshShops();
     }
     window.addEventListener('giloa:ready',setup); setup();
 }());

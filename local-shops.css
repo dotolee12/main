@@ -1,5 +1,8 @@
-#local-shops-button{font-size:24px;cursor:pointer}
-#local-shops-button.is-active{border-color:#80d4ae;box-shadow:0 0 12px #80d4ae55}
+#daily-task-widget{display:flex;align-items:center;gap:6px}
+#place-search-button{flex:0 0 42px;display:grid;place-items:center;width:42px;height:42px;padding:8px;border:1px solid #5bc0ff94;border-radius:13px;background:rgba(16,22,38,.92);color:#86daff;box-shadow:0 8px 24px #0004;cursor:pointer}
+#place-search-button.is-active{border-color:#80d4ae;box-shadow:0 0 12px #80d4ae55}
+#place-search-button:focus-visible{outline:2px solid #fff;outline-offset:3px}
+@media(max-width:700px){#place-search-button{flex-basis:36px;width:36px;height:36px;border-radius:10px}}
 .local-shop-marker .local-shop-pin{position:relative;display:flex;align-items:center;justify-content:center;box-sizing:border-box;width:56px;height:44px;padding:4px;border:2px solid #85dcb7;border-radius:10px;background:#fff;color:#17342c;box-shadow:0 3px 9px #0007}
 .local-shop-marker .local-shop-pin:after{content:'';position:absolute;bottom:-7px;left:22px;border-top:6px solid #85dcb7;border-left:5px solid transparent;border-right:5px solid transparent}
 .local-shop-pin img{display:block;width:100%;height:100%;object-fit:contain}
