@@ -18,3 +18,5 @@
 .parking-actions{display:flex;flex-wrap:wrap;gap:6px}
 .parking-picking{cursor:crosshair!important}
 #personal-parking-panel.is-picking{max-height:200px}
+
+.location-tabs{display:flex;gap:8px;margin:12px 0}.location-tabs button{flex:1;min-height:42px;padding:8px;border:1px solid #66718e;border-radius:10px;background:#202236;color:#bdc5d8;font:inherit;cursor:pointer}.location-tabs button[aria-pressed=true],#personal-parking-panel .location-tabs button[aria-pressed=true]{border-color:#74cff7;color:#fff;background:#22445a}#personal-parking-panel [data-parking=video]{display:block;width:100%;max-height:240px;background:#10121a;border-radius:10px;margin:10px 0;object-fit:contain}

@@ -7,7 +7,7 @@ const {JSDOM} = require(process.env.GPX_TEST_DEPS ? path.join(process.env.GPX_TE
 const source = fs.readFileSync(path.join(__dirname, '..', 'parking.js'), 'utf8');
 const key = 'giloa-personal-parking-v1';
 function start(saved) {
-    const dom = new JSDOM('<html lang="ko"><body><div id="controls"></div><div id="map"></div></body></html>', {url:'https://giloa.test', runScripts:'outside-only'});
+    const dom = new JSDOM('<html lang="ko"><body><div id="controls"></div><div id="map"></div><div id="special-place-editor"><div id="special-place-title"></div><textarea id="special-place-note"></textarea></div></body></html>', {url:'https://giloa.test', runScripts:'outside-only'});
     const w = dom.window, handlers = {}, markers = [];
     const map = {createPane:()=>({style:{}}), getContainer:()=>w.document.getElementById('map'), on:(name, fn)=>{handlers[name]=fn;},
         removeLayer:marker=>{marker.removed=true;}, panTo:point=>{map.center=point;}, setView:point=>{map.center=point;}, getZoom:()=>16, wrapLatLng:point=>point};
@@ -17,6 +17,9 @@ function start(saved) {
     w.confirm = ()=>true;
     if (saved) w.localStorage.setItem(key, JSON.stringify(saved));
     w.localStorage.setItem('journey-fixture', 'original GPS/photos/memories');
+    w.specialPlaceEditorCoords = {latitude:37.52, longitude:127.2};
+    w.closeSpecialPlaceEditor = ()=>{w.document.getElementById('special-place-editor').hidden=true; w.specialPlaceEditorCoords=null;};
+    w.openSpecialPlaceEditor = (lat,lng)=>{w.specialPlaceEditorCoords={latitude:lat,longitude:lng};w.document.getElementById('special-place-editor').hidden=false;w.document.getElementById('special-place-note').value='';};
     w.eval(source);
     const el = id=>w.document.querySelector('[data-parking="'+id+'"]');
     const open = ()=>w.document.getElementById('personal-parking-button').click();
@@ -85,21 +88,68 @@ test('integrates with the actual bundled Leaflet map and restores a clickable fl
     assert.equal(w.document.getElementById('personal-parking-panel').hidden,true);
     w.giloaMapBootstrap.remove(); w.close();
 });
-test('photo loading blocks saving until compression finishes and the photo restores', () => {
-    const a=start(); a.open(); a.el('pick').click(); a.clickMap();
-    let image;
-    a.w.Image=function(){image=this;this.width=2000;this.height=1000;};
-    a.w.URL.createObjectURL=()=> 'blob:test'; a.w.URL.revokeObjectURL=()=>{};
-    a.w.HTMLCanvasElement.prototype.getContext=()=>({drawImage:()=>{}});
-    a.w.HTMLCanvasElement.prototype.toDataURL=()=> 'data:image/jpeg;base64,dGVzdA==';
-    Object.defineProperty(a.el('photo'),'files',{value:[new a.w.File(['photo'],'sign.jpg',{type:'image/jpeg'})]});
+const tick = ()=>new Promise(resolve=>setTimeout(resolve,0));
+function selectPhoto(a) {
+    Object.defineProperty(a.el('photo'),'files',{configurable:true,value:[new a.w.File(['private photo'],'sign.jpg',{type:'image/jpeg'})]});
     a.el('photo').dispatchEvent(new a.w.Event('change'));
-    assert.equal(a.el('save').disabled,true);
-    a.el('save').click(); assert.equal(a.w.localStorage.getItem(key),null);
-    image.onload(); assert.equal(a.el('save').disabled,false);
+}
+test('OCR stores reviewed text only, preserves user edits and journey data', async () => {
+    const a=start(); a.open(); a.el('pick').click(); a.clickMap();
+    let resolve; a.w.GiloaParkingOcr={recognize:()=>({promise:new Promise(r=>resolve=r),cancel:()=>{}})};
+    selectPhoto(a); assert.equal(a.el('save').disabled,true);
+    a.el('zone').value='D-9'; resolve({floor:'B3',zone:'C-17'}); await tick();
+    assert.equal(a.el('floor').value,'B3'); assert.equal(a.el('zone').value,'D-9');
+    assert.equal(a.el('photo').value,''); assert.equal(a.el('preview').hasAttribute('src'),false);
     a.el('save').click(); const saved=JSON.parse(a.w.localStorage.getItem(key));
-    assert.equal(saved.photo,'data:image/jpeg;base64,dGVzdA==');
-    const b=start(saved); b.open(); assert.equal(b.el('preview').hidden,false);
-    assert.match(b.el('preview').src,/^data:image\/jpeg/);
-    a.dom.window.close(); b.dom.window.close();
+    assert.equal(saved.floor,'B3'); assert.equal(saved.photo,'');
+    assert.doesNotMatch(JSON.stringify(saved),/private photo|data:image|blob:/);
+    assert.equal(a.w.localStorage.getItem('journey-fixture'),'original GPS/photos/memories'); a.w.close();
+});
+test('late OCR result is cancelled on close and cannot update a reopened editor', async () => {
+    const a=start();a.open();let resolve,cancelled=false;
+    a.w.GiloaParkingOcr={recognize:()=>({promise:new Promise(r=>resolve=r),cancel:()=>cancelled=true})};
+    selectPhoto(a);a.el('close').click();a.open();resolve({floor:'B9',zone:'Z-99'});await tick();
+    assert.equal(cancelled,true);assert.equal(a.el('floor').value,'');a.w.close();
+});
+test('existing legacy parking photograph survives editing without new image persistence', async () => {
+    const photo='data:image/jpeg;base64,dGVzdA==';const a=start({lat:37,lng:127,photo:photo});
+    a.open();assert.equal(a.el('preview').hidden,false);a.el('edit').click();a.el('floor').value='B2';a.el('save').click();
+    assert.equal(JSON.parse(a.w.localStorage.getItem(key)).photo,photo);a.w.close();
+});
+test('memo parking tab retains memo draft, starts camera without audio and stops tracks on return', async () => {
+    const a=start();let stopped=0,options;
+    a.w.HTMLMediaElement.prototype.play=()=>Promise.resolve();
+    a.w.navigator.mediaDevices={getUserMedia:value=>{options=value;return Promise.resolve({getTracks:()=>[{stop:()=>stopped++}]});}};
+    a.w.document.getElementById('special-place-note').value='original unsaved memo';
+    a.w.document.querySelector('#location-memo-tabs [data-location-tab=parking]').click();await tick();
+    assert.equal(options.audio,false);assert.equal(a.el('cameraView').hidden,false);
+    assert.match(a.el('location').textContent,/37.52000/);a.el('memo').click();
+    assert.equal(stopped,1);assert.equal(a.el('video').srcObject,null);
+    assert.equal(a.w.document.getElementById('special-place-note').value,'original unsaved memo');
+    assert.equal(a.w.localStorage.getItem(key),null);a.w.close();
+});
+test('pending camera is stopped when permission arrives after closing', async () => {
+    const a=start();a.open();let resolve,stopped=0;
+    a.w.navigator.mediaDevices={getUserMedia:()=>new Promise(r=>resolve=r)};
+    a.el('camera').click();a.el('close').click();resolve({getTracks:()=>[{stop:()=>stopped++}]});await tick();
+    assert.equal(stopped,1);assert.equal(a.el('video').srcObject,null);a.w.close();
+});
+test('denied camera and failed OCR keep manual entry available', async () => {
+    const a=start();a.open();a.w.navigator.mediaDevices={getUserMedia:()=>Promise.reject(new Error('denied'))};
+    a.el('camera').click();await tick();assert.match(a.el('status').textContent,/카메라/);
+    a.w.GiloaParkingOcr={recognize:()=>({promise:Promise.reject(new Error('offline')),cancel:()=>{}})};
+    selectPhoto(a);await tick();assert.match(a.el('status').textContent,/직접/);
+    a.el('pick').click();a.clickMap();assert.equal(a.el('save').disabled,false);a.w.close();
+});
+test('camera captures to a temporary blob and never serializes image pixels', async () => {
+    const a=start();a.open();let stopped=0,received;
+    a.w.HTMLMediaElement.prototype.play=()=>Promise.resolve();
+    a.w.navigator.mediaDevices={getUserMedia:()=>Promise.resolve({getTracks:()=>[{stop:()=>stopped++}]})};
+    a.w.HTMLCanvasElement.prototype.getContext=()=>({drawImage:()=>{}});
+    a.w.HTMLCanvasElement.prototype.toBlob=function(callback){callback(new a.w.Blob(['pixels'],{type:'image/jpeg'}));};
+    a.w.HTMLCanvasElement.prototype.toDataURL=()=>{throw Error('Must never persist pixels');};
+    a.w.GiloaParkingOcr={recognize:blob=>{received=blob;return {promise:Promise.resolve({floor:'B3',zone:'C-17'}),cancel:()=>{}};}};
+    a.el('camera').click();await tick();Object.defineProperty(a.el('video'),'videoWidth',{value:1920});Object.defineProperty(a.el('video'),'videoHeight',{value:1080});
+    a.el('shoot').click();await tick();assert.equal(received.type,'image/jpeg');assert.equal(stopped,1);
+    assert.equal(a.el('floor').value,'B3');assert.equal(a.el('video').srcObject,null);assert.equal(a.w.localStorage.getItem(key),null);a.w.close();
 });

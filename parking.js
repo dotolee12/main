@@ -10,7 +10,17 @@
         es: {title:'Encontrar mi coche', empty:'No hay ubicación guardada.', gps:'Usar ubicación actual', pick:'Elegir en el mapa', picking:'Toca el aparcamiento en el mapa.', location:'Elige una ubicación.', selected:'Ubicación seleccionada', floor:'Planta (p. ej. B3)', zone:'Zona (p. ej. C-17)', note:'Nota', photo:'Foto del cartel', removePhoto:'Quitar foto', save:'Guardar aparcamiento', edit:'Editar', find:'Ver en el mapa', clear:'Finalizar aparcamiento', confirm:'¿Eliminar este registro?', close:'Cerrar', cancel:'Cancelar', waiting:'Localizando…', gpsError:'Ubicación no disponible. Elige en el mapa.', weak:'Poca precisión. Comprueba la ubicación en el mapa.', accuracy:'Precisión GPS de unos {m}m', manual:'Ubicación elegida en el mapa', storageError:'No se pudo guardar. Revisa el espacio y los ajustes.', imageError:'No se pudo leer la foto. Elige JPG o PNG.', local:'Se guarda en este navegador. Introduce la planta y zona.', saved:'Ubicación guardada.'},
         fr: {title:'Retrouver ma voiture', empty:'Aucun stationnement enregistré.', gps:'Utiliser ma position', pick:'Choisir sur la carte', picking:'Touchez le parking sur la carte.', location:'Choisissez une position.', selected:'Stationnement sélectionné', floor:'Étage (ex. B3)', zone:'Zone (ex. C-17)', note:'Note', photo:'Photo du panneau', removePhoto:'Supprimer la photo', save:'Enregistrer le stationnement', edit:'Modifier', find:'Voir sur la carte', clear:'Terminer le stationnement', confirm:'Supprimer cet enregistrement ?', close:'Fermer', cancel:'Annuler', waiting:'Localisation…', gpsError:'Position indisponible. Choisissez sur la carte.', weak:'Précision faible. Vérifiez la position sur la carte.', accuracy:'Précision GPS environ {m}m', manual:'Position choisie sur la carte', storageError:'Enregistrement impossible. Vérifiez les réglages et l’espace disponible.', imageError:'Photo illisible. Choisissez JPG ou PNG.', local:'Enregistré dans ce navigateur. Saisissez l’étage et la zone.', saved:'Stationnement enregistré.'}
     };
+    var EXTRA = {
+        ko:{memo:'메모',parking:'주차',camera:'기둥 번호 촬영',shoot:'촬영하고 읽기',gallery:'기존 사진에서 읽기',cameraError:'카메라를 열지 못했어요. 사진을 선택하거나 직접 입력해 주세요.',reading:'층·구역 번호를 읽는 중… 처음에는 인식 도구를 내려받아 시간이 걸릴 수 있어요.',review:'읽은 번호를 확인·수정한 뒤 저장해 주세요.',ocrError:'번호를 읽지 못했어요. 다시 촬영하거나 직접 입력해 주세요.',local:'사진은 기기 안에서만 인식하고 저장하지 않아요. 확인한 층·구역·메모와 위치만 이 브라우저에 저장돼요.'},
+        en:{memo:'Memo',parking:'Parking',camera:'Scan pillar number',shoot:'Capture and read',gallery:'Read existing photo',cameraError:'Camera unavailable. Select a photo or enter the details.',reading:'Reading floor and zone… The first scan downloads the recognition tools.',review:'Check and correct the numbers before saving.',ocrError:'No number recognized. Try again or enter the details.',local:'Photos are processed on this device and never saved by GILOA. Only reviewed text and location are saved in this browser.'},
+        ja:{memo:'メモ',parking:'駐車',camera:'柱番号を撮影',shoot:'撮影して読み取る',gallery:'既存の写真から読む',cameraError:'カメラを開けません。写真を選択するか入力してください。',reading:'階と区画を認識中…初回は認識ツールを取得します。',review:'番号を確認・修正して保存してください。',ocrError:'認識できません。再撮影するか入力してください。',local:'写真は端末内で認識し保存しません。確認した文字と位置のみこのブラウザに保存します。'},
+        zh:{memo:'备注',parking:'停车',camera:'拍摄立柱编号',shoot:'拍摄并识别',gallery:'从已有照片识别',cameraError:'无法打开相机，请选择照片或手动输入。',reading:'正在识别楼层和区域…首次需下载识别工具。',review:'请核对并修改编号后保存。',ocrError:'未识别到编号，请重拍或手动输入。',local:'照片仅在设备内识别，不会保存。仅在此浏览器中保存核对后的文字和位置。'},
+        es:{memo:'Nota',parking:'Aparcar',camera:'Fotografiar número',shoot:'Capturar y leer',gallery:'Leer foto existente',cameraError:'Cámara no disponible. Elige una foto o escribe los datos.',reading:'Leyendo planta y zona… La primera vez se descargan las herramientas.',review:'Revisa y corrige los números antes de guardar.',ocrError:'No se reconoció el número. Reintenta o escribe los datos.',local:'La foto se procesa en el dispositivo y no se guarda. Solo se guardan los datos revisados y la ubicación en este navegador.'},
+        fr:{memo:'Note',parking:'Parking',camera:'Photographier le numéro',shoot:'Capturer et lire',gallery:'Lire une photo existante',cameraError:'Caméra indisponible. Choisissez une photo ou saisissez les informations.',reading:'Lecture de l’étage et de la zone… Le premier scan télécharge les outils.',review:'Vérifiez et corrigez les numéros avant d’enregistrer.',ocrError:'Aucun numéro reconnu. Réessayez ou saisissez les informations.',local:'La photo est traitée sur cet appareil et n’est pas enregistrée. Seuls les textes vérifiés et la position sont conservés dans ce navigateur.'}
+    };
+    Object.keys(TEXT).forEach(function (lang) { Object.assign(TEXT[lang], EXTRA[lang]); });
     var parkingMap, marker, draftMarker, record = null, draft = null, panel, button;
+    var stream = null, cameraRequest = 0, ocrTask = null, memoContext = null;
     var editing = false, picking = false, photoLoading = false, request = 0, photoRequest = 0;
     function words() {
         var lang = typeof currentLang === 'string' ? currentLang : document.documentElement.lang;
@@ -34,7 +44,21 @@
         if (draftMarker) parkingMap.removeLayer(draftMarker);
         draftMarker = null;
     }
+    function stopCamera() {
+        cameraRequest++;
+        if (stream) stream.getTracks().forEach(function (track) { track.stop(); });
+        stream = null;
+        if (panel) { node('video').srcObject = null; node('cameraView').hidden = true; }
+    }
+    function cancelPhoto() {
+        photoRequest++;
+        if (ocrTask) ocrTask.cancel();
+        ocrTask = null; photoLoading = false;
+        stopCamera();
+        if (panel) node('photo').value = '';
+    }
     function close() {
+        cancelPhoto();
         panel.hidden = true;
         panel.classList.remove('is-picking');
         photoLoading = false;
@@ -61,6 +85,7 @@
     }
     function refresh() {
         var w = words();
+        document.querySelectorAll('[data-location-tab]').forEach(function (el) { el.textContent = w[el.dataset.locationTab]; });
         panel.querySelectorAll('[data-parking-text]').forEach(function (el) { el.textContent = w[el.dataset.parkingText]; });
         node('close').setAttribute('aria-label', w.close);
         node('preview').alt = w.photo;
@@ -78,7 +103,9 @@
         node('quality').textContent = record ? (record.accuracy ? w.accuracy.replace('{m}', Math.round(record.accuracy)) : w.manual) : '';
         node('find').hidden = node('edit').hidden = node('clear').hidden = !record;
     }
-    function open(edit) {
+    function open(edit, fromMemo) {
+        cancelPhoto();
+        if (!fromMemo) memoContext = null;
         request++; photoRequest++; picking = false; photoLoading = false; clearDraftMarker();
         panel.classList.remove('is-picking');
         parkingMap.getContainer().classList.remove('parking-picking');
@@ -114,6 +141,7 @@
         }, {enableHighAccuracy:true, timeout:12000, maximumAge:0});
     }
     function pick() {
+        cancelPhoto();
         request++; node('gps').disabled = false;
         picking = true; panel.classList.add('is-picking');
         parkingMap.getContainer().classList.add('parking-picking');
@@ -135,30 +163,76 @@
         catch (_) { status('storageError'); return; }
         record = null; updateMarker(); close();
     }
-    function photoChanged() {
-        var file = node('photo').files[0];
-        var id = ++photoRequest;
-        photoLoading = false; refresh();
-        if (!file) return;
-        if (!/^image\//.test(file.type) || file.size > 25 * 1024 * 1024) { status('imageError'); return; }
-        photoLoading = true; node('save').disabled = true;
-        var url = URL.createObjectURL(file), img = new Image();
-        img.onload = function () {
-            URL.revokeObjectURL(url);
-            if (id !== photoRequest) return;
-            photoLoading = false;
-            try {
-                var scale = Math.min(1, 1000 / Math.max(img.width,img.height));
-                var canvas = document.createElement('canvas');
-                canvas.width = Math.max(1,Math.round(img.width * scale)); canvas.height = Math.max(1,Math.round(img.height * scale));
-                canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
-                var photo = canvas.toDataURL('image/jpeg',0.7);
-                if (photo.length > 700000) throw new Error('Image too large');
-                draft.photo = photo; refresh(); status('');
-            } catch (_) { refresh(); status('imageError'); }
+    function readPhoto(file) {
+        cancelPhoto();
+        if (!file || !/^image\//.test(file.type) || file.size > 25 * 1024 * 1024) { status('imageError'); return; }
+        if (!window.GiloaParkingOcr) { status('ocrError'); return; }
+        var id = photoRequest;
+        var before = {floor:node('floor').value, zone:node('zone').value};
+        photoLoading = true; refresh(); status('reading');
+        ocrTask = window.GiloaParkingOcr.recognize(file);
+        ocrTask.promise.then(function (result) {
+            if (id !== photoRequest || panel.hidden) return;
+            ['floor','zone'].forEach(function (key) {
+                if (result[key] && node(key).value === before[key]) node(key).value = result[key];
+            });
+            photoLoading = false; ocrTask = null; refresh();
+            status(result.floor || result.zone ? 'review' : 'ocrError');
+        }).catch(function () {
+            if (id !== photoRequest || panel.hidden) return;
+            photoLoading = false; ocrTask = null; refresh(); status('ocrError');
+        });
+    }
+    function photoChanged() { var file = node('photo').files[0]; if (file) readPhoto(file); }
+    function camera() {
+        cancelPhoto();
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { status('cameraError'); return; }
+        var id = ++cameraRequest;
+        navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false}).then(function (value) {
+            if (id !== cameraRequest || panel.hidden) { value.getTracks().forEach(function (track) { track.stop(); }); return; }
+            stream = value; node('video').srcObject = value; node('cameraView').hidden = false;
+            var playing = node('video').play(); if (playing && playing.catch) playing.catch(function () { if (id === cameraRequest) { stopCamera(); status('cameraError'); } });
+            status('');
+        }).catch(function () { if (id === cameraRequest) status('cameraError'); });
+    }
+    function shoot() {
+        var video = node('video');
+        if (!video.videoWidth || !video.videoHeight) { status('cameraError'); return; }
+        var canvas = document.createElement('canvas'), id = cameraRequest;
+        var scale = Math.min(1, 1800 / Math.max(video.videoWidth, video.videoHeight));
+        canvas.width = Math.round(video.videoWidth * scale); canvas.height = Math.round(video.videoHeight * scale);
+        try {
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(function (blob) {
+                canvas.width = canvas.height = 0;
+                if (id !== cameraRequest || panel.hidden) return;
+                stopCamera();
+                if (blob) readPhoto(blob); else status('imageError');
+            }, 'image/jpeg', 0.92);
+        } catch (_) { canvas.width = canvas.height = 0; stopCamera(); status('imageError'); }
+    }
+    function memo() {
+        var context = memoContext || (valid(draft) ? {lat:draft.lat, lng:draft.lng, note:''} : null);
+        if (!context || typeof window.openSpecialPlaceEditor !== 'function') return;
+        close();
+        window.openSpecialPlaceEditor(context.lat, context.lng);
+        document.getElementById('special-place-note').value = context.note;
+    }
+    function addMemoTabs() {
+        var title = document.getElementById('special-place-title');
+        if (!title || document.getElementById('location-memo-tabs')) return;
+        var tabs = document.createElement('div'); tabs.id = 'location-memo-tabs'; tabs.className = 'location-tabs';
+        tabs.innerHTML = '<button type="button" aria-pressed="true" data-location-tab="memo"></button><button type="button" aria-pressed="false" data-location-tab="parking"></button>';
+        title.after(tabs);
+        tabs.querySelector('[data-location-tab="parking"]').onclick = function () {
+            if (typeof specialPlaceEditorCoords === 'undefined' || !specialPlaceEditorCoords) return;
+            var coords = specialPlaceEditorCoords;
+            var context = {lat:coords.latitude, lng:coords.longitude, note:document.getElementById('special-place-note').value};
+            window.closeSpecialPlaceEditor();
+            open(true, true); memoContext = context;
+            chooseLocation(context.lat, context.lng, null);
+            camera();
         };
-        img.onerror = function () { URL.revokeObjectURL(url); if (id === photoRequest) { photoLoading = false; refresh(); status('imageError'); } };
-        img.src = url;
     }
     function setup() {
         if (panel) return;
@@ -170,23 +244,27 @@
         panel = document.createElement('section'); panel.id = 'personal-parking-panel'; panel.hidden = true;
         panel.setAttribute('role','dialog'); panel.setAttribute('aria-labelledby','personal-parking-title');
         panel.innerHTML = '<header><h2 id="personal-parking-title" data-parking-text="title"></h2><button type="button" data-parking="close">×</button></header>' +
-            '<p data-parking="status" role="status" aria-live="polite"></p><div data-parking="details"><p data-parking="summary"></p><small data-parking="date"></small><p data-parking="quality"></p><div class="parking-actions"><button type="button" data-parking="find" data-parking-text="find"></button><button type="button" data-parking="edit" data-parking-text="edit"></button><button type="button" data-parking="clear" data-parking-text="clear"></button></div></div>' +
+            '<div class="location-tabs"><button type="button" data-parking="memo" data-location-tab="memo" aria-pressed="false"></button><button type="button" data-parking="parkingTab" data-location-tab="parking" aria-pressed="true"></button></div><p class="parking-local" data-parking-text="local"></p><p data-parking="status" role="status" aria-live="polite"></p><div data-parking="details"><p data-parking="summary"></p><small data-parking="date"></small><p data-parking="quality"></p><div class="parking-actions"><button type="button" data-parking="find" data-parking-text="find"></button><button type="button" data-parking="edit" data-parking-text="edit"></button><button type="button" data-parking="clear" data-parking-text="clear"></button></div></div>' +
             '<div data-parking="editor"><div class="parking-actions"><button type="button" data-parking="gps" data-parking-text="gps"></button><button type="button" data-parking="pick" data-parking-text="pick"></button></div><p data-parking="location"></p>' +
+            '<button type="button" data-parking="camera" data-parking-text="camera"></button><div data-parking="cameraView" hidden><video data-parking="video" autoplay muted playsinline></video><div class="parking-actions"><button type="button" data-parking="shoot" data-parking-text="shoot"></button><button type="button" data-parking="cancelCamera" data-parking-text="cancel"></button></div></div>' +
             '<label><span data-parking-text="floor"></span><input data-parking="floor" maxlength="30"></label><label><span data-parking-text="zone"></span><input data-parking="zone" maxlength="60"></label><label><span data-parking-text="note"></span><textarea data-parking="note" maxlength="300" rows="2"></textarea></label>' +
-            '<label><span data-parking-text="photo"></span><input data-parking="photo" type="file" accept="image/jpeg,image/png,image/webp"></label><button type="button" data-parking="save" data-parking-text="save"></button></div>' +
-            '<img data-parking="preview" alt="" hidden><button type="button" data-parking="removePhoto" data-parking-text="removePhoto" hidden></button><p class="parking-local" data-parking-text="local"></p>';
+            '<label><span data-parking-text="gallery"></span><input data-parking="photo" type="file" accept="image/jpeg,image/png,image/webp"></label><button type="button" data-parking="save" data-parking-text="save"></button></div>' +
+            '<img data-parking="preview" alt="" hidden><button type="button" data-parking="removePhoto" data-parking-text="removePhoto" hidden></button>';
         document.body.appendChild(panel);
         L.DomEvent.disableClickPropagation(panel); L.DomEvent.disableScrollPropagation(panel);
         button.addEventListener('click',function () { panel.hidden ? open(false) : close(); });
+        addMemoTabs();
+        node('camera').onclick = camera; node('shoot').onclick = shoot; node('cancelCamera').onclick = stopCamera;
+        node('memo').onclick = memo; node('parkingTab').onclick = function () { if (editing) camera(); };
         node('close').onclick = close; node('gps').onclick = locate; node('pick').onclick = pick;
         node('save').onclick = save; node('clear').onclick = clear;
         node('edit').onclick = function () { open(true); };
         node('find').onclick = function () { parkingMap.setView([record.lat,record.lng],Math.max(17,parkingMap.getZoom())); close(); };
-        node('removePhoto').onclick = function () { photoRequest++; photoLoading = false; draft.photo = ''; node('photo').value = ''; refresh(); };
+        node('removePhoto').onclick = function () { cancelPhoto(); draft.photo = ''; node('photo').value = ''; refresh(); };
         node('photo').addEventListener('change',photoChanged);
         parkingMap.on('click',function (event) {
             if (panel.hidden) return;
-            if (!picking) { if (!editing) close(); return; }
+            if (!picking) { close(); return; }
             picking = false; panel.classList.remove('is-picking');
             parkingMap.getContainer().classList.remove('parking-picking');
             var point = parkingMap.wrapLatLng(event.latlng);
@@ -200,7 +278,7 @@
             catch (_) { if (!panel.hidden) status('storageError'); }
         });
         try { record = load(); } catch (_) { record = null; }
-        updateMarker();
+        updateMarker(); refresh();
     }
     window.addEventListener('giloa:ready',setup);
     setup();
