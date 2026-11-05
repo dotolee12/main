@@ -24,13 +24,16 @@ w.eval(fs.readFileSync(path.join(root,'startup-music.js'),'utf8'));
 const tick=()=>new Promise(resolve=>setTimeout(resolve,5));
 (async()=>{
     assert.equal(playCount,0); assert.equal(song.autoplay,false); assert.equal(song.loop,false); assert.equal(song.preload,'none');
-    el('gsi-start').click(); await tick(); assert.equal(playCount,0); assert.equal(finishCount,1);
     w.document.body.click(); assert.equal(playCount,0);
+    w.GiloaStartupMusic.start(); await tick(); assert.equal(playCount,1); assert.equal(playing,true);
+    el('gsi-start').click(); await tick(); assert.equal(playCount,1); assert.equal(finishCount,1);
     el('adventure-music-start').click(); await tick();
-    assert.equal(playCount,1); assert.equal(finishCount,2); assert.equal(playing,true); assert.equal(greetingStops,1);
+    assert.equal(playCount,2); assert.equal(finishCount,2); assert.equal(playing,true); assert.equal(greetingStops,2);
     assert.equal(el('adventure-music-toggle').getAttribute('aria-pressed'),'true');
     assert.equal(song.volume,0.35);
     el('adventure-music-toggle').click(); assert.equal(playing,false); assert.equal(song.currentTime,0);
+    assert.equal(w.localStorage.getItem('giloa-startup-music-enabled-v1'),'false');
+    const beforeMuted=playCount;w.GiloaStartupMusic.start();await tick();assert.equal(playCount,beforeMuted);
     el('adventure-music-toggle').click(); await tick(); assert.equal(playing,true);
     greeting.dispatchEvent(new w.Event('play')); assert.equal(playing,false);
     el('adventure-music-toggle').click(); await tick();
@@ -49,6 +52,6 @@ const tick=()=>new Promise(resolve=>setTimeout(resolve,5));
         assert.ok(el('adventure-music-toggle').getAttribute('aria-label'));
     }
     song.dispatchEvent(new w.Event('error'));assert.match(el('adventure-music-status').textContent,/재생하지 못/);
-    console.log('PASS explicit opt-in, silent start, existing onboarding, no autoplay/loop, play/stop/retry, greeting exclusion, background stop, errors, six languages');
+    console.log('PASS default music on launch gesture, remembered mute, existing onboarding, no play before choice, play/stop/retry, greeting exclusion, background stop, errors, six languages');
     dom.window.close();
 })().catch(error=>{console.error(error);dom.window.close();process.exitCode=1;});

@@ -4090,11 +4090,12 @@ function acquireBestPosition(options) {
 var locationResyncPending = false;
 var locationResyncPromise = null;
 var startupLocationRequested = false;
-function focusStartupLocation() {
-    // Restore saved journeys and finish language selection before requesting GPS.
+function focusStartupLocation(options) {
+    options = options || {};
+    // Restore saved journeys first; explicit startup consent may precede the intro.
     // This is a one-time map lookup per launch; recording keeps its own consent flow.
     if (startupLocationRequested || !giloaPersistentStateReady ||
-        !hasSavedIntroLanguage() || safeStorageGet(INTRO_STORY_SEEN_KEY) !== "true") {
+        (!options.beforeIntro && (!hasSavedIntroLanguage() || safeStorageGet(INTRO_STORY_SEEN_KEY) !== "true"))) {
         return Promise.resolve(false);
     }
     startupLocationRequested = true;
@@ -8399,6 +8400,28 @@ function replayGiloaStory() {
 
     return opened;
 }
+var giloaStartupChoicePromise = null;
+function requestGiloaStartupEntryChoice() {
+    if (giloaStartupChoicePromise) return giloaStartupChoicePromise;
+    if (!window.GiloaPrivacy) return Promise.resolve(false);
+    if (typeof hasSavedIntroLanguage === "function" && hasSavedIntroLanguage()) currentLang = normalizeLang(safeStorageGet(LANGUAGE_PREFERENCE_KEY));
+    else if (typeof normalizeLang === "function") currentLang = normalizeLang(navigator.language || currentLang);
+    giloaStartupChoicePromise = window.GiloaPrivacy.requestLocationConsent({force:true,startup:true,onChoice:function() {
+        if (window.GiloaStartupMusic) window.GiloaStartupMusic.start();
+    }});
+    if (window.GiloaBoot && typeof window.GiloaBoot.hide === "function") window.GiloaBoot.hide();
+    return giloaStartupChoicePromise;
+}
+function beginGiloaStartupEntry() {
+    return requestGiloaStartupEntryChoice().then(function(agreed) {
+        // Current-location lookup remains separate from the existing recording disclosure.
+        if (agreed) runInitStep("startup location", function(){return focusStartupLocation({beforeIntro:true});});
+        var firstMeetingShown = false;
+        runInitStep("first launch experience", function(){firstMeetingShown=startFirstLaunchExperience();return firstMeetingShown;});
+        if (!firstMeetingShown) setTimeout(showGiloaUpdateNoticeIfNeeded,450);
+        return agreed;
+    });
+}
 function startFirstLaunchExperience() {
     // 저장된 언어가 없으면 언어 선택 온보딩부터 표시한다.
     if (!hasSavedIntroLanguage()) {
@@ -8526,6 +8549,7 @@ async function initializePersistentJourneyState() {
     return localLoaded || mergedCount > 0;
 }
 async function init() {
+    runInitStep("startup consent", requestGiloaStartupEntryChoice);
     await runInitStep("canvas", resizeCanvas);
     // Make the shell responsive immediately. The map, menu, help and map panning
     // do not need to wait for IndexedDB/native route merging.
@@ -8574,10 +8598,7 @@ async function init() {
     // 조용히 넘어가지 못하고 init() 전체가 여기서 멈춰버려, 이후의 위치 권한 요청/자동
     // 기록 시작(6867~6870줄)까지 실행되지 않는 문제가 있었다. 다른 모든 init 단계와
     // 동일하게 runInitStep으로 감싸 예외를 흡수하고 나머지 init이 계속 진행되게 한다.
-    var firstMeetingShown = false;
-    runInitStep("first launch experience", function() { firstMeetingShown = startFirstLaunchExperience(); return firstMeetingShown; });
-    runInitStep("startup location", focusStartupLocation);
-    if (!firstMeetingShown) setTimeout(showGiloaUpdateNoticeIfNeeded, 450);
+    runInitStep("startup entry", beginGiloaStartupEntry);
     runInitStep("atmosphere", updateTimeAtmosphere);
     setInterval(updateTimeAtmosphere, 10 * 60 * 1000);
     var specialEditor = document.getElementById("special-place-editor");
