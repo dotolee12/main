@@ -1,6 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync(require('node:path').join(__dirname,'..','parking-ocr.js'),'utf8');
-function setup(Tesseract){const context={window:{Tesseract},setTimeout,clearTimeout,URL};vm.runInNewContext(source,context);return context.window.GiloaParkingOcr;}
+function setup(Tesseract){const context={window:{Tesseract},document:{baseURI:'https://giloa.test/'},setTimeout,clearTimeout,URL};vm.runInNewContext(source,context);return context.window.GiloaParkingOcr;}
 test('extracts floor and pillar without confusing B3 with a zone or B-203 with a floor',()=>{
  const api=setup();
  for(const [text,floor,zone] of [['B3\nC-17','B3','C-17'],['지하 2층\nA 112','B2','A-112'],['5F\nC17','5F','C-17'],['B-203','','B-203'],['B3','B3',''],['구역 108','','108'],['주차 요금 1000원','',''],['','', '']]){

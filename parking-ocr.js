@@ -49,7 +49,8 @@
                 var api = await loadEngine();
                 if (cancelled) throw new Error('cancelled');
                 worker = await api.createWorker('kor+eng', 1, {
-                    workerPath:'https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/worker.min.js',
+                    workerPath:new URL('./vendor/tesseract-worker.min.js', document.baseURI).href,
+                    workerBlobURL:false,
                     corePath:'https://cdn.jsdelivr.net/npm/tesseract.js-core@6.0.0',
                     cacheMethod:'none'
                 });
