@@ -179,3 +179,42 @@ test('optional route data is downloaded and cached only when requested', async (
     assert.ok(await runtime.match(asset));
     assert.equal(sw.fetches.filter(url => url.includes('durunubi-routes')).length, 1);
 });
+test('offline startup never substitutes a different application script version', async () => {
+    const sw = worker({fetch:async()=>{throw new Error('offline');}});
+    const cache = await sw.caches.open(sw.context.APP_CACHE);
+    await cache.put(origin+'/script.js?v=legacy',new Response('const map = L.map("map");'));
+    const response = await sw.dispatch('fetch',{request:new Request(origin+'/script.js?v=current')}).complete();
+    assert.equal(response.type,'error');
+    assert.equal(await (await cache.match(origin+'/script.js?v=legacy')).text(),'const map = L.map("map");');
+});
+test('cached exact versions start offline and do not wait for an unavailable network', async () => {
+    const sw = worker({fetch:()=>new Promise(()=>{})});
+    const cache = await sw.caches.open(sw.context.APP_CACHE);
+    await cache.put(origin+'/local-shops.js?v=current',new Response('current shop controls'));
+    const response = await within(sw.dispatch('fetch',{request:new Request(origin+'/local-shops.js?v=current')}).complete());
+    assert.equal(await response.text(),'current shop controls'); assert.equal(sw.fetches.length,0);
+});
+test('new worker precaches the exact scripts and styles referenced by the current page', () => {
+    const sw = worker(); const html = fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+    const assets = new Set([...sw.context.CORE_ASSETS,...sw.context.OPTIONAL_CORE_ASSETS]);
+    for(const asset of ['local-shops.js','local-shops.css','parking.js','parking.css','script.js','style.css','map-bootstrap.js']) {
+        const escaped=asset.replace(/\./g,'\\.'); const match=html.match(new RegExp('(?:src|href)="(\\./'+escaped+'\\?v=[^"]+)"'));
+        assert(match,asset+' is referenced'); assert(assets.has(match[1]),match[1]+' is available before activation');
+    }
+});
+test('incomplete or HTML application responses never enter the asset cache', async () => {
+    for(const kind of ['truncated','html']) {
+        const sw = worker({fetch:async()=>kind==='html'?new Response('<html>error</html>',{headers:{'content-type':'text/html'}}):new Response(new ReadableStream({start(controller){controller.error(new Error('interrupted body'));}}))});
+        const asset=origin+'/local-shops.js?v=new';
+        const response=await sw.dispatch('fetch',{request:new Request(asset)}).complete();
+        assert.equal(response.type,'error'); const cache=await sw.caches.open(sw.context.APP_CACHE); assert.equal(await cache.match(asset),undefined);
+    }
+});
+test('missing shop or parking controls cannot activate a partially installed update', async () => {
+    for (const missing of ['/local-shops.js','/parking.js']) {
+        const sw=worker({fetch:async key=>new URL(key).pathname===missing?new Response('missing',{status:404}):new Response('asset')});
+        const previous=await sw.caches.open('giloa-app-shell-previous'); await previous.put('./index.html',new Response('working page'));
+        await assert.rejects(sw.dispatch('install').complete(),/Required asset failed/);
+        assert.deepEqual(sw.lifecycle,[]);assert.deepEqual(sw.deleted,[]);assert.equal(await (await previous.match('./index.html')).text(),'working page');
+    }
+});

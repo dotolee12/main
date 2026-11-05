@@ -1,4 +1,4 @@
-var APP_CACHE = "giloa-app-shell-v255";
+var APP_CACHE = "giloa-app-shell-v256";
 var RUNTIME_CACHE = "giloa-runtime-v77";
 var TILE_CACHE = "giloa-map-tiles-v6";
 var TILE_CACHE_MAX = 300;
@@ -9,17 +9,18 @@ var RUNTIME_CACHE_MAX = 180;
 // 설치 단계에서 미리 내려받을 필요가 없다. 이전에는 ~90개 파일을 설치 시점에
 // 순차로 요청해 첫 실행/업데이트 시 체감 버퍼링이 커졌었다.
 var CORE_ASSETS = [
-  "./gpx-access.js", "./startup-music.js",
-  "./data/libraries_seoul.bundle.js",
-  "./privacy-policy.js", "./privacy-policy.html", "./privacy-policy.css",
-  "./index.html", "./manifest.json", "./style.css", "./map-bootstrap.js", "./region-stay-core.js", "./script.js", "./trip-share.js", "./supabase-sync.js", "./medical-layers.js",
-  "./vendor/leaflet.css", "./vendor/leaflet.js", "./vendor/MarkerCluster.css", "./vendor/MarkerCluster.Default.css", "./vendor/leaflet.markercluster.js"
+  "./gpx-access.js?v=1", "./startup-music.js?v=1",
+  "./data/libraries_seoul.bundle.js?v=20261021",
+  "./privacy-policy.js?v=20261021", "./privacy-policy.html", "./privacy-policy.css",
+  "./index.html", "./manifest.json", "./style.css?v=app-local-174", "./map-bootstrap.js?v=app-local-4", "./region-stay-core.js?v=app-local-1", "./script.js?v=app-local-227", "./trip-share.js?v=app-local-1", "./supabase-sync.js?v=app-local-3", "./medical-layers.js?v=map-order-1",
+  "./parking.js?v=2", "./parking.css?v=2", "./local-shops.js?v=6", "./local-shops.css?v=6",
+  "./vendor/leaflet.css?v=app-local-9", "./vendor/leaflet.js?v=app-local-9", "./vendor/MarkerCluster.css?v=app-local-9", "./vendor/MarkerCluster.Default.css?v=app-local-9", "./vendor/leaflet.markercluster.js?v=app-local-9"
 ];
 var OPTIONAL_CORE_ASSETS = [
-  "./time-trace.css", "./tutorial.css", "./time-trace.js", "./hidden-missions.obfuscated.js", "./tutorial.js", "./config.js",
+  "./time-trace.css?v=app-local-1", "./tutorial.css?v=app-local-131", "./time-trace.js?v=app-local-1", "./hidden-missions.obfuscated.js?v=app-local-2", "./tutorial.js?v=app-local-134", "./config.js?v=app-local-11",
   // HUD 아바타에 항상 즉시 표시되는 유일한 이미지이므로 core로 유지한다.
   "./gilo many appearance/gilo-tutorial-welcome-transparent.png",
-  "./vendor/heic2any.min.js", "./vendor/exifr.full.umd.js"
+  "./vendor/heic2any.min.js", "./vendor/exifr.full.umd.js?v=7.1.3"
 ];
 
 function trimCache(cacheName, maximum) {
@@ -62,6 +63,10 @@ function fetchWithTimeout(request, timeoutMs) {
       reject(new Error("Network timeout"));
     }, timeoutMs);
     fetch(request, controller ? { signal: controller.signal } : undefined).then(function(response) {
+      // Headers can arrive before a slow or interrupted script body. Keep the
+      // deadline active until all bytes arrive; never cache a broken bundle.
+      return response.clone().arrayBuffer().then(function() { return response; });
+    }).then(function(response) {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
@@ -76,13 +81,9 @@ function fetchWithTimeout(request, timeoutMs) {
 }
 
 function replaceCachedAsset(cache, request, response) {
-  var requestedUrl = new URL(request.url);
-  return cache.keys().then(function(keys) {
-    return Promise.all(keys.filter(function(key) {
-      var cachedUrl = new URL(key.url);
-      return cachedUrl.origin === requestedUrl.origin && cachedUrl.pathname === requestedUrl.pathname;
-    }).map(function(key) { return cache.delete(key); }));
-  }).then(function() { return cache.put(request, response); });
+  // Preserve exact version keys. An older open tab must not evict the files
+  // needed by a newer page (or receive an incompatible older script).
+  return cache.put(request, response);
 }
 
 function requireSuccessfulResponse(response) {
@@ -150,12 +151,14 @@ self.addEventListener("fetch", function(event) {
 
   if (/\.(?:js|css)$/.test(url.pathname)) {
     event.respondWith(caches.open(APP_CACHE).then(function(cache) {
-      return fetchWithTimeout(event.request, 3500).then(function(response) {
-        requireSuccessfulResponse(response);
-        event.waitUntil(replaceCachedAsset(cache, event.request, response.clone()));
-        return response;
-      }).catch(function() {
-        return cache.match(event.request, { ignoreSearch: true }).then(cachedResponseOrError);
+      return cache.match(event.request).then(function(cached) {
+        if (cached && url.searchParams.has("v")) return cached;
+        return fetchWithTimeout(event.request, 12000).then(function(response) {
+          requireSuccessfulResponse(response);
+          if (/text\/html/i.test(response.headers.get("content-type") || "")) throw new Error("HTML returned instead of application asset");
+          event.waitUntil(replaceCachedAsset(cache, event.request, response.clone()));
+          return response;
+        }).catch(function() { return cachedResponseOrError(cached); });
       });
     }));
     return;
