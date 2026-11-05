@@ -69,6 +69,22 @@ test('OSM fallback shows nearby shops and registered sales URLs when Kakao is un
     a.markers[0].click(); await tick(); assert(a.el('detail').querySelector('a[href="https://example.com/buy"]'));
     assert.equal(a.el('detail').querySelector('a[href^="https://place.map.kakao.com/"]'),null); a.dom.window.close();
 });
+test('connection failure offers an accurately labelled external search using the entered store name',async()=>{
+    const a=start(); a.w.loadKakaoTrafficSdk=()=>Promise.reject(new Error('domain mismatch'));
+    a.w.fetch=()=>Promise.reject(new Error('unavailable'));
+    a.el('query').value='세븐일레븐'; a.el('query').dispatchEvent(new a.w.Event('input')); a.open(); await tick();
+    assert.match(a.el('status').textContent,/검색 연결에 문제가/);
+    assert.equal(a.el('external').textContent,'카카오맵에서 검색 ↗');
+    assert.equal(decodeURIComponent(a.el('external').href),'https://map.kakao.com/link/search/세븐일레븐');
+    assert.equal(a.markers.length,0); a.dom.window.close();
+});
+test('fallback matches Korean Seven Eleven searches against English brand-only OSM shops',async()=>{
+    const a=start(); a.w.loadKakaoTrafficSdk=()=>Promise.reject(new Error('domain mismatch'));
+    a.w.fetch=()=>Promise.resolve({ok:true,json:()=>Promise.resolve({elements:[{type:'node',id:7,lat:37.5,lon:127.1,tags:{brand:'7-Eleven',shop:'convenience'}}]})});
+    a.el('query').value='세븐일레븐'; a.el('category').value='CS2'; a.open(); await tick();
+    assert.equal(a.markers.length,1); assert.match(a.el('list').textContent,/7-Eleven/);
+    assert.match(a.el('status').textContent,/공개 지도/); a.dom.window.close();
+});
 test('closing or clearing prevents late searches and link responses from replacing UI',async()=>{
     const a=start(); a.response.defer=true; a.open(); await tick(); a.el('clear').click();
     a.calls[0].cb([fixture],'OK'); await tick(); assert.equal(a.markers.length,0);
