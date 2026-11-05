@@ -13,7 +13,7 @@ test('missing place modules retry after document load; search button exists in t
  const html=fs.readFileSync('index.html','utf8');assert.equal((html.match(/id="place-search-button"/g)||[]).length,1);
  const code=html.match(/<script id="giloa-place-module-recovery">([\s\S]*?)<\/script>/)[1];let listener, scripts=[];
  const c={window:{addEventListener:()=>{}},document:{addEventListener:(e,fn)=>{if(e==='DOMContentLoaded')listener=fn;},createElement:()=>({remove(){}}),head:{appendChild:s=>scripts.push(s)}}};
- vm.createContext(c);vm.runInContext(code,c);listener();assert.equal(scripts.length,2);assert(scripts[0].src.includes('local-shops.js'));listener();assert.equal(scripts.length,2);
+ vm.createContext(c);vm.runInContext(code,c);listener();assert.equal(scripts.length,3);assert(scripts[0].src.includes('local-shops.js'));listener();assert.equal(scripts.length,3);
  let opened=0;c.window.GiloaPlaceSearch={open:()=>opened++};c.window.giloaRetryPlaceModule();assert.equal(opened,1);
 });
 test('Kakao restroom markers render before a slow OSM request finishes',async()=>{

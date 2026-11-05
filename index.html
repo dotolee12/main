@@ -904,7 +904,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <script id="giloa-place-module-recovery">
 (function () {
     var pending = {}, retried = {};
-    var modules = { shops:['./local-shops.js?v=10',function(){return !!window.GiloaPlaceSearch;}], medical:['./medical-layers.js?v=map-order-3',function(){return !!window.GiloaMedicalLayers;}] };
+    var modules = { shops:['./local-shops.js?v=10',function(){return !!window.GiloaPlaceSearch;}], medical:['./medical-layers.js?v=map-order-3',function(){return !!window.GiloaMedicalLayers;}], community:['./community-places.js?v=1',function(){return !!window.GiloaCommunityPlaces;}] };
     function recover(key, manual) {
         var spec = modules[key];
         if (spec[1]()) { if (manual && key === 'shops') window.GiloaPlaceSearch.open(); return; }
@@ -918,8 +918,8 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
         document.head.appendChild(script);
     }
     window.giloaRetryPlaceModule = function() { recover('shops',true); };
-    document.addEventListener('DOMContentLoaded',function(){ recover('shops',false); recover('medical',false); });
-    window.addEventListener('online',function(){ retried = {}; recover('shops',false); recover('medical',false); });
+    document.addEventListener('DOMContentLoaded',function(){ recover('shops',false); recover('medical',false); recover('community',false); });
+    window.addEventListener('online',function(){ retried = {}; recover('shops',false); recover('medical',false); recover('community',false); });
 }());
 </script>
 <!-- defer: 브라우저가 순서를 지키면서도 동시에 병렬로 내려받게 하여,
@@ -940,6 +940,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <script src="./trip-share.js?v=app-local-1" defer></script>
 <script src="./supabase-sync.js?v=app-local-3" defer></script>
 <script src="./medical-layers.js?v=map-order-3" defer></script>
+<script src="./community-places.js?v=1" defer></script>
 <script src="./time-trace.js?v=app-local-1" defer></script>
 <script src="./hidden-missions.obfuscated.js?v=app-local-2" defer></script>
 <script src="./tutorial.js?v=app-local-134" defer></script>
@@ -948,7 +949,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <script>
 if (window.location.protocol !== "file:" && "serviceWorker" in navigator && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
     window.addEventListener("load", function() {
-    navigator.serviceWorker.register("./sw.js?v=app-local-218", { updateViaCache: "none" })
+    navigator.serviceWorker.register("./sw.js?v=app-local-219", { updateViaCache: "none" })
             .then(function(registration) { console.log("SW 등록 완료"); return registration.update(); })
             .catch(function(e) { console.warn("SW 등록 실패", e); });
     });
