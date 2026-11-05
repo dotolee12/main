@@ -68,7 +68,7 @@
         startingWithMusic = true;
         try { silent.click(); } finally { startingWithMusic = false; }
     });
-    function startOnEntry() { if (enabled && !pending && audio.paused) play(); }
+    function startOnEntry(options) { if (options && options.force) setEnabled(true); if (enabled && !pending && audio.paused) play(); }
     window.GiloaStartupMusic = { start:startOnEntry };
     silent.addEventListener("click", function () { if (!startingWithMusic) startOnEntry(); });
     if (introStop) introStop.addEventListener("click",function(event) { event.stopPropagation();setEnabled(false);stop(); });

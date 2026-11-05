@@ -724,7 +724,7 @@ body.gft-active .giloa-tutorial,
 .record-loc-btn.recording .loc-record-icon {
     width: 14px;
     height: 14px;
-    border-radius: 3px;
+    border-radius: 50%;
     background: #ff4444;
     box-shadow: 0 0 0 5px rgba(255,68,68,0.13), 0 0 12px rgba(255,68,68,0.7);
 }

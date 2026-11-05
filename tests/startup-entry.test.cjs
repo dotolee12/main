@@ -12,6 +12,18 @@ function fixture(options={}){
  w.localStorage.setItem('journeys','existing GPS/photos/EXIF');w.currentLang=options.lang||'ko';
  w.GiloaBoot={hide:()=>events.push('gate')};w.runInitStep=(name,fn)=>{events.push(name);return fn();};w.focusStartupLocation=opts=>{assert.equal(opts.beforeIntro,true);events.push('location');return Promise.resolve();};
  w.startFirstLaunchExperience=()=>{events.push('intro');return true;};w.showGiloaUpdateNoticeIfNeeded=()=>{};
+ w.giloaPersistentStateReady=true;w.pendingRecordingStartAfterRestore=false;w.isRecording=!!options.recording;
+ w.recBtn=w.document.getElementById('rec-btn');w.recStatusBox=w.document.getElementById('rec-status-box');w.UI_TEXT={ko:{rec_active:'기록 중',rec_idle:'중단됨'}};w.currentLang='ko';
+ w.requestLocationPermission=()=>options.permissionDenied?Promise.reject(new Error('denied')):Promise.resolve();
+ w.focusCurrentLocation=()=>{events.push('location');return Promise.resolve(true);};
+ w.ensureRecordingSession=()=>events.push('session');w.startAutoRecordingTimer=()=>events.push('eight-hour-timer');w.startTracking=()=>events.push('tracking');
+ for(const name of ['enableDeviceHeading','requestScreenAwake','scheduleSave','updateHud','syncImageMissionUI','dismissAutoRecordingNotice'])w[name]=()=>{};
+ w.earlyUiText=x=>x;w.showLocationToast=()=>events.push('permission-error');
+ const syncStart=core.indexOf('function syncRecordingUI()');w.eval(core.slice(syncStart,core.indexOf('\n',syncStart)));
+ w.eval(core.slice(core.indexOf('function toggleRecording()'),core.indexOf('function dismissAutoRecordingNotice()')));
+ w.eval(core.slice(core.indexOf('function startRecordingAfterDisclosure()'),core.indexOf('function applyAutoRecordingNoticeLang()')));
+ w.syncRecordingUI();w.currentLang=options.lang||'ko';
+
  w.eval(fs.readFileSync(path.join(root,'privacy-policy.js'),'utf8'));w.eval(fs.readFileSync(path.join(root,'startup-music.js'),'utf8'));
  w.eval(core.slice(core.indexOf('var giloaStartupChoicePromise = null;'),core.indexOf('function startFirstLaunchExperience()')));
  const button=yes=>w.document.querySelector('.giloa-location-consent-card').querySelectorAll('button')[yes?1:2];
@@ -21,15 +33,15 @@ test('consent is first even with prior consent; music starts synchronously on st
  const a=fixture({consented:true});const pending=a.w.requestGiloaStartupEntryChoice();a.w.beginGiloaStartupEntry();
  assert(a.w.document.querySelector('.giloa-location-consent'));assert.equal(a.plays(),0);assert(!a.events.includes('intro'));assert(!a.events.includes('location'));
  a.button(true).click();assert.equal(a.plays(),1);assert.equal(a.events.includes('location'),false);assert.equal(await pending,true);await Promise.resolve();
- assert(a.events.indexOf('music')<a.events.indexOf('location'));assert(a.events.indexOf('location')<a.events.indexOf('intro'));assert.equal(a.w.localStorage.getItem('journeys'),'existing GPS/photos/EXIF');
+ assert(a.events.indexOf('music')<a.events.indexOf('location'));assert(a.events.includes('intro'));assert.equal(a.w.isRecording,true);assert(a.w.recBtn.classList.contains('recording'));assert.equal(a.w.recBtn.getAttribute('aria-pressed'),'true');assert(a.events.includes('eight-hour-timer'));assert(a.events.includes('tracking'));assert.equal(a.w.localStorage.getItem('journeys'),'existing GPS/photos/EXIF');
  assert.equal(await a.w.GiloaPrivacy.requestLocationConsent(),true);assert.equal(a.w.document.querySelectorAll('.giloa-location-consent').length,0);a.dom.window.close();
 });
 test('starting without location never requests GPS but still starts default music and enters the app',async()=>{
  const a=fixture({consented:true});const ready=a.w.beginGiloaStartupEntry();a.button(false).click();assert.equal(await ready,false);assert.equal(a.plays(),1);assert(!a.events.includes('location'));assert(a.events.includes('intro'));assert.equal(await a.w.GiloaPrivacy.requestLocationConsent(),false);a.dom.window.close();
 });
-test('saved mute survives launch and can be changed through the music button',async()=>{
- const a=fixture({muted:true});const ready=a.w.beginGiloaStartupEntry();a.button(false).click();await ready;assert.equal(a.plays(),0);
- a.w.document.getElementById('adventure-music-toggle').click();assert.equal(a.plays(),1);assert.equal(a.w.localStorage.getItem('giloa-startup-music-enabled-v1'),'true');a.dom.window.close();
+test('start gesture enables music despite previous mute; it can still be stopped immediately',async()=>{
+ const a=fixture({muted:true});const ready=a.w.beginGiloaStartupEntry();a.button(false).click();await ready;assert.equal(a.plays(),1);assert.equal(a.playing(),true);
+ a.w.document.getElementById('adventure-music-toggle').click();assert.equal(a.playing(),false);assert.equal(a.w.localStorage.getItem('giloa-startup-music-enabled-v1'),'false');a.dom.window.close();
 });
 test('startup consent is coalesced and cannot accidentally dismiss on the background or Escape',async()=>{
  const a=fixture();const ready=a.w.requestGiloaStartupEntryChoice();assert.equal(a.w.requestGiloaStartupEntryChoice(),ready);assert.equal(a.w.GiloaPrivacy.requestLocationConsent(),ready);
@@ -41,4 +53,17 @@ test('startup location notice and start controls support the existing six langua
 test('initialization requests consent before restoration and location lookup can precede first-run onboarding',()=>{
  const init=core.slice(core.indexOf('async function init() {'),core.indexOf('window.addEventListener("pagehide"',core.indexOf('async function init() {')));
  assert(init.indexOf('requestGiloaStartupEntryChoice')<init.indexOf('restoreDurableStorageSnapshot'));assert.match(init,/runInitStep\("startup entry", beginGiloaStartupEntry\)/);
+});
+
+test('permission rejection never starts a recorder or shows an active red indicator',async()=>{
+ const a=fixture({permissionDenied:true});const ready=a.w.beginGiloaStartupEntry();a.button(true).click();await ready;await new Promise(r=>setTimeout(r,0));assert.equal(a.w.isRecording,false);assert.equal(a.w.recBtn.classList.contains('recording'),false);assert(!a.events.includes('tracking'));assert(a.events.includes('permission-error'));assert.equal(a.w.localStorage.getItem('journeys'),'existing GPS/photos/EXIF');a.dom.window.close();
+});
+test('an existing recording session is not toggled off or restarted by startup agreement',async()=>{
+ const a=fixture({recording:true});const ready=a.w.beginGiloaStartupEntry();a.button(true).click();await ready;await Promise.resolve();assert.equal(a.w.isRecording,true);assert(!a.events.includes('session'));assert(!a.events.includes('eight-hour-timer'));assert(a.w.recBtn.classList.contains('recording'));a.dom.window.close();
+});
+
+test('browser permission denial stops the indicator and explains the permission without deleting records',()=>{
+ const a=fixture({recording:true});a.w.stopRecording=()=>{a.w.isRecording=false;a.w.syncRecordingUI();};
+ a.w.eval(core.slice(core.indexOf('function handleLocationError(err)'),core.indexOf('function createPathPoint(')));
+ a.w.handleLocationError({code:1});assert.equal(a.w.isRecording,false);assert.equal(a.w.recBtn.classList.contains('recording'),false);assert(a.events.includes('permission-error'));assert.equal(a.w.localStorage.getItem('journeys'),'existing GPS/photos/EXIF');a.dom.window.close();
 });

@@ -65,7 +65,7 @@ const EARLY_UI_I18N = {
     locationUpdated: ["현재 위치로 맞췄습니다 (±{accuracy}m)", "Location updated (±{accuracy}m)", "現在地を更新しました（±{accuracy}m）", "位置已更新（±{accuracy}米）", "Ubicación actualizada (±{accuracy} m)", "Position actualisée (±{accuracy} m)"],
     locationFailed: ["위치를 확인하지 못했습니다. 위치 권한과 GPS를 확인해 주세요.", "Could not locate you. Check location permission and GPS.", "現在地を取得できませんでした。位置情報の権限とGPSを確認してください。", "无法确定位置。请检查位置权限和GPS。", "No se pudo obtener tu ubicación. Comprueba el permiso de ubicación y el GPS.", "Impossible de vous localiser. Vérifiez l’autorisation de localisation et le GPS."],
     restoringBeforeRecord: ["이전 발걸음을 복원하고 있어요. 복원이 끝나면 기록을 시작할게요.", "Restoring your previous route. Recording will start when restoration finishes.", "以前の足跡を復元しています。完了したら記録を開始します。", "正在恢复以前的足迹。恢复完成后将开始记录。", "Restaurando tu ruta anterior. El registro comenzará al terminar.", "Restauration de votre parcours précédent. L’enregistrement commencera ensuite."],
-    locationPermission: ["위치 권한이 있어야 경로를 기록할 수 있어요.", "Location permission is required to record your route.", "ルートの記録には位置情報の権限が必要です。", "记录路线需要位置权限。", "Se necesita permiso de ubicación para registrar tu ruta.", "L’autorisation de localisation est nécessaire pour enregistrer votre parcours."],
+    locationPermission: ["브라우저 또는 휴대폰 설정에서 위치 권한을 허용해야 경로를 기록할 수 있어요.", "Allow location in your browser or device settings to record your route.", "ブラウザまたは端末の設定で位置情報を許可すると経路を記録できます。", "请在浏览器或设备设置中允许位置权限以记录路线。", "Permite la ubicación en el navegador o dispositivo para registrar tu ruta.", "Autorisez la localisation dans le navigateur ou l’appareil pour enregistrer votre parcours."],
     noMemoryLocation: ["기억으로 남길 위치가 없습니다.", "There is no location to save as a memory.", "思い出として保存する位置がありません。", "没有可保存为回忆的位置。", "No hay una ubicación para guardar como recuerdo.", "Aucune position à enregistrer comme souvenir."],
     memoryPrompt: ["이 장소의 이름을 입력하세요.", "Enter a name for this place.", "この場所の名前を入力してください。", "请输入此地点的名称。", "Escribe un nombre para este lugar.", "Saisissez un nom pour ce lieu."],
     newDiscovery: ["새로운 발견", "New discovery", "新しい発見", "新的发现", "Nuevo descubrimiento", "Nouvelle découverte"],
@@ -2782,7 +2782,7 @@ function getStatusText(key, value) {
     var text = t[key] || (UI_TEXT.en && UI_TEXT.en[key]) || key;
     return typeof value === "undefined" ? text : text.replace("{value}", value);
 }
-function syncRecordingUI() { var t = UI_TEXT[currentLang] || UI_TEXT.ko; recBtn.classList.toggle("recording", isRecording); recStatusBox.textContent = isRecording ? t.rec_active : t.rec_idle; recStatusBox.classList.toggle("recording", isRecording); updateHud(); syncImageMissionUI(); }
+function syncRecordingUI() { var t = UI_TEXT[currentLang] || UI_TEXT.ko; recBtn.classList.toggle("recording", isRecording); recBtn.setAttribute("aria-pressed", String(isRecording)); recBtn.setAttribute("aria-label", isRecording ? t.rec_active : t.rec_idle); recStatusBox.textContent = isRecording ? t.rec_active : t.rec_idle; recStatusBox.classList.toggle("recording", isRecording); updateHud(); syncImageMissionUI(); }
 function getImageMissionLatLng(item) {
     if (!item) return null;
     var lat = parseFloat(item.mapy !== undefined ? item.mapy : item.lat);
@@ -4839,7 +4839,7 @@ function handleLocationError(err) {
     var messages = { 1: "Location permission needed", 2: "Checking location", 3: "Location timeout" };
     if (recStatusBox) recStatusBox.textContent = messages[err && err.code] || "Waiting for location";
     if (!isRecording) return;
-    if (err && err.code === 1) { stopRecording(); return; }
+    if (err && err.code === 1) { stopRecording(); showLocationToast(earlyUiText("locationPermission"), 5000); return; }
     clearTrackingRetryTimer();
     trackingRetryTimer = setTimeout(function() {
         trackingRetryTimer = null;
@@ -8407,15 +8407,19 @@ function requestGiloaStartupEntryChoice() {
     if (typeof hasSavedIntroLanguage === "function" && hasSavedIntroLanguage()) currentLang = normalizeLang(safeStorageGet(LANGUAGE_PREFERENCE_KEY));
     else if (typeof normalizeLang === "function") currentLang = normalizeLang(navigator.language || currentLang);
     giloaStartupChoicePromise = window.GiloaPrivacy.requestLocationConsent({force:true,startup:true,onChoice:function() {
-        if (window.GiloaStartupMusic) window.GiloaStartupMusic.start();
+        if (window.GiloaStartupMusic) window.GiloaStartupMusic.start({force:true});
     }});
     if (window.GiloaBoot && typeof window.GiloaBoot.hide === "function") window.GiloaBoot.hide();
     return giloaStartupChoicePromise;
 }
 function beginGiloaStartupEntry() {
     return requestGiloaStartupEntryChoice().then(function(agreed) {
-        // Current-location lookup remains separate from the existing recording disclosure.
-        if (agreed) runInitStep("startup location", function(){return focusStartupLocation({beforeIntro:true});});
+        // The startup agreement now explicitly includes recording. Reuse the
+        // established permissions, session, eight-hour timer and GPS recorder.
+        if (agreed) {
+            startupLocationRequested = true;
+            runInitStep("startup recording", startRecordingAfterDisclosure);
+        }
         var firstMeetingShown = false;
         runInitStep("first launch experience", function(){firstMeetingShown=startFirstLaunchExperience();return firstMeetingShown;});
         if (!firstMeetingShown) setTimeout(showGiloaUpdateNoticeIfNeeded,450);
