@@ -43,7 +43,7 @@
 | 길로 옷장·장비·장착·획득 미션 | `features/growth/growth-and-wardrobe.js`, `features/growth/state.js` | `checkWearableMissions`는 `collection/items-badges-and-visits.js`, 목록은 `collection/lists.js` |
 | 길로 대화·대사·상황별 반응·표정 | `features/character/dialogue.js`, `features/character/reactions.js` | `features/character/dialogue.css`, `gilo many appearance/`, `assets/` |
 | 일반 아이템·활동 뱃지·테스터 선물 | `features/collection/items-badges-and-visits.js`, `features/collection/lists.js` | 저장 키 `giloa-collection`, `features/collection/lists.css` |
-| 사진으로 만든 아이템·사진 자르기·아이콘 | `photo-items.js`, `photo-items.css` | 전용 DB `giloa-photo-items-v1`. 일반 사진·주차 OCR과 별개 |
+| 사진으로 만든 아이템·사진 자르기·간단 그림·아이콘 변경 | `photo-items.js`, `photo-items.css`, `item-icons.js` | 전용 DB `giloa-photo-items-v1`. 이름 기반 그림 제안·종류 직접 선택. 사진 자동 인식이 아니며 기존 아이템은 변경 저장할 때 같은 ID로 갱신 |
 | 방문·방문 도장·자동 방문 | `features/collection/items-badges-and-visits.js`, `features/collection/lists.js` | `completeExperience`, `checkNearbyVisitCompletion`, 공통 방문 반경·시간 상수 |
 | 오늘의 여행 요약·오늘 경로 | `features/collection/items-badges-and-visits.js` | `tasks/daily-tasks.js`, `growth/hud-and-recap.html`。`renderDailyTravelLog`는 현재 HTML 연결 여부 확인 |
 | 기억·메모·별표 | `features/memories/memories-and-lists.js` | `features/collection/lists.css`, `features/ui/sidebar.html` |

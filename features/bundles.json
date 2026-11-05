@@ -317,6 +317,10 @@
   },
   "standalone": [
     {
+      "path": "item-icons.js",
+      "role": "기본 그림 아이콘·이름 기반 종류 제안 — 사진 자동 인식 아님"
+    },
+    {
       "path": "parking.js",
       "role": "개인 주차 위치·층·구역·파란 위치 점 탭"
     },

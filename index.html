@@ -92,7 +92,7 @@ html,body{background:#1a2035;margin:0;height:100%;width:100%;overflow:hidden}
   <link rel="stylesheet" href="./tutorial.css?v=app-local-131">
 </noscript>
 <link rel="stylesheet" href="./parking.css?v=4">
-<link rel="stylesheet" href="./photo-items.css?v=2">
+<link rel="stylesheet" href="./photo-items.css?v=3">
 </head>
 <body>
 <!-- 앱 로딩 스플래시: 페이지가 파싱되는 즉시(다른 스크립트/스타일과 무관하게) 표시되고,
@@ -938,7 +938,8 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <script src="./script.js?v=app-local-233" defer></script>
 <script src="./parking-ocr.js?v=2" defer></script>
 <script src="./parking.js?v=6" defer></script>
-<script src="./photo-items.js?v=2" defer></script>
+<script src="./item-icons.js?v=1" defer></script>
+<script src="./photo-items.js?v=3" defer></script>
 <link rel="stylesheet" href="./local-shops.css?v=8">
 <script src="./local-shops.js?v=11" defer></script>
 <script src="./trip-share.js?v=app-local-1" defer></script>
@@ -953,7 +954,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <script>
 if (window.location.protocol !== "file:" && "serviceWorker" in navigator && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
     window.addEventListener("load", function() {
-    navigator.serviceWorker.register("./sw.js?v=app-local-228", { updateViaCache: "none" })
+    navigator.serviceWorker.register("./sw.js?v=app-local-229", { updateViaCache: "none" })
             .then(function(registration) { console.log("SW 등록 완료"); return registration.update(); })
             .catch(function(e) { console.warn("SW 등록 실패", e); });
     });

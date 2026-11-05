@@ -86,6 +86,7 @@
 
 | 수정할 파일 | 역할 |
 |---|---|
+| [item-icons.js](../item-icons.js) | 기본 그림 아이콘·이름 기반 종류 제안 — 사진 자동 인식 아님 |
 | [parking.js](../parking.js) | 개인 주차 위치·층·구역·파란 위치 점 탭 |
 | [parking.css](../parking.css) | 개인 주차 화면 디자인 |
 | [parking-ocr.js](../parking-ocr.js) | 주차 기둥 번호 문자 인식 |
