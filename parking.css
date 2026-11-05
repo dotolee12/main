@@ -1,0 +1,20 @@
+#personal-parking-button{font-size:25px;color:#f5e7c6;font-family:inherit;cursor:pointer}
+#personal-parking-button.has-parking{border-color:#e4b56c;box-shadow:0 0 10px #e4b56c55}
+.personal-parking-pin{display:inline-block;padding:7px 10px;background:#212439;color:#ffe2a6;border:2px solid #e4b56c;border-radius:12px;font:bold 14px sans-serif;white-space:nowrap;box-shadow:0 3px 10px #0006;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+#personal-parking-panel{position:fixed;z-index:1600;right:max(12px,env(safe-area-inset-right));top:max(70px,calc(env(safe-area-inset-top) + 20px));width:min(350px,calc(100vw - 24px));max-height:calc(100dvh - 100px - env(safe-area-inset-bottom));overflow-y:auto;box-sizing:border-box;padding:18px;background:#202236;color:#f6f0e5;border:1px solid #b58c53;border-radius:18px;box-shadow:0 10px 40px #0008;font:14px/1.5 sans-serif}
+#personal-parking-panel[hidden],#personal-parking-panel [hidden]{display:none!important}
+#personal-parking-panel header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#personal-parking-panel h2{margin:0;font-size:19px;color:#ffe2a6}
+#personal-parking-panel button{min-height:42px;padding:8px 12px;border:1px solid #8d7758;border-radius:10px;background:#33384e;color:#fff;font:inherit;cursor:pointer}
+#personal-parking-panel button:disabled{opacity:.45;cursor:wait}
+#personal-parking-panel button:focus-visible,#personal-parking-panel input:focus-visible,#personal-parking-panel textarea:focus-visible{outline:2px solid #ffe2a6;outline-offset:2px}
+#personal-parking-panel label{display:block;margin:12px 0}
+#personal-parking-panel input,#personal-parking-panel textarea{display:block;box-sizing:border-box;width:100%;margin-top:4px;padding:9px;background:#151828;color:#fff;border:1px solid #66718e;border-radius:8px;font:inherit}
+#personal-parking-panel [data-parking=save]{width:100%;background:#e4b56c;color:#202236;font-weight:bold}
+#personal-parking-panel [data-parking=summary]{font-size:18px;white-space:pre-wrap;overflow-wrap:anywhere}
+#personal-parking-panel [data-parking=preview]{width:100%;max-height:300px;object-fit:contain;margin-top:12px;border-radius:8px;background:#151828}
+#personal-parking-panel [data-parking=status]{color:#ffe2a6;overflow-wrap:anywhere}
+#personal-parking-panel .parking-local,#personal-parking-panel [data-parking=quality]{font-size:12px;color:#bdc5d8}
+.parking-actions{display:flex;flex-wrap:wrap;gap:6px}
+.parking-picking{cursor:crosshair!important}
+#personal-parking-panel.is-picking{max-height:200px}
