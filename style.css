@@ -1486,6 +1486,16 @@ body.gft-active .giloa-tutorial,
     pointer-events: none;
 }
 
+
+.leaflet-tooltip.restaurant-coverage-label {
+    max-width: 125px;
+    padding: 2px 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #1a2035;
+    font-size: 11px;
+    font-weight: 700;
+}
 /* One-page first-run onboarding and an optional, separately loaded story viewer. */
 .gsi{position:fixed;inset:0;z-index:30000;display:none;overflow:hidden;isolation:isolate;background:#1a2035;color:#fff;font-family:inherit}
 .gsi.active{display:block}

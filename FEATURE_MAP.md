@@ -55,6 +55,7 @@
 | 시간의 흔적·재촬영·과거 사진 비교 | `time-trace.js`, `time-trace.css` | `features/photos/panels.html` |
 | 개인 주차·층·구역·차를 세운 위치 | `parking.js`, `parking.css` | `parking-ocr.js`는 촬영한 기둥 번호 인식. 공공 주차장 조회와 다름 |
 | 관광지·음식점·쇼핑·숙박·축제·좋아요 | `features/places/tourism.js` | `features/places/tourism.css`, `features/map/map-and-controls.html`, 번역·지도 표시 설정 |
+| 음식점 누락 보완·굵은 가게 이름 | `features/places/restaurant-coverage.js` | 음식점 스위치가 켜졌을 때 한국관광공사 식당과 중복되지 않는 주변 OpenStreetMap 음식점 표시. `features/places/tourism.js`, `features/places/tourism.css` |
 | 검색·동네가게·편의점·카페·마트·다이소 | `local-shops.js`, `local-shops.css` | 통합 쇼핑 스위치는 `features/map/layer-controls.js` |
 | 병원·약국 | `medical-layers.js` | 지도 표시 스위치·키 설정·외부 API 조건 |
 | 주민회관·마을회관·주민센터 | `community-places.js` | `features/map/layer-controls.js`, `features/ui/sidebar.html` |

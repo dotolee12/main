@@ -8729,6 +8729,137 @@ window.addEventListener("online", function() {
 })();
 
 // TourAPI 愿愿묕옙? 異붿쿇
+/* Fill gaps in the food layer with nearby named OpenStreetMap restaurants. */
+var restaurantCoverage = (function() {
+    var radius = 1000;
+    var credit = '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>';
+    var layer = L.layerGroup([], { attribution: credit });
+    var results = [];
+    var areaKey = "";
+    var refreshAfter = 0;
+    var request = null;
+
+    function nameKey(name) {
+        return String(name || "").normalize("NFKC").toLowerCase().replace(/[\s·.,()\-]/g, "");
+    }
+
+    function isDuplicate(item, other) {
+        return item.keys.some(function(key) { return other.keys.indexOf(key) !== -1; }) &&
+            map.distance([item.lat, item.lng], [other.lat, other.lng]) <= 60;
+    }
+
+    function normalizeRestaurant(element) {
+        var tags = element.tags || {};
+        var point = element.center || element;
+        var names = {};
+        if (tags.amenity !== "restaurant" || !Number.isFinite(point.lat) || !Number.isFinite(point.lon) ||
+            Math.abs(point.lat) > 90 || Math.abs(point.lon) > 180) return null;
+        ["name", "name:ko", "name:en", "name:ja", "name:zh", "name:zh-Hans", "name:es", "name:fr"].forEach(function(key) {
+            if (typeof tags[key] === "string" && tags[key].trim()) names[key] = tags[key].trim();
+        });
+        var keys = Object.keys(names).map(function(key) { return nameKey(names[key]); }).filter(Boolean);
+        return keys.length ? { names: names, keys: keys, lat: point.lat, lng: point.lon } : null;
+    }
+
+    function render(center) {
+        layer.clearLayers();
+        var existing = tourItems.filter(function(item) { return String(item.contenttypeid) === "39"; }).map(function(item) {
+            return { lat: Number(item.mapy), lng: Number(item.mapx),
+                keys: [nameKey(item.title), nameKey(getTourDisplayTitle(item))].filter(Boolean) };
+        });
+        var bounds = map.getBounds();
+        var shown = [];
+        results.map(function(item) {
+            return { item: item, distance: center.distanceTo([item.lat, item.lng]) };
+        }).filter(function(entry) {
+            return entry.distance <= radius && bounds.contains([entry.item.lat, entry.item.lng]);
+        }).sort(function(a, b) { return a.distance - b.distance; }).some(function(entry) {
+            var item = entry.item;
+            if (existing.some(function(other) { return isDuplicate(item, other); }) ||
+                shown.some(function(other) { return isDuplicate(item, other); })) return false;
+            var lang = normalizeLang(currentLang);
+            var names = item.names;
+            var title = names["name:" + lang] || (lang === "zh" && names["name:zh-Hans"]) ||
+                names.name || names["name:ko"] || names[Object.keys(names)[0]];
+            var position = [item.lat, item.lng];
+            var marker = L.marker(position, {
+                pane: "tourPane", title: title,
+                icon: L.divIcon({ className: "tour-map-marker-wrap",
+                    html: mapPlaceSymbolHtml("food", "", "", getTourTypeMeta("39").color),
+                    iconSize: [28, 28], iconAnchor: [14, 14] })
+            }).addTo(layer);
+            var label = document.createElement("b");
+            label.textContent = title;
+            marker.bindTooltip(label, {
+                permanent: true, direction: "right", offset: [12, 0], pane: "tourPane",
+                className: "restaurant-coverage-label"
+            });
+            marker.on("click", function() {
+                var box = document.createElement("div");
+                var heading = document.createElement("b");
+                heading.className = "tour-popup-title";
+                heading.textContent = title;
+                box.appendChild(heading);
+                setSelectedDestination(item.lat, item.lng, title);
+                L.popup({ className: "tour-popup", autoPan: false, closeOnClick: true })
+                    .setLatLng(position).setContent(box).openOn(map);
+            });
+            shown.push(item);
+            return shown.length >= 30;
+        });
+        if (shown.length && !map.hasLayer(layer)) layer.addTo(map);
+        else if (!shown.length && map.hasLayer(layer)) map.removeLayer(layer);
+    }
+
+    function refresh() {
+        if (!mapLayerSettings.restaurant) {
+            if (request) request.abort();
+            request = null;
+            layer.clearLayers();
+            if (map.hasLayer(layer)) map.removeLayer(layer);
+            return;
+        }
+        var center = getMapSearchCenter();
+        // A rounded viewport center avoids repeated requests on small pans.
+        var lat = (Math.round(center.lat * 200) / 200).toFixed(3);
+        var lng = (Math.round(center.lng * 200) / 200).toFixed(3);
+        var key = lat + "," + lng;
+        if (key !== areaKey) {
+            if (request) request.abort();
+            request = null;
+            areaKey = key;
+            refreshAfter = 0;
+            results = [];
+        }
+        render(center);
+        if (request || Date.now() < refreshAfter || navigator.onLine === false) return;
+
+        var controller = new AbortController();
+        request = controller;
+        var timer = setTimeout(function() { controller.abort(); }, 9000);
+        var query = '[out:json][timeout:6];nwr(around:1500,' + key + ')["amenity"="restaurant"][~"^name(:.*)?$"~"."];out center tags;';
+        fetch("https://overpass-api.de/api/interpreter", {
+            method: "POST", body: new URLSearchParams({ data: query }), signal: controller.signal,
+            cache: "no-store", credentials: "omit", referrerPolicy: "no-referrer"
+        }).then(function(response) {
+            if (!response.ok) throw new Error("Restaurant lookup failed");
+            return response.json();
+        }).then(function(data) {
+            if (request !== controller || !mapLayerSettings.restaurant) return;
+            if (data.remark || !Array.isArray(data.elements)) throw new Error("Incomplete restaurant response");
+            results = data.elements.map(normalizeRestaurant).filter(Boolean);
+            refreshAfter = Date.now() + 5 * 60 * 1000;
+            render(getMapSearchCenter());
+        }).catch(function() {
+            if (request === controller) refreshAfter = Date.now() + 30 * 1000;
+        }).finally(function() {
+            clearTimeout(timer);
+            if (request === controller) request = null;
+        });
+    }
+
+    return { refresh: refresh };
+})();
 var TOUR_API_KEY = window.GILOA_TOUR_API_KEY || "";
 
 // TourAPI has no French endpoint. French cards use English data.
@@ -9871,6 +10002,7 @@ function addTourMarkers() {
     tourMarkers = [];
     getVisibleTourMarkerItems().forEach(function(item, index) { var lat = parseFloat(item.mapy); var lng = parseFloat(item.mapx); if (!isFinite(lat) || !isFinite(lng)) return; var meta = getTourTypeMeta(item.contenttypeid); var state = getTourMarkerState(item, index); var liked = isTourLiked(item); var likeKey = getTourLikeKey(item); var classes = [state.visited ? "state-visited" : "", state.selected ? "state-selected" : "", state.nearby ? "state-nearby" : "", state.discoverable ? "state-discoverable" : "", liked ? "state-liked" : ""].filter(Boolean).join(" "); var badge = liked ? "★" : state.visited ? "✓" : state.missionAvailable ? "📷" : state.discoverable ? "◎" : ""; var icon = L.divIcon({ className: "tour-map-marker-wrap", html: mapPlaceSymbolHtml(({"39":"food","38":"shopping","32":"lodging","25":"activity","28":"activity"})[String(item.contenttypeid)] || "discovery", classes, likeKey, meta.color), iconSize: [28,28], iconAnchor: [14,14] }); var marker = L.marker([lat, lng], { pane: "tourPane", icon: icon, title: (getTourTypeName(item.contenttypeid) || meta.label) + " - " + (getTourDisplayTitle(item) || "") }).addTo(tourMarkerLayer); marker._tourItem = item; marker.on("click", function() { focusTourItemBelowPanel(item); }); tourMarkers.push(marker); });
     refreshGpsVisualsAfterPlaceLayerChange("tour-refresh", before);
+    restaurantCoverage.refresh();
 }
 
 

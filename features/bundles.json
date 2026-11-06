@@ -110,6 +110,10 @@
           "role": "시작 순서·복원 완료 확인·앱 재개"
         },
         {
+          "path": "features/places/restaurant-coverage.js",
+          "role": "OpenStreetMap 주변 음식점 보완·중복 제거·가게 이름 표시"
+        },
+        {
           "path": "features/places/tourism.js",
           "role": "관광·축제·상세·좋아요·관광 데이터 캐시"
         },

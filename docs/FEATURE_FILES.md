@@ -34,6 +34,7 @@
 | `script.js` | [features/photos/markers-and-recovery.js](../features/photos/markers-and-recovery.js) | 사진 마커·미리보기 복구·삭제·경로 날짜·일부 HUD 연결 |
 | `script.js` | [features/onboarding/story-and-tutorial.js](../features/onboarding/story-and-tutorial.js) | 첫 만남·이야기·언어 선택·기존 튜토리얼 |
 | `script.js` | [features/common/lifecycle.js](../features/common/lifecycle.js) | 시작 순서·복원 완료 확인·앱 재개 |
+| `script.js` | [features/places/restaurant-coverage.js](../features/places/restaurant-coverage.js) | OpenStreetMap 주변 음식점 보완·중복 제거·가게 이름 표시 |
 | `script.js` | [features/places/tourism.js](../features/places/tourism.js) | 관광·축제·상세·좋아요·관광 데이터 캐시 |
 | `script.js` | [features/places/libraries.js](../features/places/libraries.js) | 도서관 조회·다국어 표시 |
 | `script.js` | [features/places/parking-lots.js](../features/places/parking-lots.js) | 공공 주차장 조회·지도 표시 |
