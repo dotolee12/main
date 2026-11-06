@@ -322,6 +322,7 @@
 | `requireGpxViewAccess` | [features/gpx/routes.js](../features/gpx/routes.js) |
 | `toggleGpxRoute` | [features/gpx/routes.js](../features/gpx/routes.js) |
 | `clearActiveGpxRoute` | [features/gpx/routes.js](../features/gpx/routes.js) |
+| `drawImportedGpxPhotos` | [features/gpx/routes.js](../features/gpx/routes.js) |
 | `drawGpxRoute` | [features/gpx/routes.js](../features/gpx/routes.js) |
 | `getGpxImportText` | [features/gpx/routes.js](../features/gpx/routes.js) |
 | `chooseGpxFile` | [features/gpx/routes.js](../features/gpx/routes.js) |

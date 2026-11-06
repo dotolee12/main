@@ -66,7 +66,7 @@
 | 두루누비·공식 탐방로·완료 구간 | `features/places/trails.js` | `features/map/trails-and-hidden.css`, `data/durunubi*` |
 | 지도 표시·시설 켜기 끄기·타일 순서 | `features/map/layer-controls.js` | `features/map/layer-controls.css`, `features/ui/sidebar.html`, `features/common/state.js` |
 | 카카오 연결·길찾기·목적지 | `features/map/base-and-directions.js` | `openKakaoDirections`, `setSelectedDestination`, `features/map/map-and-controls.html` |
-| GPX 추출·가져오기·저장 경로 | `features/gpx/routes.js`, `features/gpx/routes.css` | 발급 ID 제한은 `gpx-access.js`, `features/gpx/access.css` |
+| GPX 추출·가져오기·저장 경로·GPX에 포함된 사진 | `features/gpx/routes.js`, `features/gpx/routes.css` | 발급 ID 제한은 `gpx-access.js`, `features/gpx/access.css` |
 | 여행 ZIP·경로와 사진 연결 | `trip-share.js`, `features/gpx/trip-presentation.css` | `gpx-access.js`, 일반 사진 저장소 |
 | 시작 동의·위치 사용·자동 기록 시작 | `privacy-policy.js`, `features/common/lifecycle.js` | `features/gps/recording.js`, `features/gps/location-disclosure.css` |
 | 음악·길로 인사 음성 | `startup-music.js` | `features/common/scripts-and-footer.html`, `features/map/map-and-controls.html` |

@@ -75,7 +75,7 @@
         },
         {
           "path": "features/gpx/routes.js",
-          "role": "GPX 시간·추출·저장·불러오기·경로 표시"
+          "role": "GPX 시간·추출·저장·불러오기·경로 및 파일에 포함된 사진 표시"
         },
         {
           "path": "features/ui/sidebar-and-info.js",

@@ -16,7 +16,10 @@ function fixture(native = false) {
     const dom = new JSDOM(html, { url:"https://giloa.test", runScripts:"outside-only" });
     const w = dom.window;
     const layers = new Set();
-    const layer = () => ({ addTo() { layers.add(this); return this; }, bindTooltip() { return this; } });
+    const layer = coordinates => ({
+        coordinates, addTo() { layers.add(this); return this; }, bindTooltip() { return this; },
+        bindPopup(content) { this.popup = content; return this; }
+    });
     let trips = 0;
     Object.assign(w, {
         isNativeApp:() => native,
@@ -25,7 +28,7 @@ function fixture(native = false) {
         GPX_SAVES_KEY:"giloa-gpx-saves", GPX_IMPORT_MAX_BYTES:10*1024*1024,
         activeGpxLayers:[], activeGpxId:null, escapeHtml:text => text, earlyUiText:key => key, toggleSidebar() {}, switchAllTab() {},
         map:{removeLayer(item) { layers.delete(item); }, fitBounds() {}},
-        L:{polyline:layer, circleMarker:layer, latLngBounds:() => ({ extend() {}, isValid:() => true })},
+        L:{polyline:layer, circleMarker:layer, marker:layer, divIcon:options => options, latLngBounds:() => ({ extend() {}, isValid:() => true })},
         GiloaTrip:{open() { trips++; }, close() {}}
     });
     w.eval(access);
@@ -71,6 +74,42 @@ test("web import draws and reopens a GPX without opening the export or trip ZIP 
         assert.equal(w.activeGpxId, null);
         assert.equal(w.GiloaGpxAccess.isAuthorized(), false);
         assert.deepEqual(JSON.parse(JSON.stringify(w.loadGpxSaves())), JSON.parse(JSON.stringify(saved)));
+    } finally { dom.window.close(); }
+});
+
+test("web GPX import renders embedded photos without EXIF, including photos sharing a location", async () => {
+    const { dom, w, layers, byId, trips } = fixture();
+    try {
+        const input = process.env.GILOA_GPX_PHOTO_TEST_FILE
+            ? fs.readFileSync(process.env.GILOA_GPX_PHOTO_TEST_FILE, "utf8")
+            : `<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:g="https://giloa.kr/ns/gpx-photo/1">
+                <wpt lat="34.59" lon="127.80"><name>&lt;script&gt;</name><extensions>
+                    <g:photo credit="Credit" source="javascript:alert(1)">/9j/</g:photo></extensions></wpt>
+                <wpt lat="34.59" lon="127.80"><name>Second photo</name><extensions>
+                    <g:photo credit="Credit" source="https://example.com/photo">/9j/</g:photo></extensions></wpt>
+                <wpt lat="34.60" lon="127.80"><extensions><g:photo>invalid</g:photo></extensions></wpt>
+                <trk><trkseg><trkpt lat="34.58" lon="127.81"/><trkpt lat="34.59" lon="127.81"/></trkseg></trk>
+            </gpx>`;
+        w.importGpxFile({ target:{files:[new w.File([input], "Trip.gpx")], value:""} });
+        for (let i = 0; i < 50 && !w.activeGpxId; i++) await new Promise(resolve => setTimeout(resolve, 10));
+        assert.match(byId("gpx-import-status").textContent, /불러오기 완료/);
+        const pins = () => [...layers].filter(item => item.popup);
+        const images = () => pins().flatMap(pin => [...pin.popup.querySelectorAll("img")]);
+        const isYeosu = !!process.env.GILOA_GPX_PHOTO_TEST_FILE;
+        assert.equal(pins().length, isYeosu ? 9 : 1);
+        assert.equal(images().length, isYeosu ? 10 : 2);
+        assert.ok(images().every(image => image.src.startsWith("data:image/jpeg;base64,/9j/")));
+        assert.ok(pins().some(pin => pin.popup.querySelectorAll("img").length === 2));
+        if (!isYeosu) {
+            assert.equal(pins()[0].popup.querySelector("strong").textContent, "<script>");
+            assert.equal(pins()[0].popup.querySelector("script"), null);
+            assert.equal(pins()[0].popup.querySelectorAll("a").length, 1);
+        }
+        w.clearActiveGpxRoute();
+        assert.equal(layers.size, 0);
+        byId("gpx-saved-list").firstElementChild.click();
+        assert.equal(images().length, isYeosu ? 10 : 2);
+        assert.equal(trips(), 0);
     } finally { dom.window.close(); }
 });
 

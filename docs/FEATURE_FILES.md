@@ -25,7 +25,7 @@
 | `script.js` | [features/photos/capture-and-location.js](../features/photos/capture-and-location.js) | 촬영·갤러리·네이티브 사진·위치 지정 |
 | `script.js` | [features/gps/recording.js](../features/gps/recording.js) | 화면 유지·기록 동의·GPS 시작 종료·경로 검증·체류 보너스 |
 | `script.js` | [features/memories/memories-and-lists.js](../features/memories/memories-and-lists.js) | 기억 저장·삭제·기록 탭·사진 목록 |
-| `script.js` | [features/gpx/routes.js](../features/gpx/routes.js) | GPX 시간·추출·저장·불러오기·경로 표시 |
+| `script.js` | [features/gpx/routes.js](../features/gpx/routes.js) | GPX 시간·추출·저장·불러오기·경로 및 파일에 포함된 사진 표시 |
 | `script.js` | [features/ui/sidebar-and-info.js](../features/ui/sidebar-and-info.js) | 메뉴·출처·정책·이야기·업데이트 안내·기록 버튼 길게 누르기 |
 | `script.js` | [features/storage/persistence.js](../features/storage/persistence.js) | 여행 상태 저장·병합·백업·복원·과거 계정 호환 |
 | `script.js` | [features/memories/special-places.js](../features/memories/special-places.js) | 파란 위치 점 메모·특별 장소 핀 |

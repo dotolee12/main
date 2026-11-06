@@ -126,6 +126,65 @@ function toggleGpxRoute(save) {
     toggleSidebar(false);
 }
 function clearActiveGpxRoute() { activeGpxLayers.forEach(function(l) { map.removeLayer(l); }); activeGpxLayers = []; activeGpxId = null; if (window.GiloaTrip) window.GiloaTrip.close(); }
+function drawImportedGpxPhotos(xmlDoc, layers, bounds) {
+    var namespace = "https://giloa.kr/ns/gpx-photo/1";
+    var groups = new Map();
+    Array.from(xmlDoc.querySelectorAll("wpt > extensions")).forEach(function(extension) {
+        var photo = Array.from(extension.children).find(function(child) {
+            return child.namespaceURI === namespace && child.localName === "photo";
+        });
+        if (!photo) return;
+        var waypoint = extension.parentElement;
+        var lat = parseFloat(waypoint.getAttribute("lat"));
+        var lng = parseFloat(waypoint.getAttribute("lon"));
+        var image = photo.textContent.trim();
+        if (!Number.isFinite(lat) || Math.abs(lat) > 90 || !Number.isFinite(lng) || Math.abs(lng) > 180 ||
+            image.length > 1000000 || image.length % 4 || !/^\/9j\/[A-Za-z0-9+/]*={0,2}$/.test(image)) return;
+        var key = lat + "," + lng;
+        if (!groups.has(key)) groups.set(key, { coordinates:[lat, lng], photos:[] });
+        groups.get(key).photos.push({
+            image:"data:image/jpeg;base64," + image,
+            name:waypoint.querySelector("name")?.textContent || "📷",
+            description:waypoint.querySelector("desc")?.textContent || "",
+            credit:photo.getAttribute("credit") || "",
+            source:photo.getAttribute("source") || ""
+        });
+    });
+    groups.forEach(function(group) {
+        var popup = document.createElement("div");
+        group.photos.forEach(function(photo) {
+            var name = document.createElement("strong");
+            name.textContent = photo.name;
+            var image = document.createElement("img");
+            image.src = photo.image;
+            image.alt = photo.name;
+            image.style.cssText = "display:block;width:100%;max-height:220px;object-fit:contain;margin-top:6px";
+            var description = document.createElement("p");
+            description.textContent = photo.description;
+            popup.append(name, image, description);
+            if (photo.credit) {
+                var credit = document.createElement("small");
+                credit.textContent = photo.credit;
+                if (/^https:\/\//i.test(photo.source)) {
+                    var link = document.createElement("a");
+                    link.href = photo.source;
+                    link.target = "_blank";
+                    link.rel = "noopener noreferrer";
+                    link.append(credit);
+                    popup.append(link);
+                } else {
+                    popup.append(credit);
+                }
+            }
+            popup.append(document.createElement("hr"));
+        });
+        popup.lastChild.remove();
+        var icon = L.divIcon({ className:"giloa-trip-photo", html:"<span>📷</span>", iconSize:[30,30], iconAnchor:[15,15] });
+        layers.push(L.marker(group.coordinates, { pane:"gpxRoutePane", icon:icon, title:group.photos[0].name })
+            .bindPopup(popup, { maxHeight:300, maxWidth:280 }).addTo(map));
+        bounds.extend(group.coordinates);
+    });
+}
 function drawGpxRoute(gpxContent, id, imported) {
     if (!requireGpxViewAccess(imported)) return;
     var xmlDoc = new DOMParser().parseFromString(gpxContent, "application/xml");
@@ -154,6 +213,7 @@ function drawGpxRoute(gpxContent, id, imported) {
     activeGpxId = id;
     var bounds = L.latLngBounds([]);
     segmentLatLngs.forEach(function(segment) { segment.forEach(function(latlng) { bounds.extend(latlng); }); });
+    if (imported) drawImportedGpxPhotos(xmlDoc, layers, bounds);
     if (bounds.isValid()) map.fitBounds(bounds, { padding:[50, 50] });
     if (window.GiloaTrip && window.GiloaGpxAccess.isAuthorized()) window.GiloaTrip.open(gpxContent, id);
 }
