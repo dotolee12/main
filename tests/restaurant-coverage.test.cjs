@@ -32,7 +32,7 @@ function setup() {
         mapLayerSettings: { restaurant: true }, navigator: { onLine: true },
         AbortController, URLSearchParams, setTimeout, clearTimeout,
         fetch(url, options) {
-            return new Promise(resolve => requests.push({ options, resolve }));
+            return new Promise(resolve => requests.push({ url, options, resolve }));
         }
     };
     vm.createContext(context);
@@ -83,4 +83,15 @@ test("disabling the food layer aborts the request and ignores late results", asy
     await flush();
     assert.equal(markers.length, 0);
     assert.equal(active.size, 0);
+});
+
+test("a busy restaurant provider falls back to a second Overpass instance", async () => {
+    const { context, markers, requests } = setup();
+    context.restaurantCoverage.refresh();
+    requests[0].resolve({ ok: false });
+    await flush();
+    assert.match(requests[1].url, /overpass\.private\.coffee/);
+    respond(requests[1], [restaurant("Backup Restaurant", 37.001)]);
+    await flush();
+    assert.deepEqual(markers.map(marker => marker.label), ["Backup Restaurant"]);
 });

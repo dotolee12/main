@@ -247,6 +247,7 @@
 | `enableDeviceHeading` | [features/gps/recording.js](../features/gps/recording.js) |
 | `toggleRecording` | [features/gps/recording.js](../features/gps/recording.js) |
 | `dismissAutoRecordingNotice` | [features/gps/recording.js](../features/gps/recording.js) |
+| `showRecordingPermissionRequired` | [features/gps/recording.js](../features/gps/recording.js) |
 | `startRecordingAfterDisclosure` | [features/gps/recording.js](../features/gps/recording.js) |
 | `applyAutoRecordingNoticeLang` | [features/gps/recording.js](../features/gps/recording.js) |
 | `showAutoRecordingNotice` | [features/gps/recording.js](../features/gps/recording.js) |

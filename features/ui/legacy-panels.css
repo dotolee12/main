@@ -78,8 +78,17 @@
     transform: translateX(-50%);
     background: linear-gradient(180deg, #4db8ff 0 8px, transparent 8px 26px, #4db8ff 26px 34px);
 }
-.record-loc-btn.recording {
-    border-color: rgba(255,80,80,0.68);
+#controls #rec-btn.recording {
+    border-color: rgba(255,80,80,0.8);
+}
+#rec-btn.recording .loc-crosshair {
+    border-color: #ff4444;
+}
+#rec-btn.recording .loc-crosshair::before {
+    background: linear-gradient(90deg, #ff4444 0 8px, transparent 8px 26px, #ff4444 26px 34px);
+}
+#rec-btn.recording .loc-crosshair::after {
+    background: linear-gradient(180deg, #ff4444 0 8px, transparent 8px 26px, #ff4444 26px 34px);
 }
 .record-loc-btn.recording .loc-record-icon {
     width: 14px;

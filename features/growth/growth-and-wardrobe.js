@@ -315,7 +315,19 @@ function getStatusText(key, value) {
     var text = t[key] || (UI_TEXT.en && UI_TEXT.en[key]) || key;
     return typeof value === "undefined" ? text : text.replace("{value}", value);
 }
-function syncRecordingUI() { var t = UI_TEXT[currentLang] || UI_TEXT.ko; recBtn.classList.toggle("recording", isRecording); recBtn.setAttribute("aria-pressed", String(isRecording)); recBtn.setAttribute("aria-label", isRecording ? t.rec_active : t.rec_idle); recStatusBox.textContent = isRecording ? t.rec_active : t.rec_idle; recStatusBox.classList.toggle("recording", isRecording); updateHud(); syncImageMissionUI(); }
+function syncRecordingUI() {
+    var t = UI_TEXT[currentLang] || UI_TEXT.ko;
+    var permissionBlocked = !isRecording && recordingLocationPermissionBlocked;
+    var status = isRecording ? t.rec_active : permissionBlocked ? earlyUiText("recordingPermissionRequired") : t.rec_idle;
+    recBtn.classList.toggle("recording", isRecording);
+    recBtn.setAttribute("aria-pressed", String(isRecording));
+    recBtn.setAttribute("aria-label", status);
+    recStatusBox.textContent = status;
+    recStatusBox.classList.toggle("recording", isRecording);
+    recStatusBox.classList.toggle("permission-required", permissionBlocked);
+    updateHud();
+    syncImageMissionUI();
+}
 function getImageMissionLatLng(item) {
     if (!item) return null;
     var lat = parseFloat(item.mapy !== undefined ? item.mapy : item.lat);

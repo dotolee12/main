@@ -4,20 +4,18 @@ function requestGiloaStartupEntryChoice() {
     if (!window.GiloaPrivacy) return Promise.resolve(false);
     if (typeof hasSavedIntroLanguage === "function" && hasSavedIntroLanguage()) currentLang = normalizeLang(safeStorageGet(LANGUAGE_PREFERENCE_KEY));
     else if (typeof normalizeLang === "function") currentLang = normalizeLang(navigator.language || currentLang);
-    giloaStartupChoicePromise = window.GiloaPrivacy.requestLocationConsent({force:true,startup:true,onChoice:function() {
+    giloaStartupChoicePromise = window.GiloaPrivacy.requestLocationConsent({force:true,startup:true,onChoice:function(agreed) {
         if (window.GiloaStartupMusic) window.GiloaStartupMusic.start({force:true});
+        if (agreed) {
+            startupLocationRequested = true;
+            runInitStep("startup recording", startRecordingAfterDisclosure);
+        }
     }});
     if (window.GiloaBoot && typeof window.GiloaBoot.hide === "function") window.GiloaBoot.hide();
     return giloaStartupChoicePromise;
 }
 function beginGiloaStartupEntry() {
     return requestGiloaStartupEntryChoice().then(function(agreed) {
-        // The startup agreement now explicitly includes recording. Reuse the
-        // established permissions, session, eight-hour timer and GPS recorder.
-        if (agreed) {
-            startupLocationRequested = true;
-            runInitStep("startup recording", startRecordingAfterDisclosure);
-        }
         var firstMeetingShown = false;
         runInitStep("first launch experience", function(){firstMeetingShown=startFirstLaunchExperience();return firstMeetingShown;});
         if (!firstMeetingShown) setTimeout(showGiloaUpdateNoticeIfNeeded,450);

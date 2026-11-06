@@ -65,6 +65,7 @@ const EARLY_UI_I18N = {
     locationUpdated: ["현재 위치로 맞췄습니다 (±{accuracy}m)", "Location updated (±{accuracy}m)", "現在地を更新しました（±{accuracy}m）", "位置已更新（±{accuracy}米）", "Ubicación actualizada (±{accuracy} m)", "Position actualisée (±{accuracy} m)"],
     locationFailed: ["위치를 확인하지 못했습니다. 위치 권한과 GPS를 확인해 주세요.", "Could not locate you. Check location permission and GPS.", "現在地を取得できませんでした。位置情報の権限とGPSを確認してください。", "无法确定位置。请检查位置权限和GPS。", "No se pudo obtener tu ubicación. Comprueba el permiso de ubicación y el GPS.", "Impossible de vous localiser. Vérifiez l’autorisation de localisation et le GPS."],
     restoringBeforeRecord: ["이전 발걸음을 복원하고 있어요. 복원이 끝나면 기록을 시작할게요.", "Restoring your previous route. Recording will start when restoration finishes.", "以前の足跡を復元しています。完了したら記録を開始します。", "正在恢复以前的足迹。恢复完成后将开始记录。", "Restaurando tu ruta anterior. El registro comenzará al terminar.", "Restauration de votre parcours précédent. L’enregistrement commencera ensuite."],
+    recordingPermissionRequired: ["위치 허용 필요", "Allow location", "位置情報を許可", "请允许定位", "Permite ubicación", "Autoriser la localisation"],
     locationPermission: ["브라우저 또는 휴대폰 설정에서 위치 권한을 허용해야 경로를 기록할 수 있어요.", "Allow location in your browser or device settings to record your route.", "ブラウザまたは端末の設定で位置情報を許可すると経路を記録できます。", "请在浏览器或设备设置中允许位置权限以记录路线。", "Permite la ubicación en el navegador o dispositivo para registrar tu ruta.", "Autorisez la localisation dans le navigateur ou l’appareil pour enregistrer votre parcours."],
     noMemoryLocation: ["기억으로 남길 위치가 없습니다.", "There is no location to save as a memory.", "思い出として保存する位置がありません。", "没有可保存为回忆的位置。", "No hay una ubicación para guardar como recuerdo.", "Aucune position à enregistrer comme souvenir."],
     memoryPrompt: ["이 장소의 이름을 입력하세요.", "Enter a name for this place.", "この場所の名前を入力してください。", "请输入此地点的名称。", "Escribe un nombre para este lugar.", "Saisissez un nom pour ce lieu."],
@@ -2785,7 +2786,19 @@ function getStatusText(key, value) {
     var text = t[key] || (UI_TEXT.en && UI_TEXT.en[key]) || key;
     return typeof value === "undefined" ? text : text.replace("{value}", value);
 }
-function syncRecordingUI() { var t = UI_TEXT[currentLang] || UI_TEXT.ko; recBtn.classList.toggle("recording", isRecording); recBtn.setAttribute("aria-pressed", String(isRecording)); recBtn.setAttribute("aria-label", isRecording ? t.rec_active : t.rec_idle); recStatusBox.textContent = isRecording ? t.rec_active : t.rec_idle; recStatusBox.classList.toggle("recording", isRecording); updateHud(); syncImageMissionUI(); }
+function syncRecordingUI() {
+    var t = UI_TEXT[currentLang] || UI_TEXT.ko;
+    var permissionBlocked = !isRecording && recordingLocationPermissionBlocked;
+    var status = isRecording ? t.rec_active : permissionBlocked ? earlyUiText("recordingPermissionRequired") : t.rec_idle;
+    recBtn.classList.toggle("recording", isRecording);
+    recBtn.setAttribute("aria-pressed", String(isRecording));
+    recBtn.setAttribute("aria-label", status);
+    recStatusBox.textContent = status;
+    recStatusBox.classList.toggle("recording", isRecording);
+    recStatusBox.classList.toggle("permission-required", permissionBlocked);
+    updateHud();
+    syncImageMissionUI();
+}
 function getImageMissionLatLng(item) {
     if (!item) return null;
     var lat = parseFloat(item.mapy !== undefined ? item.mapy : item.lat);
@@ -4093,6 +4106,7 @@ function acquireBestPosition(options) {
 var locationResyncPending = false;
 var locationResyncPromise = null;
 var startupLocationRequested = false;
+var recordingLocationPermissionBlocked = false;
 function focusStartupLocation(options) {
     options = options || {};
     // Restore saved journeys first; explicit startup consent may precede the intro.
@@ -4147,7 +4161,7 @@ function focusCurrentLocation() {
         else showLocationToast(earlyUiText("locationUpdated", { accuracy:accuracy }), 2200);
         return true;
     }).catch(function(error) {
-        showLocationToast(earlyUiText("locationFailed"), 4000);
+        if (!recordingLocationPermissionBlocked) showLocationToast(earlyUiText("locationFailed"), 4000);
         if (typeof window.onGiloaTutorialLocationError === "function") window.onGiloaTutorialLocationError(error);
         return false;
     }).then(function(result) {
@@ -4213,6 +4227,7 @@ function toggleRecording() {
 
     pendingRecordingStartAfterRestore = false;
     if (isRecording) { stopRecording(); return; }
+    recordingLocationPermissionBlocked = false;
     focusCurrentLocation();
     ensureRecordingSession();
     isRecording = true;
@@ -4301,26 +4316,27 @@ Object.keys(LOCATION_RECORDING_DISCLOSURE_TEXT).forEach(function(lang) {
     LOCATION_RECORDING_DISCLOSURE_TEXT[lang].privacy = notice[1];
     LOCATION_RECORDING_DISCLOSURE_TEXT[lang].start = notice[2];
 });
+function showRecordingPermissionRequired() {
+    recordingLocationPermissionBlocked = true;
+    if (isRecording) stopRecording();
+    else syncRecordingUI();
+    showLocationToast(earlyUiText("locationPermission"), 5000);
+}
 function startRecordingAfterDisclosure() {
     dismissAutoRecordingNotice();
+    if (isRecording) return Promise.resolve();
 
-    Promise.resolve(requestLocationPermission())
-        .then(function() {
-            if (!isRecording) {
-                toggleRecording();
-            }
-        })
-        .catch(function(error) {
-            console.warn(
-                "Location permission request failed",
-                error
-            );
-
-            showLocationToast(
-                earlyUiText("locationPermission"),
-                3500
-            );
-        });
+    return Promise.resolve(requestLocationPermission()).then(function() {
+        if (isNativeApp() || !navigator.permissions) return null;
+        return navigator.permissions.query({ name: "geolocation" }).catch(function() { return null; });
+    }).then(function(permission) {
+        if (isRecording) return;
+        if (permission && permission.state === "denied") showRecordingPermissionRequired();
+        else toggleRecording();
+    }).catch(function(error) {
+        console.warn("Location permission request failed", error);
+        if (!isRecording) showRecordingPermissionRequired();
+    });
 }
 function applyAutoRecordingNoticeLang() {
     var overlay =
@@ -4839,10 +4855,10 @@ function handlePosition(position, options) {
 }
 
 function handleLocationError(err) {
-    var messages = { 1: "Location permission needed", 2: "Checking location", 3: "Location timeout" };
-    if (recStatusBox) recStatusBox.textContent = messages[err && err.code] || "Waiting for location";
+    var messages = { 2: "Checking location", 3: "Location timeout" };
     if (!isRecording) return;
-    if (err && err.code === 1) { stopRecording(); showLocationToast(earlyUiText("locationPermission"), 5000); return; }
+    if (err && err.code === 1) { showRecordingPermissionRequired(); return; }
+    if (recStatusBox) recStatusBox.textContent = messages[err && err.code] || "Waiting for location";
     clearTrackingRetryTimer();
     trackingRetryTimer = setTimeout(function() {
         trackingRetryTimer = null;
@@ -8409,20 +8425,18 @@ function requestGiloaStartupEntryChoice() {
     if (!window.GiloaPrivacy) return Promise.resolve(false);
     if (typeof hasSavedIntroLanguage === "function" && hasSavedIntroLanguage()) currentLang = normalizeLang(safeStorageGet(LANGUAGE_PREFERENCE_KEY));
     else if (typeof normalizeLang === "function") currentLang = normalizeLang(navigator.language || currentLang);
-    giloaStartupChoicePromise = window.GiloaPrivacy.requestLocationConsent({force:true,startup:true,onChoice:function() {
+    giloaStartupChoicePromise = window.GiloaPrivacy.requestLocationConsent({force:true,startup:true,onChoice:function(agreed) {
         if (window.GiloaStartupMusic) window.GiloaStartupMusic.start({force:true});
+        if (agreed) {
+            startupLocationRequested = true;
+            runInitStep("startup recording", startRecordingAfterDisclosure);
+        }
     }});
     if (window.GiloaBoot && typeof window.GiloaBoot.hide === "function") window.GiloaBoot.hide();
     return giloaStartupChoicePromise;
 }
 function beginGiloaStartupEntry() {
     return requestGiloaStartupEntryChoice().then(function(agreed) {
-        // The startup agreement now explicitly includes recording. Reuse the
-        // established permissions, session, eight-hour timer and GPS recorder.
-        if (agreed) {
-            startupLocationRequested = true;
-            runInitStep("startup recording", startRecordingAfterDisclosure);
-        }
         var firstMeetingShown = false;
         runInitStep("first launch experience", function(){firstMeetingShown=startFirstLaunchExperience();return firstMeetingShown;});
         if (!firstMeetingShown) setTimeout(showGiloaUpdateNoticeIfNeeded,450);
@@ -8811,6 +8825,35 @@ var restaurantCoverage = (function() {
         else if (!shown.length && map.hasLayer(layer)) map.removeLayer(layer);
     }
 
+    async function fetchRestaurants(query, signal) {
+        var endpoints = [
+            "https://overpass-api.de/api/interpreter",
+            "https://overpass.private.coffee/api/interpreter"
+        ];
+        for (var endpoint of endpoints) {
+            if (signal.aborted) break;
+            var controller = new AbortController();
+            var cancel = function() { controller.abort(); };
+            signal.addEventListener("abort", cancel, { once: true });
+            var timer = setTimeout(cancel, 8000);
+            try {
+                var response = await fetch(endpoint, {
+                    method: "POST", body: new URLSearchParams({ data: query }), signal: controller.signal,
+                    cache: "no-store", credentials: "omit", referrerPolicy: "no-referrer"
+                });
+                if (!response.ok) continue;
+                var data = await response.json();
+                if (!data.remark && Array.isArray(data.elements)) return data.elements;
+            } catch (_) {
+                // A provider can be unreachable or busy; try the other instance.
+            } finally {
+                clearTimeout(timer);
+                signal.removeEventListener("abort", cancel);
+            }
+        }
+        throw new Error("Restaurant lookup failed");
+    }
+
     function refresh() {
         if (!mapLayerSettings.restaurant) {
             if (request) request.abort();
@@ -8836,24 +8879,15 @@ var restaurantCoverage = (function() {
 
         var controller = new AbortController();
         request = controller;
-        var timer = setTimeout(function() { controller.abort(); }, 9000);
-        var query = '[out:json][timeout:6];nwr(around:1500,' + key + ')["amenity"="restaurant"][~"^name(:.*)?$"~"."];out center tags;';
-        fetch("https://overpass-api.de/api/interpreter", {
-            method: "POST", body: new URLSearchParams({ data: query }), signal: controller.signal,
-            cache: "no-store", credentials: "omit", referrerPolicy: "no-referrer"
-        }).then(function(response) {
-            if (!response.ok) throw new Error("Restaurant lookup failed");
-            return response.json();
-        }).then(function(data) {
+        var query = '[out:json][timeout:6];nwr(around:1500,' + key + ')["amenity"="restaurant"][~"^name(:.*)?$"~"."];out tags center;';
+        fetchRestaurants(query, controller.signal).then(function(elements) {
             if (request !== controller || !mapLayerSettings.restaurant) return;
-            if (data.remark || !Array.isArray(data.elements)) throw new Error("Incomplete restaurant response");
-            results = data.elements.map(normalizeRestaurant).filter(Boolean);
+            results = elements.map(normalizeRestaurant).filter(Boolean);
             refreshAfter = Date.now() + 5 * 60 * 1000;
             render(getMapSearchCenter());
         }).catch(function() {
             if (request === controller) refreshAfter = Date.now() + 30 * 1000;
         }).finally(function() {
-            clearTimeout(timer);
             if (request === controller) request = null;
         });
     }

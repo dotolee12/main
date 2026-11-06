@@ -141,6 +141,7 @@ function acquireBestPosition(options) {
 var locationResyncPending = false;
 var locationResyncPromise = null;
 var startupLocationRequested = false;
+var recordingLocationPermissionBlocked = false;
 function focusStartupLocation(options) {
     options = options || {};
     // Restore saved journeys first; explicit startup consent may precede the intro.
@@ -195,7 +196,7 @@ function focusCurrentLocation() {
         else showLocationToast(earlyUiText("locationUpdated", { accuracy:accuracy }), 2200);
         return true;
     }).catch(function(error) {
-        showLocationToast(earlyUiText("locationFailed"), 4000);
+        if (!recordingLocationPermissionBlocked) showLocationToast(earlyUiText("locationFailed"), 4000);
         if (typeof window.onGiloaTutorialLocationError === "function") window.onGiloaTutorialLocationError(error);
         return false;
     }).then(function(result) {
@@ -261,6 +262,7 @@ function toggleRecording() {
 
     pendingRecordingStartAfterRestore = false;
     if (isRecording) { stopRecording(); return; }
+    recordingLocationPermissionBlocked = false;
     focusCurrentLocation();
     ensureRecordingSession();
     isRecording = true;
@@ -349,26 +351,27 @@ Object.keys(LOCATION_RECORDING_DISCLOSURE_TEXT).forEach(function(lang) {
     LOCATION_RECORDING_DISCLOSURE_TEXT[lang].privacy = notice[1];
     LOCATION_RECORDING_DISCLOSURE_TEXT[lang].start = notice[2];
 });
+function showRecordingPermissionRequired() {
+    recordingLocationPermissionBlocked = true;
+    if (isRecording) stopRecording();
+    else syncRecordingUI();
+    showLocationToast(earlyUiText("locationPermission"), 5000);
+}
 function startRecordingAfterDisclosure() {
     dismissAutoRecordingNotice();
+    if (isRecording) return Promise.resolve();
 
-    Promise.resolve(requestLocationPermission())
-        .then(function() {
-            if (!isRecording) {
-                toggleRecording();
-            }
-        })
-        .catch(function(error) {
-            console.warn(
-                "Location permission request failed",
-                error
-            );
-
-            showLocationToast(
-                earlyUiText("locationPermission"),
-                3500
-            );
-        });
+    return Promise.resolve(requestLocationPermission()).then(function() {
+        if (isNativeApp() || !navigator.permissions) return null;
+        return navigator.permissions.query({ name: "geolocation" }).catch(function() { return null; });
+    }).then(function(permission) {
+        if (isRecording) return;
+        if (permission && permission.state === "denied") showRecordingPermissionRequired();
+        else toggleRecording();
+    }).catch(function(error) {
+        console.warn("Location permission request failed", error);
+        if (!isRecording) showRecordingPermissionRequired();
+    });
 }
 function applyAutoRecordingNoticeLang() {
     var overlay =
@@ -887,10 +890,10 @@ function handlePosition(position, options) {
 }
 
 function handleLocationError(err) {
-    var messages = { 1: "Location permission needed", 2: "Checking location", 3: "Location timeout" };
-    if (recStatusBox) recStatusBox.textContent = messages[err && err.code] || "Waiting for location";
+    var messages = { 2: "Checking location", 3: "Location timeout" };
     if (!isRecording) return;
-    if (err && err.code === 1) { stopRecording(); showLocationToast(earlyUiText("locationPermission"), 5000); return; }
+    if (err && err.code === 1) { showRecordingPermissionRequired(); return; }
+    if (recStatusBox) recStatusBox.textContent = messages[err && err.code] || "Waiting for location";
     clearTrackingRetryTimer();
     trackingRetryTimer = setTimeout(function() {
         trackingRetryTimer = null;

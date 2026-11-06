@@ -80,6 +80,35 @@ var restaurantCoverage = (function() {
         else if (!shown.length && map.hasLayer(layer)) map.removeLayer(layer);
     }
 
+    async function fetchRestaurants(query, signal) {
+        var endpoints = [
+            "https://overpass-api.de/api/interpreter",
+            "https://overpass.private.coffee/api/interpreter"
+        ];
+        for (var endpoint of endpoints) {
+            if (signal.aborted) break;
+            var controller = new AbortController();
+            var cancel = function() { controller.abort(); };
+            signal.addEventListener("abort", cancel, { once: true });
+            var timer = setTimeout(cancel, 8000);
+            try {
+                var response = await fetch(endpoint, {
+                    method: "POST", body: new URLSearchParams({ data: query }), signal: controller.signal,
+                    cache: "no-store", credentials: "omit", referrerPolicy: "no-referrer"
+                });
+                if (!response.ok) continue;
+                var data = await response.json();
+                if (!data.remark && Array.isArray(data.elements)) return data.elements;
+            } catch (_) {
+                // A provider can be unreachable or busy; try the other instance.
+            } finally {
+                clearTimeout(timer);
+                signal.removeEventListener("abort", cancel);
+            }
+        }
+        throw new Error("Restaurant lookup failed");
+    }
+
     function refresh() {
         if (!mapLayerSettings.restaurant) {
             if (request) request.abort();
@@ -105,24 +134,15 @@ var restaurantCoverage = (function() {
 
         var controller = new AbortController();
         request = controller;
-        var timer = setTimeout(function() { controller.abort(); }, 9000);
-        var query = '[out:json][timeout:6];nwr(around:1500,' + key + ')["amenity"="restaurant"][~"^name(:.*)?$"~"."];out center tags;';
-        fetch("https://overpass-api.de/api/interpreter", {
-            method: "POST", body: new URLSearchParams({ data: query }), signal: controller.signal,
-            cache: "no-store", credentials: "omit", referrerPolicy: "no-referrer"
-        }).then(function(response) {
-            if (!response.ok) throw new Error("Restaurant lookup failed");
-            return response.json();
-        }).then(function(data) {
+        var query = '[out:json][timeout:6];nwr(around:1500,' + key + ')["amenity"="restaurant"][~"^name(:.*)?$"~"."];out tags center;';
+        fetchRestaurants(query, controller.signal).then(function(elements) {
             if (request !== controller || !mapLayerSettings.restaurant) return;
-            if (data.remark || !Array.isArray(data.elements)) throw new Error("Incomplete restaurant response");
-            results = data.elements.map(normalizeRestaurant).filter(Boolean);
+            results = elements.map(normalizeRestaurant).filter(Boolean);
             refreshAfter = Date.now() + 5 * 60 * 1000;
             render(getMapSearchCenter());
         }).catch(function() {
             if (request === controller) refreshAfter = Date.now() + 30 * 1000;
         }).finally(function() {
-            clearTimeout(timer);
             if (request === controller) request = null;
         });
     }

@@ -100,7 +100,8 @@ test("D/E: missing foreground fixes split, but delayed continuous native fixes r
 
 test("F/G: only permission denial stops recording and stop clears the session", () => {
     const errorBody = functionSource("handleLocationError");
-    assert.match(errorBody, /err\s*&&\s*err\.code\s*===\s*1[^}]*stopRecording\(\)/s);
+    assert.match(errorBody, /err\s*&&\s*err\.code\s*===\s*1[^}]*showRecordingPermissionRequired\(\)/s);
+    assert.match(functionSource("showRecordingPermissionRequired"), /if\s*\(isRecording\)\s*stopRecording\(\)/);
     assert.match(errorBody, /setTimeout/);
     assert.doesNotMatch(errorBody, /err\.code\s*===\s*[23][^}]*stopRecording\(\)/s);
     assert.match(functionSource("stopRecording"), /recordingSessionId\s*=\s*null/);
