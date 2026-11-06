@@ -78,7 +78,7 @@ html,body{background:#1a2035;margin:0;height:100%;width:100%;overflow:hidden}
 <!-- 큰 벤더/앱 스크립트를 head 단계에서 미리 프리로드하여, 본문 파싱이 끝날 때까지
      기다리지 않고 CSS와 동시에 다운로드가 시작되도록 한다. (버퍼링 단축) -->
 <link rel="preload" as="script" href="./vendor/leaflet.js?v=app-local-9">
-<link rel="preload" as="script" href="./script.js?v=web-recording-20261106">
+<link rel="preload" as="script" href="./script.js?v=web-gpx-import-20261106">
 <link rel="stylesheet" href="./vendor/leaflet.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.Default.css?v=app-local-9">
@@ -277,6 +277,13 @@ var skipText={
   </div>
 
   <div id="panel-gpx" class="tab-panel" style="display:none;">
+    <div id="gpx-import-content" hidden inert>
+    <div id="gpx-saved-label" class="gpx-section-label">저장된 발걸음 열기</div>
+    <div id="gpx-saved-list"><p class="empty-message">저장된 발걸음이 없습니다.</p></div>
+    <button id="gpx-import-btn" class="gpx-action-btn import" onclick="chooseGpxFile()" style="margin-top:10px;">파일에서 불러오기</button>
+    <input type="file" id="gpx-file-input" accept=".gpx" style="display:none" onchange="importGpxFile(event)">
+    <div id="gpx-import-status" class="gpx-status"></div>
+    </div>
     <form id="gpx-access-form" class="gpx-access-card">
       <h3 id="gpx-access-title">GPX 이용 권한</h3>
       <p id="gpx-access-copy">관리자가 발급한 아이디로 이용할 수 있습니다.</p>
@@ -298,12 +305,6 @@ var skipText={
     </div>
     <div class="gpx-name-row"><input type="text" id="gpx-export-name" class="gpx-name-input" placeholder="발걸음 이름 (예: 한강 산책)"></div>
     <button id="gpx-save-btn" class="gpx-action-btn export" onclick="exportGpx()">이 발걸음 저장하기</button>
-    <div class="sidebar-divider" style="margin-top:18px;"></div>
-    <div id="gpx-saved-label" class="gpx-section-label">저장된 발걸음 열기</div>
-    <div id="gpx-saved-list"><p class="empty-message">저장된 발걸음이 없습니다.</p></div>
-    <button id="gpx-import-btn" class="gpx-action-btn import" onclick="chooseGpxFile()" style="margin-top:10px;">파일에서 불러오기</button>
-    <input type="file" id="gpx-file-input" accept=".gpx" style="display:none" onchange="importGpxFile(event)">
-    <div id="gpx-import-status" class="gpx-status"></div>
     </div>
   </div>
 
@@ -934,8 +935,8 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <script src="./region-stay-core.js?v=app-local-1" defer></script>
 <script src="./data/libraries_seoul.bundle.js?v=20261021" defer></script>
 <script src="./privacy-policy.js?v=20261105-recording" defer></script>
-<script src="./gpx-access.js?v=1" defer></script>
-<script src="./script.js?v=web-recording-20261106" defer></script>
+<script src="./gpx-access.js?v=web-gpx-import-20261106" defer></script>
+<script src="./script.js?v=web-gpx-import-20261106" defer></script>
 <script src="./parking-ocr.js?v=2" defer></script>
 <script src="./parking.js?v=6" defer></script>
 <script src="./item-icons.js?v=1" defer></script>

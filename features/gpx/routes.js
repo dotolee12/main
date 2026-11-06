@@ -106,13 +106,28 @@ function saveGpxSaves(saves) {
     try { localStorage.setItem(GPX_SAVES_KEY, JSON.stringify(saves)); return true; }
     catch (error) { console.warn("GPX save failed", error && error.name); return false; }
 }
-function updateGpxSavedList() { var container = document.getElementById("gpx-saved-list"); if (!container) return; var t = UI_TEXT[currentLang] || UI_TEXT.ko; var saves = loadGpxSaves(); if (saves.length === 0) { container.innerHTML = '<p class="empty-message">' + escapeHtml(t.gpx_empty) + '</p>'; return; } container.innerHTML = ""; saves.slice().reverse().forEach(function(s) { var item = document.createElement("div"); item.className = "gpx-saved-item" + (s.id === activeGpxId ? " active-route" : ""); var icon = document.createElement("span"); icon.className = "gpx-saved-icon"; icon.textContent = s.id === activeGpxId ? t.gpx_showing : t.gpx_route; var info = document.createElement("div"); info.className = "gpx-saved-info"; var nameEl = document.createElement("div"); nameEl.className = "gpx-saved-name"; nameEl.textContent = s.name; var meta = document.createElement("div"); meta.className = "gpx-saved-meta"; meta.textContent = new Date(s.createdAt).toLocaleDateString(currentLang) + " · " + s.pointCount + " " + t.gpx_points; info.appendChild(nameEl); info.appendChild(meta); var del = document.createElement("div"); del.className = "gpx-saved-del"; del.textContent = t.gpx_delete; del.addEventListener("click", function(e) { e.stopPropagation(); deleteGpxSave(s.id); }); item.appendChild(icon); item.appendChild(info); item.appendChild(del); item.addEventListener("click", function() { toggleGpxRoute(s); }); container.appendChild(item); }); }
+function isImportedGpxSave(save) {
+    // Earlier imports used a timestamp ID, while exports included a random suffix.
+    return save.source === "import" || (save.source === undefined && /^\d{13}$/.test(save.id));
+}
+function updateGpxSavedList() { var container = document.getElementById("gpx-saved-list"); if (!container) return; var t = UI_TEXT[currentLang] || UI_TEXT.ko; var saves = loadGpxSaves(); if (!window.GiloaGpxAccess || !window.GiloaGpxAccess.isAuthorized()) saves = saves.filter(isImportedGpxSave); if (saves.length === 0) { container.innerHTML = '<p class="empty-message">' + escapeHtml(t.gpx_empty) + '</p>'; return; } container.innerHTML = ""; saves.slice().reverse().forEach(function(s) { var item = document.createElement("div"); item.className = "gpx-saved-item" + (s.id === activeGpxId ? " active-route" : ""); var icon = document.createElement("span"); icon.className = "gpx-saved-icon"; icon.textContent = s.id === activeGpxId ? t.gpx_showing : t.gpx_route; var info = document.createElement("div"); info.className = "gpx-saved-info"; var nameEl = document.createElement("div"); nameEl.className = "gpx-saved-name"; nameEl.textContent = s.name; var meta = document.createElement("div"); meta.className = "gpx-saved-meta"; meta.textContent = new Date(s.createdAt).toLocaleDateString(currentLang) + " · " + s.pointCount + " " + t.gpx_points; info.appendChild(nameEl); info.appendChild(meta); var del = document.createElement("div"); del.className = "gpx-saved-del"; del.textContent = t.gpx_delete; del.addEventListener("click", function(e) { e.stopPropagation(); deleteGpxSave(s.id); }); item.appendChild(icon); item.appendChild(info); item.appendChild(del); item.addEventListener("click", function() { toggleGpxRoute(s); }); container.appendChild(item); }); }
 function deleteGpxSave(id) { if (id === activeGpxId) clearActiveGpxRoute(); saveGpxSaves(loadGpxSaves().filter(function(s) { return s.id !== id; })); updateGpxSavedList(); }
+function requireGpxViewAccess(imported) {
+    var access = window.GiloaGpxAccess;
+    return !!access && ((imported && access.canImport()) || access.requireAccess());
+}
 function toggleGpxRoute(save) {
-    if (!window.GiloaGpxAccess || !window.GiloaGpxAccess.requireAccess()) return; if (activeGpxId === save.id) { clearActiveGpxRoute(); updateGpxSavedList(); return; } clearActiveGpxRoute(); drawGpxRoute(save.gpxContent, save.id); updateGpxSavedList(); toggleSidebar(false); }
+    var imported = isImportedGpxSave(save);
+    if (!requireGpxViewAccess(imported)) return;
+    if (activeGpxId === save.id) { clearActiveGpxRoute(); updateGpxSavedList(); return; }
+    clearActiveGpxRoute();
+    drawGpxRoute(save.gpxContent, save.id, imported);
+    updateGpxSavedList();
+    toggleSidebar(false);
+}
 function clearActiveGpxRoute() { activeGpxLayers.forEach(function(l) { map.removeLayer(l); }); activeGpxLayers = []; activeGpxId = null; if (window.GiloaTrip) window.GiloaTrip.close(); }
-function drawGpxRoute(gpxContent, id) {
-    if (!window.GiloaGpxAccess || !window.GiloaGpxAccess.requireAccess()) return;
+function drawGpxRoute(gpxContent, id, imported) {
+    if (!requireGpxViewAccess(imported)) return;
     var xmlDoc = new DOMParser().parseFromString(gpxContent, "application/xml");
     var segmentNodes = Array.from(xmlDoc.querySelectorAll("trkseg"));
     if (!segmentNodes.length) segmentNodes = [xmlDoc];
@@ -140,7 +155,7 @@ function drawGpxRoute(gpxContent, id) {
     var bounds = L.latLngBounds([]);
     segmentLatLngs.forEach(function(segment) { segment.forEach(function(latlng) { bounds.extend(latlng); }); });
     if (bounds.isValid()) map.fitBounds(bounds, { padding:[50, 50] });
-    if (window.GiloaTrip) window.GiloaTrip.open(gpxContent, id);
+    if (window.GiloaTrip && window.GiloaGpxAccess.isAuthorized()) window.GiloaTrip.open(gpxContent, id);
 }
 function getGpxImportText() {
     var text = {
@@ -154,18 +169,18 @@ function getGpxImportText() {
     return text[currentLang] || text.ko;
 }
 function chooseGpxFile() {
-    if (!window.GiloaGpxAccess || !window.GiloaGpxAccess.requireAccess()) return;
+    if (!requireGpxViewAccess(true)) return;
     document.getElementById("gpx-file-input").click();
 }
 function importGpxFile(event) {
-    if (!window.GiloaGpxAccess || !window.GiloaGpxAccess.requireAccess()) return;
+    if (!requireGpxViewAccess(true)) return;
     var file = event.target.files[0]; if (!file) return;
     var statusEl = document.getElementById("gpx-import-status"); var text = getGpxImportText();
     if (file.size > GPX_IMPORT_MAX_BYTES) { statusEl.textContent = text.tooLarge; event.target.value = ""; return; }
     statusEl.textContent = text.loading;
     var reader = new FileReader();
     reader.onload = function(e) {
-        if (!window.GiloaGpxAccess || !window.GiloaGpxAccess.isAuthorized()) return;
+        if (!window.GiloaGpxAccess || !window.GiloaGpxAccess.canImport()) return;
         try {
             var name = file.name.replace(/\.gpx$/i, ""); var gpxContent = String(e.target.result || "");
             var xmlDoc = new DOMParser().parseFromString(gpxContent, "application/xml");
@@ -176,10 +191,10 @@ function importGpxFile(event) {
             });
             if (!routePoints.length) { statusEl.textContent = text.noRoute; return; }
             var saves = loadGpxSaves(); var id = String(Date.now());
-            saves.push({ id:id, name:name, createdAt:Date.now(), pointCount:routePoints.length, gpxContent:gpxContent });
+            saves.push({ id:id, name:name, createdAt:Date.now(), pointCount:routePoints.length, gpxContent:gpxContent, source:"import" });
             var savedLocally = saveGpxSaves(saves);
             // Opening an existing file must work even when the app list is full.
-            clearActiveGpxRoute(); drawGpxRoute(gpxContent, savedLocally ? id : null); updateGpxSavedList();
+            clearActiveGpxRoute(); drawGpxRoute(gpxContent, savedLocally ? id : null, true); updateGpxSavedList();
             statusEl.textContent = savedLocally ? '"' + name + '" ' + text.done : text.previewOnly;
             toggleSidebar(false);
             if (!savedLocally && typeof showLocationToast === "function") showLocationToast(text.previewOnly, 5000);

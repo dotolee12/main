@@ -316,8 +316,10 @@
 | `exportGpx` | [features/gpx/routes.js](../features/gpx/routes.js) |
 | `loadGpxSaves` | [features/gpx/routes.js](../features/gpx/routes.js) |
 | `saveGpxSaves` | [features/gpx/routes.js](../features/gpx/routes.js) |
+| `isImportedGpxSave` | [features/gpx/routes.js](../features/gpx/routes.js) |
 | `updateGpxSavedList` | [features/gpx/routes.js](../features/gpx/routes.js) |
 | `deleteGpxSave` | [features/gpx/routes.js](../features/gpx/routes.js) |
+| `requireGpxViewAccess` | [features/gpx/routes.js](../features/gpx/routes.js) |
 | `toggleGpxRoute` | [features/gpx/routes.js](../features/gpx/routes.js) |
 | `clearActiveGpxRoute` | [features/gpx/routes.js](../features/gpx/routes.js) |
 | `drawGpxRoute` | [features/gpx/routes.js](../features/gpx/routes.js) |

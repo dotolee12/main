@@ -82,6 +82,13 @@
   </div>
 
   <div id="panel-gpx" class="tab-panel" style="display:none;">
+    <div id="gpx-import-content" hidden inert>
+    <div id="gpx-saved-label" class="gpx-section-label">저장된 발걸음 열기</div>
+    <div id="gpx-saved-list"><p class="empty-message">저장된 발걸음이 없습니다.</p></div>
+    <button id="gpx-import-btn" class="gpx-action-btn import" onclick="chooseGpxFile()" style="margin-top:10px;">파일에서 불러오기</button>
+    <input type="file" id="gpx-file-input" accept=".gpx" style="display:none" onchange="importGpxFile(event)">
+    <div id="gpx-import-status" class="gpx-status"></div>
+    </div>
     <form id="gpx-access-form" class="gpx-access-card">
       <h3 id="gpx-access-title">GPX 이용 권한</h3>
       <p id="gpx-access-copy">관리자가 발급한 아이디로 이용할 수 있습니다.</p>
@@ -103,12 +110,6 @@
     </div>
     <div class="gpx-name-row"><input type="text" id="gpx-export-name" class="gpx-name-input" placeholder="발걸음 이름 (예: 한강 산책)"></div>
     <button id="gpx-save-btn" class="gpx-action-btn export" onclick="exportGpx()">이 발걸음 저장하기</button>
-    <div class="sidebar-divider" style="margin-top:18px;"></div>
-    <div id="gpx-saved-label" class="gpx-section-label">저장된 발걸음 열기</div>
-    <div id="gpx-saved-list"><p class="empty-message">저장된 발걸음이 없습니다.</p></div>
-    <button id="gpx-import-btn" class="gpx-action-btn import" onclick="chooseGpxFile()" style="margin-top:10px;">파일에서 불러오기</button>
-    <input type="file" id="gpx-file-input" accept=".gpx" style="display:none" onchange="importGpxFile(event)">
-    <div id="gpx-import-status" class="gpx-status"></div>
     </div>
   </div>
 
