@@ -15,6 +15,7 @@ function fixture(options={}){
  w.giloaPersistentStateReady=true;w.recordingLocationPermissionBlocked=false;w.isNativeApp=()=>false;w.pendingRecordingStartAfterRestore=false;w.isRecording=!!options.recording;
  w.recBtn=w.document.getElementById('rec-btn');w.recStatusBox=w.document.getElementById('rec-status-box');w.UI_TEXT={ko:{rec_active:'기록 중',rec_idle:'중단됨'}};w.currentLang='ko';
  if(options.webPermission)Object.defineProperty(w.navigator,'permissions',{value:{query:async()=>({state:options.webPermission})}});
+ if(options.brokenPermissionQuery)Object.defineProperty(w.navigator,'permissions',{value:{query(){throw new TypeError('Geolocation query unsupported');}}});
  w.requestLocationPermission=()=>options.permissionDenied?Promise.reject(new Error('denied')):Promise.resolve();
  w.focusCurrentLocation=()=>{events.push('location');return Promise.resolve(true);};
  w.ensureRecordingSession=()=>events.push('session');w.startAutoRecordingTimer=()=>events.push('eight-hour-timer');w.startTracking=()=>events.push('tracking');
@@ -76,4 +77,25 @@ test('previously blocked browser permission stays blue and leaves a visible perm
 test('browser permission granted starts the recorder and activates the red stop control',async()=>{
  const a=fixture({webPermission:'granted'});const ready=a.w.beginGiloaStartupEntry();a.button(true).click();await ready;await new Promise(r=>setImmediate(r));
  assert.equal(a.w.recBtn.getAttribute('aria-pressed'),'true');assert(a.w.recBtn.classList.contains('recording'));assert(a.events.includes('tracking'));a.dom.window.close();
+});
+
+test('startup agreement still starts GPS when the browser cannot query geolocation permission',async()=>{
+ const a=fixture({brokenPermissionQuery:true});
+ const ready=a.w.beginGiloaStartupEntry();a.button(true).click();await ready;await new Promise(r=>setImmediate(r));
+ assert.equal(a.w.recBtn.getAttribute('aria-pressed'),'true');
+ assert(a.events.includes('tracking'));assert(!a.events.includes('permission-error'));a.dom.window.close();
+});
+
+test('only the center dot changes color when recording starts',async()=>{
+ const a=fixture({webPermission:'granted'}),w=a.w;
+ const style=w.document.createElement('style');
+ style.textContent=fs.readFileSync(path.join(root,'features/ui/legacy-panels.css'),'utf8');w.document.head.append(style);
+ const dot=w.recBtn.querySelector('.loc-record-icon'),crosshair=w.recBtn.querySelector('.loc-crosshair');
+ const frame=()=>[w.getComputedStyle(w.recBtn).borderTopColor,w.getComputedStyle(crosshair).borderTopColor];
+ const idleFrame=frame();
+ assert.equal(w.getComputedStyle(dot).backgroundColor,'rgb(77, 184, 255)');
+ const ready=w.beginGiloaStartupEntry();a.button(true).click();await ready;await new Promise(r=>setImmediate(r));
+ assert.equal(w.getComputedStyle(dot).backgroundColor,'rgb(255, 68, 68)');assert.deepEqual(frame(),idleFrame);
+ w.isRecording=false;w.syncRecordingUI();
+ assert.equal(w.getComputedStyle(dot).backgroundColor,'rgb(77, 184, 255)');assert.deepEqual(frame(),idleFrame);a.dom.window.close();
 });

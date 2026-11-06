@@ -13,12 +13,16 @@ function setup() {
     const distance = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]) * 100000;
     const center = { lat: 37, lng: 127, distanceTo: position => distance([37, 127], position) };
     const requests = [];
+    const popups = [];
     const context = {
         L: {
             layerGroup: () => layer, divIcon: icon => icon,
             marker(position) {
                 return { position, addTo() { markers.push(this); return this; },
-                    bindTooltip(label) { this.label = label.textContent; }, on() {} };
+                    bindTooltip(label) { this.label = label.textContent; }, on(event, handler) { this[event] = handler; } };
+            },
+            popup() {
+                return { setLatLng() { return this; }, setContent(content) { popups.push(content); return this; }, openOn() {} };
             }
         },
         map: { distance, getBounds: () => ({ contains: () => true }),
@@ -27,7 +31,8 @@ function setup() {
         currentLang: "en", normalizeLang: lang => lang,
         getTourDisplayTitle: item => item.title, getTourTypeMeta: () => ({}),
         mapPlaceSymbolHtml: () => "",
-        document: { createElement: () => ({}) },
+        document: { createElement: () => ({ children: [], appendChild(child) { this.children.push(child); } }) },
+        setSelectedDestination() {},
         tourItems: [{ title: "Existing Place", mapx: 127, mapy: 37, contenttypeid: 39 }],
         mapLayerSettings: { restaurant: true }, navigator: { onLine: true },
         AbortController, URLSearchParams, setTimeout, clearTimeout,
@@ -37,7 +42,7 @@ function setup() {
     };
     vm.createContext(context);
     vm.runInContext(source, context);
-    return { context, markers, active, requests };
+    return { context, markers, active, requests, popups };
 }
 
 function restaurant(name, lat, extra = {}) {
@@ -94,4 +99,14 @@ test("a busy restaurant provider falls back to a second Overpass instance", asyn
     respond(requests[1], [restaurant("Backup Restaurant", 37.001)]);
     await flush();
     assert.deepEqual(markers.map(marker => marker.label), ["Backup Restaurant"]);
+});
+
+test("a supplemental restaurant shows its OpenStreetMap source in the details", async () => {
+    const { context, markers, requests, popups } = setup();
+    context.restaurantCoverage.refresh();
+    respond(requests[0], [restaurant("Local Restaurant", 37.001)]);
+    await flush();
+    markers[0].click();
+    assert.match(popups[0].children[1].innerHTML, /OpenStreetMap contributors/);
+    assert.match(popups[0].children[1].innerHTML, /https:\/\/www.openstreetmap.org\/copyright/);
 });

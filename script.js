@@ -4322,21 +4322,28 @@ function showRecordingPermissionRequired() {
     else syncRecordingUI();
     showLocationToast(earlyUiText("locationPermission"), 5000);
 }
-function startRecordingAfterDisclosure() {
+async function startRecordingAfterDisclosure() {
     dismissAutoRecordingNotice();
-    if (isRecording) return Promise.resolve();
+    if (isRecording) return;
 
-    return Promise.resolve(requestLocationPermission()).then(function() {
-        if (isNativeApp() || !navigator.permissions) return null;
-        return navigator.permissions.query({ name: "geolocation" }).catch(function() { return null; });
-    }).then(function(permission) {
-        if (isRecording) return;
-        if (permission && permission.state === "denied") showRecordingPermissionRequired();
-        else toggleRecording();
-    }).catch(function(error) {
+    var permission;
+    try {
+        await requestLocationPermission();
+    } catch (error) {
         console.warn("Location permission request failed", error);
         if (!isRecording) showRecordingPermissionRequired();
-    });
+        return;
+    }
+    if (!isNativeApp() && navigator.permissions) {
+        try {
+            permission = await navigator.permissions.query({ name: "geolocation" });
+        } catch (_) {
+            // Some browsers cannot query this permission. Let geolocation request it directly.
+        }
+    }
+    if (isRecording) return;
+    if (permission && permission.state === "denied") showRecordingPermissionRequired();
+    else toggleRecording();
 }
 function applyAutoRecordingNoticeLang() {
     var overlay =
@@ -8426,7 +8433,9 @@ function requestGiloaStartupEntryChoice() {
     if (typeof hasSavedIntroLanguage === "function" && hasSavedIntroLanguage()) currentLang = normalizeLang(safeStorageGet(LANGUAGE_PREFERENCE_KEY));
     else if (typeof normalizeLang === "function") currentLang = normalizeLang(navigator.language || currentLang);
     giloaStartupChoicePromise = window.GiloaPrivacy.requestLocationConsent({force:true,startup:true,onChoice:function(agreed) {
-        if (window.GiloaStartupMusic) window.GiloaStartupMusic.start({force:true});
+        runInitStep("startup music", function() {
+            if (window.GiloaStartupMusic) window.GiloaStartupMusic.start({force:true});
+        });
         if (agreed) {
             startupLocationRequested = true;
             runInitStep("startup recording", startRecordingAfterDisclosure);
@@ -8814,6 +8823,10 @@ var restaurantCoverage = (function() {
                 heading.className = "tour-popup-title";
                 heading.textContent = title;
                 box.appendChild(heading);
+                var source = document.createElement("small");
+                source.className = "tour-popup-credit";
+                source.innerHTML = credit;
+                box.appendChild(source);
                 setSelectedDestination(item.lat, item.lng, title);
                 L.popup({ className: "tour-popup", autoPan: false, closeOnClick: true })
                     .setLatLng(position).setContent(box).openOn(map);

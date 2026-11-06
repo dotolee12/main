@@ -722,24 +722,9 @@ body.gft-active .giloa-tutorial,
     transform: translateX(-50%);
     background: linear-gradient(180deg, #4db8ff 0 8px, transparent 8px 26px, #4db8ff 26px 34px);
 }
-#controls #rec-btn.recording {
-    border-color: rgba(255,80,80,0.8);
-}
-#rec-btn.recording .loc-crosshair {
-    border-color: #ff4444;
-}
-#rec-btn.recording .loc-crosshair::before {
-    background: linear-gradient(90deg, #ff4444 0 8px, transparent 8px 26px, #ff4444 26px 34px);
-}
-#rec-btn.recording .loc-crosshair::after {
-    background: linear-gradient(180deg, #ff4444 0 8px, transparent 8px 26px, #ff4444 26px 34px);
-}
 .record-loc-btn.recording .loc-record-icon {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
     background: #ff4444;
-    box-shadow: 0 0 0 5px rgba(255,68,68,0.13), 0 0 12px rgba(255,68,68,0.7);
+    box-shadow: 0 0 0 4px rgba(255,68,68,0.12), 0 0 10px rgba(255,68,68,0.62);
 }
 .icon-stop { width: 14px; height: 14px; background: #ff4444; border-radius: 2px; }
 .icon-rec { width: 14px; height: 14px; background: #4db8ff; border-radius: 50%; }

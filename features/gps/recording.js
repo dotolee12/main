@@ -357,21 +357,28 @@ function showRecordingPermissionRequired() {
     else syncRecordingUI();
     showLocationToast(earlyUiText("locationPermission"), 5000);
 }
-function startRecordingAfterDisclosure() {
+async function startRecordingAfterDisclosure() {
     dismissAutoRecordingNotice();
-    if (isRecording) return Promise.resolve();
+    if (isRecording) return;
 
-    return Promise.resolve(requestLocationPermission()).then(function() {
-        if (isNativeApp() || !navigator.permissions) return null;
-        return navigator.permissions.query({ name: "geolocation" }).catch(function() { return null; });
-    }).then(function(permission) {
-        if (isRecording) return;
-        if (permission && permission.state === "denied") showRecordingPermissionRequired();
-        else toggleRecording();
-    }).catch(function(error) {
+    var permission;
+    try {
+        await requestLocationPermission();
+    } catch (error) {
         console.warn("Location permission request failed", error);
         if (!isRecording) showRecordingPermissionRequired();
-    });
+        return;
+    }
+    if (!isNativeApp() && navigator.permissions) {
+        try {
+            permission = await navigator.permissions.query({ name: "geolocation" });
+        } catch (_) {
+            // Some browsers cannot query this permission. Let geolocation request it directly.
+        }
+    }
+    if (isRecording) return;
+    if (permission && permission.state === "denied") showRecordingPermissionRequired();
+    else toggleRecording();
 }
 function applyAutoRecordingNoticeLang() {
     var overlay =

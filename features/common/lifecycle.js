@@ -5,7 +5,9 @@ function requestGiloaStartupEntryChoice() {
     if (typeof hasSavedIntroLanguage === "function" && hasSavedIntroLanguage()) currentLang = normalizeLang(safeStorageGet(LANGUAGE_PREFERENCE_KEY));
     else if (typeof normalizeLang === "function") currentLang = normalizeLang(navigator.language || currentLang);
     giloaStartupChoicePromise = window.GiloaPrivacy.requestLocationConsent({force:true,startup:true,onChoice:function(agreed) {
-        if (window.GiloaStartupMusic) window.GiloaStartupMusic.start({force:true});
+        runInitStep("startup music", function() {
+            if (window.GiloaStartupMusic) window.GiloaStartupMusic.start({force:true});
+        });
         if (agreed) {
             startupLocationRequested = true;
             runInitStep("startup recording", startRecordingAfterDisclosure);

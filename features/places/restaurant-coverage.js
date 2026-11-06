@@ -69,6 +69,10 @@ var restaurantCoverage = (function() {
                 heading.className = "tour-popup-title";
                 heading.textContent = title;
                 box.appendChild(heading);
+                var source = document.createElement("small");
+                source.className = "tour-popup-credit";
+                source.innerHTML = credit;
+                box.appendChild(source);
                 setSelectedDestination(item.lat, item.lng, title);
                 L.popup({ className: "tour-popup", autoPan: false, closeOnClick: true })
                     .setLatLng(position).setContent(box).openOn(map);
