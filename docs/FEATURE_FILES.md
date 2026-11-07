@@ -95,7 +95,7 @@
 | [parking-ocr.js](../parking-ocr.js) | 주차 기둥 번호 문자 인식 |
 | [photo-items.js](../photo-items.js) | 사진 자르기·아이콘 아이템 저장·삭제 |
 | [photo-items.css](../photo-items.css) | 사진 아이템 화면 디자인 |
-| [local-shops.js](../local-shops.js) | 장소 검색·쇼핑·동네가게·올리브영·카카오 OSM 조회 |
+| [local-shops.js](../local-shops.js) | 장소 검색·쇼핑·동네가게·커피 브랜드 다국어 글자 표시·올리브영·카카오 OSM 조회 |
 | [local-shops.css](../local-shops.css) | 가게·검색 화면 디자인 |
 | [medical-layers.js](../medical-layers.js) | 병원·약국 지도 표시 |
 | [community-places.js](../community-places.js) | 주민회관·마을회관·주민센터 조회 |

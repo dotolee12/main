@@ -273,3 +273,22 @@ test('either prior selection restores combined shopping and off survives reopeni
         const b=start(saved);await tick();assert.equal(b.w.mapLayerSettings.shopping,false);assert.equal(b.markers.length,0);b.w.close();
     }
 });
+
+test('coffee chains render as text in all supported languages, including spaced provider names',async()=>{
+    const a=start();
+    const names=['컴포즈커피 송파점','우지커피 송파점','매머드익스프레스 송파점','빽다방 송파점','더벤티 송파점','이디야 송파점','커피빈 송파점','투썸플레이스 송파점','할리스 송파점','커피에반하다 송파점','COMPOSE COFFEE Songpa','Oozy Coffee Songpa','Mammoth Express Songpa'];
+    a.response.data=names.map((name,i)=>({...fixture,id:String(i+1),place_name:name}));
+    a.open(); await tick();
+    for(const lang of ['ko','en','ja','zh']) {
+        a.w.document.documentElement.lang=lang; await tick();
+        assert.equal(a.markers.length,names.length);
+        a.markers.forEach(marker=>{
+            const badge=marker.opts.icon.html;
+            assert(badge.dataset.brand);
+            assert(badge.querySelector('.local-shop-pin-name').textContent.length>0);
+            assert.equal(badge.querySelector('img,svg,.local-shop-category-symbol'),null);
+        });
+    }
+    assert.equal(a.w.localStorage.getItem('journey-fixture'),'GPS/photos/GPX/levels');
+    a.dom.window.close();
+});

@@ -14,7 +14,7 @@ var CORE_ASSETS = [
   "./data/libraries_seoul.bundle.js?v=20261021",
   "./privacy-policy.js?v=20261105-recording", "./privacy-policy.html", "./privacy-policy.css",
   "./index.html", "./manifest.json", "./style.css?v=web-recording-20261106", "./map-bootstrap.js?v=app-local-4", "./region-stay-core.js?v=app-local-1", "./script.js?v=web-gpx-photos-20261106", "./trip-share.js?v=app-local-1", "./supabase-sync.js?v=app-local-3", "./medical-layers.js?v=map-order-3", "./community-places.js?v=1",
-  "./parking-ocr.js?v=2", "./parking.js?v=6", "./parking.css?v=4", "./local-shops.js?v=12", "./local-shops.css?v=8",
+  "./parking-ocr.js?v=2", "./parking.js?v=6", "./parking.css?v=4", "./local-shops.js?v=13", "./local-shops.css?v=8",
   "./vendor/leaflet.css?v=app-local-9", "./vendor/leaflet.js?v=app-local-9", "./vendor/MarkerCluster.css?v=app-local-9", "./vendor/MarkerCluster.Default.css?v=app-local-9", "./vendor/leaflet.markercluster.js?v=app-local-9"
 ];
 var OPTIONAL_CORE_ASSETS = [
