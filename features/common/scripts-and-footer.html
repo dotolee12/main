@@ -1,7 +1,7 @@
 <script id="giloa-place-module-recovery">
 (function () {
     var pending = {}, retried = {};
-    var modules = { shops:['./local-shops.js?v=11',function(){return !!window.GiloaPlaceSearch;}], medical:['./medical-layers.js?v=map-order-3',function(){return !!window.GiloaMedicalLayers;}], community:['./community-places.js?v=1',function(){return !!window.GiloaCommunityPlaces;}] };
+    var modules = { shops:['./local-shops.js?v=12',function(){return !!window.GiloaPlaceSearch;}], medical:['./medical-layers.js?v=map-order-3',function(){return !!window.GiloaMedicalLayers;}], community:['./community-places.js?v=1',function(){return !!window.GiloaCommunityPlaces;}] };
     function recover(key, manual) {
         var spec = modules[key];
         if (spec[1]()) { if (manual && key === 'shops') window.GiloaPlaceSearch.open(); return; }
@@ -37,7 +37,7 @@
 <script src="./item-recognition.js?v=1" defer></script>
 <script src="./photo-items.js?v=4" defer></script>
 <link rel="stylesheet" href="./local-shops.css?v=8">
-<script src="./local-shops.js?v=11" defer></script>
+<script src="./local-shops.js?v=12" defer></script>
 <script src="./trip-share.js?v=app-local-1" defer></script>
 <script src="./supabase-sync.js?v=app-local-3" defer></script>
 <script src="./medical-layers.js?v=map-order-3" defer></script>

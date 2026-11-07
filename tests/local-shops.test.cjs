@@ -210,6 +210,47 @@ test('nearby Daiso stores appear with plain names without including similarly na
     const badge=a.markers[0].opts.icon.html;assert.equal(badge.dataset.brand,'daiso');assert.equal(badge.querySelector('img'),null);assert.equal(badge.querySelector('.local-shop-pin-name').textContent,'다이소');assert.equal(a.w.localStorage.getItem('journey-fixture'),'GPS/photos/GPX/levels');a.dom.window.close();
 });
 
+test('shopping layer shows nearby Olive Young branches as localized text and excludes unrelated or distant places',async()=>{
+    const a=start();
+    const row=a.w.document.getElementById('map-layer-shopping');
+    a.response.byQuery=q=>q==='올리브영'?[
+        {...fixture,id:'olive',place_name:'CJ 올리브영 송파점',category_name:'쇼핑,유통 > 화장품판매점'},
+        {...fixture,id:'restaurant',place_name:'올리브영 앞 식당',category_name:'음식점 > 한식'},
+        {...fixture,id:'other',place_name:'다른 화장품 가게',category_name:'쇼핑,유통 > 화장품판매점'},
+        {...fixture,id:'far',place_name:'올리브영 다른지점',category_name:'쇼핑,유통 > 올리브영',y:'37.52'}
+    ]:[];
+    row.click(); await tick();
+    assert.equal(a.calls.find(call=>call.q==='올리브영').opts.radius,1000);
+    assert.equal(a.markers.length,1);
+    for(const [lang,label] of [['ko','올리브영'],['en','OLIVE YOUNG'],['ja','オリーブヤング'],['zh-TW','OLIVE YOUNG']]) {
+        a.w.document.documentElement.lang=lang; await tick();
+        const badge=a.markers[0].opts.icon.html;
+        assert.equal(badge.dataset.brand,'olive-young');
+        assert.equal(badge.querySelector('img'),null);
+        assert.equal(badge.querySelector('.local-shop-pin-name').textContent,label);
+        assert(row.querySelector('.map-layer-source').textContent.includes(label));
+    }
+    assert.equal(a.w.localStorage.getItem('journey-fixture'),'GPS/photos/GPX/levels');
+    a.dom.window.close();
+});
+
+test('shopping layer falls back to public map data for Olive Young when Kakao is unavailable',async()=>{
+    const a=start();
+    a.w.loadKakaoTrafficSdk=()=>Promise.reject(new Error('unavailable'));
+    let query;
+    a.w.fetch=(_url,options)=>{
+        query=options.body.get('data');
+        return Promise.resolve({ok:true,json:()=>Promise.resolve({elements:[
+            {type:'node',id:10,lat:37.5,lon:127.1,tags:{name:'송파점',brand:'OLIVE YOUNG',shop:'cosmetics'}}
+        ]})});
+    };
+    a.w.document.getElementById('map-layer-shopping').click(); await tick();
+    assert.match(query,/cosmetics.*name\|brand.*올리브 \*영\|olive \*young/);
+    assert.equal(a.markers.length,1);
+    assert.equal(a.markers[0].opts.icon.html.textContent,'올리브영');
+    a.dom.window.close();
+});
+
 test('single shopping tile preserves original icon and toggles tourism shopping and nearby shops together',async()=>{
     const a=start({shopping:false,localshops:false,tourism:true,hospital:true},false,true);
     const row=a.w.document.getElementById('map-layer-shopping');

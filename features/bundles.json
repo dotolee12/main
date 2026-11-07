@@ -354,7 +354,7 @@
     },
     {
       "path": "local-shops.js",
-      "role": "장소 검색·쇼핑·동네가게·카카오 OSM 조회"
+      "role": "장소 검색·쇼핑·동네가게·올리브영·카카오 OSM 조회"
     },
     {
       "path": "local-shops.css",

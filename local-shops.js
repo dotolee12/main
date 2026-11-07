@@ -16,12 +16,13 @@
     Object.assign(TEXT.en,{hint:'Show convenience stores, supermarkets and cafés together within 1 km. Search any place by name. Results are limited.',query:'Search a place name'});
     Object.assign(TEXT.ja,{hint:'半径1kmのコンビニ・スーパー・カフェを一緒に表示します。店名検索は分類で制限しません。表示件数には制限があります。',query:'店名を検索'});
     Object.assign(TEXT.zh,{hint:'同时显示1公里内的便利店、超市和咖啡店。店名搜索不限类别，结果数量有限。',query:'搜索店名'});
-    Object.assign(TEXT.ko,{title:'장소 검색',hint:'병원·카페·편의점·관광지 등 종류에 관계없이 검색해요. 종류를 입력하면 지도 중심 1km, 장소 이름을 입력하면 더 넓은 범위에서 찾아요.',query:'병원, 카페, 관광지 또는 장소 이름',search:'검색',empty:'검색된 장소가 없어요. 검색어나 지도 위치를 바꿔 보세요.',loading:'장소를 찾고 있어요…',count:'검색 결과 {n}곳',clear:'검색 결과 지우기',find:'웹에서 더 보기 ↗',layerTitle:'쇼핑·동네가게',layerHint:'카페 · 편의점 · 마트 · 다이소',prompt:'찾고 싶은 장소를 입력해 주세요.'});
-    Object.assign(TEXT.en,{title:'Place search',hint:'Search hospitals, cafés, shops and attractions. Categories search within 1 km; place names search a wider area.',query:'Hospital, café, attraction or place name',search:'Search',empty:'No places found. Try another query or area.',loading:'Finding places…',count:'{n} places found',clear:'Clear search results',find:'More on the web ↗',layerTitle:'Shopping & local shops',layerHint:'Cafés · convenience stores · supermarkets · DAISO',prompt:'Enter a place or category.'});
-    Object.assign(TEXT.ja,{title:'場所を検索',hint:'病院・カフェ・店舗・観光地を検索します。分類は半径1km、店名は広い範囲で検索します。',query:'病院・カフェ・観光地・店名',search:'検索',empty:'場所が見つかりません。検索語や地域を変えてください。',loading:'検索中…',count:'検索結果 {n}件',clear:'検索結果を消す',find:'ウェブで詳しく見る ↗',layerTitle:'買い物・近所のお店',layerHint:'カフェ・コンビニ・スーパー・ダイソー',prompt:'場所や種類を入力してください。'});
-    Object.assign(TEXT.zh,{title:'地点搜索',hint:'搜索医院、咖啡店、商店和景点。类别搜索范围为1公里，店名搜索范围更广。',query:'医院、咖啡店、景点或店名',search:'搜索',empty:'未找到地点，请更换关键词或区域。',loading:'正在搜索地点…',count:'找到 {n} 个地点',clear:'清除搜索结果',find:'查看更多网页 ↗',layerTitle:'购物·附近商店',layerHint:'咖啡店・便利店・超市・大创',prompt:'请输入地点或类别。'});
+    Object.assign(TEXT.ko,{title:'장소 검색',hint:'병원·카페·편의점·관광지 등 종류에 관계없이 검색해요. 종류를 입력하면 지도 중심 1km, 장소 이름을 입력하면 더 넓은 범위에서 찾아요.',query:'병원, 카페, 관광지 또는 장소 이름',search:'검색',empty:'검색된 장소가 없어요. 검색어나 지도 위치를 바꿔 보세요.',loading:'장소를 찾고 있어요…',count:'검색 결과 {n}곳',clear:'검색 결과 지우기',find:'웹에서 더 보기 ↗',layerTitle:'쇼핑·동네가게',layerHint:'카페 · 편의점 · 마트 · 다이소 · 올리브영',prompt:'찾고 싶은 장소를 입력해 주세요.'});
+    Object.assign(TEXT.en,{title:'Place search',hint:'Search hospitals, cafés, shops and attractions. Categories search within 1 km; place names search a wider area.',query:'Hospital, café, attraction or place name',search:'Search',empty:'No places found. Try another query or area.',loading:'Finding places…',count:'{n} places found',clear:'Clear search results',find:'More on the web ↗',layerTitle:'Shopping & local shops',layerHint:'Cafés · convenience stores · supermarkets · DAISO · OLIVE YOUNG',prompt:'Enter a place or category.'});
+    Object.assign(TEXT.ja,{title:'場所を検索',hint:'病院・カフェ・店舗・観光地を検索します。分類は半径1km、店名は広い範囲で検索します。',query:'病院・カフェ・観光地・店名',search:'検索',empty:'場所が見つかりません。検索語や地域を変えてください。',loading:'検索中…',count:'検索結果 {n}件',clear:'検索結果を消す',find:'ウェブで詳しく見る ↗',layerTitle:'買い物・近所のお店',layerHint:'カフェ・コンビニ・スーパー・ダイソー・オリーブヤング',prompt:'場所や種類を入力してください。'});
+    Object.assign(TEXT.zh,{title:'地点搜索',hint:'搜索医院、咖啡店、商店和景点。类别搜索范围为1公里，店名搜索范围更广。',query:'医院、咖啡店、景点或店名',search:'搜索',empty:'未找到地点，请更换关键词或区域。',loading:'正在搜索地点…',count:'找到 {n} 个地点',clear:'清除搜索结果',find:'查看更多网页 ↗',layerTitle:'购物·附近商店',layerHint:'咖啡店・便利店・超市・大创・OLIVE YOUNG',prompt:'请输入地点或类别。'});
     // Plain store names only. Place results remain transient and are not stored.
     var BRANDS = [
+        {id:'olive-young',label:'올리브영',match:/^(?:cj)?(?:올리브영|oliveyoung(?=[가-힣0-9]|$))/},
         {id:'daiso',label:'다이소',match:/^(아성)?다이소|^daiso(?=[가-힣0-9]|$)/},
         {id:'seven-eleven',label:'세븐일레븐',match:/^(세븐일레븐|7eleven|seveneleven)/},
         {id:'cu',label:'씨유',match:/^(씨유|cu(?=[가-힣0-9]|$))/},
@@ -57,7 +58,8 @@
             'seven-eleven':['7-Eleven','セブンイレブン','7-Eleven'], cu:['CU','CU','CU'], gs25:['GS25','GS25','GS25'],
             emart24:['emart24','emart24','emart24'], 'mega-coffee':['Mega Coffee','メガコーヒー','Mega Coffee'],
             starbucks:['Starbucks','スターバックス','星巴克'], emart:['emart','イーマート','易买得'],
-            'lotte-mart':['Lotte Mart','ロッテマート','乐天玛特'], daiso:['Daiso','ダイソー','大创']
+            'lotte-mart':['Lotte Mart','ロッテマート','乐天玛特'], daiso:['Daiso','ダイソー','大创'],
+            'olive-young':['OLIVE YOUNG','オリーブヤング','OLIVE YOUNG']
         };
         return lang === 'ko' ? brand.label : names[brand.id][lang === 'ja' ? 1 : lang === 'zh' ? 2 : 0];
     }
@@ -126,7 +128,8 @@
         var timeout = new AbortController(), timer = setTimeout(function() { timeout.abort(); },9000);
         try {
             var around = '(around:1000,' + center.lat.toFixed(6) + ',' + center.lng.toFixed(6) + ');';
-            var q = '[out:json][timeout:6];(nwr' + (query ? '["shop"]' : '["shop"~"^(convenience|supermarket|grocery|greengrocer)$"]') + around + 'nwr["shop"]["name"~"다이소|daiso",i]' + around + 'nwr["amenity"="cafe"]' + around + (query ? 'nwr["amenity"~"^(hospital|clinic|doctors|pharmacy|restaurant)$"]' + around + 'nwr["tourism"]' + around : '') + ');out center tags 150;';
+            var oliveYoung = query ? '' : 'nwr["shop"~"^(cosmetics|chemist|beauty|perfumery)$"][~"^(name|brand)(:ko)?$"~"올리브 *영|olive *young",i]' + around;
+            var q = '[out:json][timeout:6];(nwr' + (query ? '["shop"]' : '["shop"~"^(convenience|supermarket|grocery|greengrocer)$"]') + around + 'nwr["shop"]["name"~"다이소|daiso",i]' + around + 'nwr["amenity"="cafe"]' + around + oliveYoung + (query ? 'nwr["amenity"~"^(hospital|clinic|doctors|pharmacy|restaurant)$"]' + around + 'nwr["tourism"]' + around : '') + ');out center tags 150;';
             var response = await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:new URLSearchParams({data:q}),signal:timeout.signal,cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer'});
             if (!response.ok) throw new Error('OSM unavailable');
             var data = await response.json(); if (!isCurrent()) return [];
@@ -190,7 +193,15 @@
         else {
             var markets = providerSearch('마트',false,true).then(function(places) { return places.filter(function(place) { return place.category_group_code === 'MT1' || /슈퍼|수퍼|식료품|하나로마트|대형마트/.test(place.category_name || ''); }); });
             var daiso = providerSearch('다이소',false,true).then(function(places) { return places.filter(function(place) { var brand = brandFor({name:place.place_name}); return brand && brand.id === 'daiso' && (!place.category_name || /다이소|daiso/i.test(String(place.category_name).split('>').pop())); }); });
-            var groups = await Promise.allSettled([providerSearch('CS2',true,true),providerSearch('MT1',true,true),providerSearch('CE7',true,true),markets,daiso]);
+            var oliveYoung = providerSearch('올리브영',false,true).then(function(places) {
+                return places.filter(function(place) {
+                    var brand = brandFor({name:place.place_name});
+                    var categoryName = String(place.category_name || '').split('>').pop().trim();
+                    return brand && brand.id === 'olive-young' &&
+                        (!categoryName || /올리브\s*영|olive\s*young|화장품|드럭스토어/i.test(categoryName));
+                });
+            });
+            var groups = await Promise.allSettled([providerSearch('CS2',true,true),providerSearch('MT1',true,true),providerSearch('CE7',true,true),markets,daiso,oliveYoung]);
             if (groups.every(function(group) { return group.status === 'rejected'; })) throw new Error('Place search failed');
             results = groups.filter(function(group) { return group.status === 'fulfilled'; }).flatMap(function(group) { return group.value; });
         }
