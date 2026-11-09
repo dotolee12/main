@@ -4354,28 +4354,40 @@ function showRecordingPermissionRequired() {
     else syncRecordingUI();
     showLocationToast(earlyUiText("locationPermission"), 5000);
 }
+var recordingStartPending = false;
 async function startRecordingAfterDisclosure() {
     dismissAutoRecordingNotice();
-    if (isRecording) return;
+    if (isRecording || recordingStartPending || pendingRecordingStartAfterRestore) return;
 
-    var permission;
+    recordingStartPending = true;
     try {
         await requestLocationPermission();
-    } catch (error) {
-        console.warn("Location permission request failed", error);
-        if (!isRecording) showRecordingPermissionRequired();
-        return;
-    }
-    if (!isNativeApp() && navigator.permissions) {
-        try {
-            permission = await navigator.permissions.query({ name: "geolocation" });
-        } catch (_) {
-            // Some browsers cannot query this permission. Let geolocation request it directly.
+        if (!isNativeApp()) {
+            if (!navigator.geolocation) {
+                showRecordingPermissionRequired();
+                return;
+            }
+            showLocationToast(earlyUiText("locating"));
+            // The site's consent and the browser's location permission are separate.
+            // Request an actual fix so browsers without the Permissions API work too.
+            await new Promise(function(resolve, reject) {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: true, maximumAge: 0, timeout: 20000
+                });
+            });
         }
+        if (!isRecording) toggleRecording();
+    } catch (error) {
+        if (!isRecording) {
+            if (error && (error.code === 2 || error.code === 3)) {
+                showLocationToast(earlyUiText("locationFailed"), 4000);
+            } else {
+                showRecordingPermissionRequired();
+            }
+        }
+    } finally {
+        recordingStartPending = false;
     }
-    if (isRecording) return;
-    if (permission && permission.state === "denied") showRecordingPermissionRequired();
-    else toggleRecording();
 }
 function applyAutoRecordingNoticeLang() {
     var overlay =

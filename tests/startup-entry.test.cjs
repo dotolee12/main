@@ -16,11 +16,16 @@ function fixture(options={}){
  w.recBtn=w.document.getElementById('rec-btn');w.recStatusBox=w.document.getElementById('rec-status-box');w.UI_TEXT={ko:{rec_active:'기록 중',rec_idle:'중단됨'}};w.currentLang='ko';
  if(options.webPermission)Object.defineProperty(w.navigator,'permissions',{value:{query:async()=>({state:options.webPermission})}});
  if(options.brokenPermissionQuery)Object.defineProperty(w.navigator,'permissions',{value:{query(){throw new TypeError('Geolocation query unsupported');}}});
+ Object.defineProperty(w.navigator,'geolocation',{value:{getCurrentPosition(ok,fail){
+  events.push('browser-location');
+  if(options.deferBrowserLocation){w.finishBrowserLocation=ok;return;}
+  if(options.webPermission==='denied')fail({code:1});else ok({});
+ }}});
  w.requestLocationPermission=()=>options.permissionDenied?Promise.reject(new Error('denied')):Promise.resolve();
  w.focusCurrentLocation=()=>{events.push('location');return Promise.resolve(true);};
  w.ensureRecordingSession=()=>events.push('session');w.startAutoRecordingTimer=()=>events.push('eight-hour-timer');w.startTracking=()=>events.push('tracking');
  for(const name of ['enableDeviceHeading','requestScreenAwake','scheduleSave','updateHud','syncImageMissionUI','dismissAutoRecordingNotice'])w[name]=()=>{};
- w.earlyUiText=x=>x;w.showLocationToast=()=>events.push('permission-error');
+ w.earlyUiText=x=>x;w.showLocationToast=message=>{if(message==='locationPermission')events.push('permission-error');};
  const syncStart=core.indexOf('function syncRecordingUI()');w.eval(core.slice(syncStart,core.indexOf('\nfunction getImageMissionLatLng',syncStart)));
  w.eval(core.slice(core.indexOf('function toggleRecording()'),core.indexOf('function dismissAutoRecordingNotice()')));
  w.eval(core.slice(core.indexOf('function showRecordingPermissionRequired()'),core.indexOf('function applyAutoRecordingNoticeLang()')));
@@ -39,7 +44,7 @@ test('consent is first even with prior consent; music starts synchronously on st
  assert.equal(await a.w.GiloaPrivacy.requestLocationConsent(),true);assert.equal(a.w.document.querySelectorAll('.giloa-location-consent').length,0);a.dom.window.close();
 });
 test('starting without location never requests GPS but still starts default music and enters the app',async()=>{
- const a=fixture({consented:true});const ready=a.w.beginGiloaStartupEntry();a.button(false).click();assert.equal(await ready,false);assert.equal(a.plays(),1);assert(!a.events.includes('location'));assert(a.events.includes('intro'));assert.equal(await a.w.GiloaPrivacy.requestLocationConsent(),false);a.dom.window.close();
+ const a=fixture({consented:true});const ready=a.w.beginGiloaStartupEntry();a.button(false).click();assert.equal(await ready,false);assert.equal(a.plays(),1);assert(!a.events.includes('location'));assert(!a.events.includes('browser-location'));assert(a.events.includes('intro'));assert.equal(await a.w.GiloaPrivacy.requestLocationConsent(),false);a.dom.window.close();
 });
 test('start gesture enables music despite previous mute; it can still be stopped immediately',async()=>{
  const a=fixture({muted:true});const ready=a.w.beginGiloaStartupEntry();a.button(false).click();await ready;assert.equal(a.plays(),1);assert.equal(a.playing(),true);
@@ -98,4 +103,13 @@ test('only the center dot changes color when recording starts',async()=>{
  assert.equal(w.getComputedStyle(dot).backgroundColor,'rgb(255, 68, 68)');assert.deepEqual(frame(),idleFrame);
  w.isRecording=false;w.syncRecordingUI();
  assert.equal(w.getComputedStyle(dot).backgroundColor,'rgb(77, 184, 255)');assert.deepEqual(frame(),idleFrame);a.dom.window.close();
+});
+
+
+test('consent requests browser permission and the dot stays idle until a GPS fix is received',async()=>{
+ const a=fixture({deferBrowserLocation:true});
+ const ready=a.w.beginGiloaStartupEntry();a.button(true).click();await ready;
+ assert(a.events.includes('browser-location'));assert.equal(a.w.recBtn.getAttribute('aria-pressed'),'false');
+ a.w.finishBrowserLocation({});await new Promise(r=>setImmediate(r));
+ assert.equal(a.w.recBtn.getAttribute('aria-pressed'),'true');assert(a.events.includes('tracking'));a.dom.window.close();
 });
