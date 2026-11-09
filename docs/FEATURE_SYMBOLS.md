@@ -98,6 +98,7 @@
 | `renderFog` | [features/map/fog-and-paths.js](../features/map/fog-and-paths.js) |
 | `getPathVisibility` | [features/map/fog-and-paths.js](../features/map/fog-and-paths.js) |
 | `getTransportSegmentStyle` | [features/map/fog-and-paths.js](../features/map/fog-and-paths.js) |
+| `forEachTransportColorWindow` | [features/map/fog-and-paths.js](../features/map/fog-and-paths.js) |
 | `renderTransportPaths` | [features/map/fog-and-paths.js](../features/map/fog-and-paths.js) |
 | `renderAgeTint` | [features/map/fog-and-paths.js](../features/map/fog-and-paths.js) |
 | `getAgeColor` | [features/map/fog-and-paths.js](../features/map/fog-and-paths.js) |

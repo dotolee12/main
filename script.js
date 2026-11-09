@@ -2176,7 +2176,54 @@ function getTransportSegmentStyle(fromPoint, toPoint, now) {
     if (!isFinite(speed) || speed > 250 / 3.6) return null;
     var mode = speed <= SPEED_LIMIT_WALK ? "walk" : speed <= SPEED_LIMIT_BIKE ? "bike" : "vehicle";
     var color = mode === "walk" ? "#43C98B" : mode === "bike" ? "#FFB454" : "#64A8FF";
-    return { mode:mode, color:color, opacity:getPathVisibility(Math.max(0, (now - toTime) / 3600000)), timestamp:toTime };
+    return { mode:mode, color:color, opacity:getPathVisibility(Math.max(0, (now - toTime) / 3600000)), timestamp:toTime, distance:distance, elapsedMs:elapsedMs };
+}
+// Derive fixed one-minute color windows from the saved fixes at display time.
+function forEachTransportColorWindow(points, now, paint) {
+    var windowMs = 60000;
+    var windowEnd = 0;
+    var distance = 0;
+    var segments = [];
+    for (var i = 1; i < points.length; i++) {
+        var from = points[i - 1], to = points[i];
+        var fix = getTransportSegmentStyle(from, to, now);
+        if (!fix) {
+            windowEnd = 0;
+            distance = 0;
+            segments = [];
+            continue;
+        }
+        var startTime = fix.timestamp - fix.elapsedMs;
+        if (!windowEnd) windowEnd = startTime + windowMs;
+        var pieceStart = startTime;
+        var pieceFrom = from;
+        while (pieceStart < fix.timestamp) {
+            var pieceEnd = Math.min(windowEnd, fix.timestamp);
+            var fraction = (pieceEnd - startTime) / fix.elapsedMs;
+            var pieceTo = pieceEnd === fix.timestamp ? to : {
+                lat: Number(from.lat) + (Number(to.lat) - Number(from.lat)) * fraction,
+                lng: Number(from.lng) + (Number(to.lng) - Number(from.lng)) * fraction
+            };
+            var pieceDistance = fix.distance * (pieceEnd - pieceStart) / fix.elapsedMs;
+            distance += pieceDistance;
+            if (pieceDistance > 0) segments.push({ points: [pieceFrom, pieceTo], endTime: pieceEnd });
+            if (pieceEnd === windowEnd) {
+                var speed = distance / (windowMs / 1000);
+                var color = speed <= SPEED_LIMIT_WALK ? "#43C98B" : speed <= SPEED_LIMIT_BIKE ? "#FFB454" : "#64A8FF";
+                segments.forEach(function(segment) {
+                    paint(segment.points, {
+                        color: color,
+                        opacity: getPathVisibility(Math.max(0, (now - segment.endTime) / 3600000))
+                    });
+                });
+                windowEnd += windowMs;
+                distance = 0;
+                segments = [];
+            }
+            pieceStart = pieceEnd;
+            pieceFrom = pieceTo;
+        }
+    }
 }
 function renderTransportPaths() {
     var w = ageCanvas.width, h = ageCanvas.height;
@@ -2187,18 +2234,12 @@ function renderTransportPaths() {
     var buckets = new Map();
     function bucketFor(style) {
         var key = style.color + ":" + (Math.round(style.opacity * 100) / 100);
-        if (!buckets.has(key)) buckets.set(key, { style:style, segments:[], points:[] });
+        if (!buckets.has(key)) buckets.set(key, { style:style, segments:[] });
         return buckets.get(key);
     }
-    for (var i = 0; i < pathCoordinates.length; i++) {
-        var point = pathCoordinates[i];
-        var style = i > 0 ? getTransportSegmentStyle(pathCoordinates[i - 1], point, now) : null;
-        if (style) bucketFor(style).segments.push([pathCoordinates[i - 1], point]);
-        var pointStyle = style || (i + 1 < pathCoordinates.length ? getTransportSegmentStyle(point, pathCoordinates[i + 1], now) : null);
-        var pointTime = Number(point.timestamp || point.startTime);
-        if (!pointStyle) pointStyle = { color:"#43C98B" };
-        bucketFor({ color:pointStyle.color, opacity:getPathVisibility(Math.max(0, (now - pointTime) / 3600000)) }).points.push(point);
-    }
+    forEachTransportColorWindow(pathCoordinates, now, function(segment, style) {
+        bucketFor(style).segments.push(segment);
+    });
     var offCtx = ageScratchCtx;
     ageCtx.save();
     buckets.forEach(function(bucket) {
@@ -2206,7 +2247,6 @@ function renderTransportPaths() {
         // not accumulate opacity. Only the finished ribbon is faded.
         offCtx.clearRect(0, 0, w, h);
         offCtx.strokeStyle = bucket.style.color;
-        offCtx.fillStyle = bucket.style.color;
         offCtx.lineWidth = radius * 2.2;
         offCtx.lineCap = "round";
         offCtx.lineJoin = "round";
@@ -2219,14 +2259,6 @@ function renderTransportPaths() {
             offCtx.lineTo(to.x, to.y);
         });
         offCtx.stroke();
-        bucket.points.forEach(function(point) {
-            var pos = latLngToCanvasPoint([point.lat, point.lng]);
-            var stayMin = (point.endTime - point.startTime) / 60000;
-            var stayRadius = metersToPixels(getStayRadiusMeters(stayMin), mpp);
-            offCtx.beginPath();
-            offCtx.arc(pos.x, pos.y, stayRadius, 0, Math.PI * 2);
-            offCtx.fill();
-        });
         ageCtx.globalAlpha = 0.25 * bucket.style.opacity;
         ageCtx.drawImage(ageScratchCanvas, 0, 0);
     });

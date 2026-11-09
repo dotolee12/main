@@ -159,3 +159,20 @@ test("regional badge atlas closes from X and outside scrim without late DOM read
     assert.match(source, /event\.target\s*===\s*atlas/);
     assert.doesNotMatch(source, /DOMContentLoaded[^\n]*region-badge-atlas-close/);
 });
+
+test("transport tint waits for a full minute and includes a red-light stop in the average", () => {
+    vm.runInContext(functionSource("forEachTransportColorWindow"), context);
+    const fixes = [point(1, 0), point(20_001, 150), point(40_001, 150), point(65_001, 275)];
+    const painted = [];
+    const paint = (segment, style) => painted.push({ segment, color: style.color });
+    context.forEachTransportColorWindow(fixes.slice(0, 3), 60_000, paint);
+    assert.equal(painted.length, 0);
+    context.forEachTransportColorWindow(fixes, 65_001, paint);
+    assert.equal(painted.length, 2);
+    assert.ok(painted.every(({ color }) => color === "#FFB454"));
+    assert.ok(Math.abs(painted[1].segment[1].lat - point(60_001, 250).lat) < 1e-9);
+
+    painted.length = 0;
+    context.forEachTransportColorWindow([fixes[0], fixes[1], point(65_001, 275, "new-session")], 65_001, paint);
+    assert.equal(painted.length, 0);
+});
