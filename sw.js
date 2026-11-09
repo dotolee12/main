@@ -1,4 +1,4 @@
-var APP_CACHE = "giloa-app-shell-v281";
+var APP_CACHE = "giloa-app-shell-v282";
 var RUNTIME_CACHE = "giloa-runtime-v77";
 var TILE_CACHE = "giloa-map-tiles-v6";
 var TILE_CACHE_MAX = 300;
@@ -10,7 +10,7 @@ var RUNTIME_CACHE_MAX = 180;
 // 순차로 요청해 첫 실행/업데이트 시 체감 버퍼링이 커졌었다.
 var CORE_ASSETS = [
   "./item-recognition.js?v=1", "./item-recognition-worker.js?v=1", "./item-icons.js?v=1", "./photo-items.js?v=4", "./photo-items.css?v=4",
-  "./gpx-access.js?v=web-gpx-import-20261106", "./startup-music.js?v=4",
+  "./gpx-access.js?v=web-gpx-open-20261109", "./startup-music.js?v=4",
   "./data/libraries_seoul.bundle.js?v=20261021",
   "./privacy-policy.js?v=20261105-recording", "./privacy-policy.html", "./privacy-policy.css",
   "./index.html", "./manifest.json", "./style.css?v=web-recording-20261106", "./map-bootstrap.js?v=app-local-4", "./region-stay-core.js?v=app-local-1", "./script.js?v=web-route-minute-20261109", "./trip-share.js?v=app-local-1", "./supabase-sync.js?v=app-local-3", "./medical-layers.js?v=map-order-3", "./community-places.js?v=1",

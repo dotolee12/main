@@ -12,18 +12,10 @@
         es:{title:"Acceso a GPX",copy:"Introduce un ID del administrador para exportar, importar y ver rutas GPX y guardar ZIP de viaje.",id:"ID asignado",enter:"Activar GPX",lock:"Bloquear GPX",invalid:"Este ID no está registrado.",wait:"Inténtalo de nuevo en unos instantes.",checking:"Comprobando ID…",secure:"Abre esta página mediante HTTPS.",active:"Acceso a GPX activado.",note:"Introduce el ID de nuevo al recargar o reabrir. Tus registros se conservan."},
         fr:{title:"Accès GPX",copy:"Saisissez un identifiant fourni par l’administrateur pour exporter, importer et afficher des parcours GPX et enregistrer des ZIP de voyage.",id:"Identifiant attribué",enter:"Activer GPX",lock:"Verrouiller GPX",invalid:"Cet identifiant n’est pas enregistré.",wait:"Veuillez réessayer dans quelques instants.",checking:"Vérification…",secure:"Rouvrez cette page en HTTPS.",active:"Accès GPX activé.",note:"Saisissez à nouveau l’identifiant après actualisation ou réouverture. Vos données sont conservées."}
     };
-    var webCopy = {
-        ko:"파일 불러오기는 바로 사용할 수 있어요. GPX 추출과 여행 ZIP 저장에는 발급 아이디가 필요합니다.",
-        en:"Import GPX files without an ID. Export and trip ZIP saving require an issued ID.",
-        ja:"GPXの読み込みにIDは不要です。書き出しと旅行ZIPの保存には発行されたIDが必要です。",
-        zh:"无需 ID 即可导入 GPX。导出和保存旅行 ZIP 需要已发放的 ID。",
-        es:"Importa GPX sin ID. Para exportar y guardar ZIP de viaje se requiere un ID asignado.",
-        fr:"Importez un GPX sans identifiant. L’export et l’enregistrement du ZIP nécessitent un identifiant."
-    };
-    function isWebImportOpen() {
+    function isWebAccessOpen() {
         return /^https?:$/.test(window.location.protocol) && typeof isNativeApp === "function" && !isNativeApp();
     }
-    function canImport() { return approved || isWebImportOpen(); }
+    function isAuthorized() { return approved || isWebAccessOpen(); }
     function text() { return words[typeof currentLang === "string" ? currentLang : "ko"] || words.en; }
     function status(key) {
         var node = document.getElementById("gpx-access-status");
@@ -32,20 +24,20 @@
     function refresh() {
         var t = text(), form = document.getElementById("gpx-access-form"), content = document.getElementById("gpx-access-content"), lockButton = document.getElementById("gpx-access-lock");
         var importContent = document.getElementById("gpx-import-content");
-        if (importContent) { importContent.hidden = !canImport(); importContent.inert = !canImport(); }
-        if (form) form.hidden = approved;
-        if (content) { content.hidden = !approved; content.inert = !approved; }
-        if (lockButton) { lockButton.hidden = !approved; lockButton.textContent = t.lock; }
+        var webOpen = isWebAccessOpen();
+        var authorized = approved || webOpen;
+        if (importContent) { importContent.hidden = !authorized; importContent.inert = !authorized; }
+        if (form) form.hidden = authorized;
+        if (content) { content.hidden = !authorized; content.inert = !authorized; }
+        if (lockButton) { lockButton.hidden = webOpen || !approved; lockButton.textContent = t.lock; }
         ["title", "copy", "id", "enter", "note"].forEach(function(key) { var el = document.getElementById("gpx-access-" + key); if (el) el.textContent = t[key]; });
-        var copy = document.getElementById("gpx-access-copy");
-        if (copy && isWebImportOpen()) copy.textContent = webCopy[typeof currentLang === "string" ? currentLang : "ko"] || webCopy.en;
         if (typeof updateGpxSavedList === "function") updateGpxSavedList();
         var input = document.getElementById("gpx-access-input"); if (input) input.disabled = checking;
         var enter = document.getElementById("gpx-access-enter"); if (enter) enter.disabled = checking;
         var node = document.getElementById("gpx-access-status"); if (node && node.dataset.message) node.textContent = t[node.dataset.message] || "";
     }
     function requireAccess() {
-        if (approved) return true;
+        if (isAuthorized()) return true;
         refresh();
         if (typeof toggleSidebar === "function") toggleSidebar(true);
         if (typeof switchAllTab === "function") switchAllTab("gpx");
@@ -70,6 +62,7 @@
         finally { checking = false; refresh(); }
     }
     function lock() {
+        if (isWebAccessOpen()) return;
         approved = false;
         if (typeof clearActiveGpxRoute === "function") clearActiveGpxRoute();
         status(""); refresh();
@@ -79,6 +72,6 @@
         var button = document.getElementById("gpx-access-lock"); if (button) button.addEventListener("click", lock);
         refresh();
     }
-    window.GiloaGpxAccess = Object.freeze({ requireAccess:requireAccess, canImport:canImport, isAuthorized:function() { return approved; }, refresh:refresh, lock:lock });
+    window.GiloaGpxAccess = Object.freeze({ requireAccess:requireAccess, canImport:isAuthorized, isAuthorized:isAuthorized, refresh:refresh, lock:lock });
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once:true }); else init();
 }());

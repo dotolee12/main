@@ -37,7 +37,7 @@ function fixture(native = false) {
     return { dom, w, layers, byId, trips:() => trips };
 }
 
-test("web import draws and reopens a GPX without opening the export or trip ZIP gate", async () => {
+test("web opens GPX import, export, saved routes and trip tools without an issued ID", async () => {
     const { dom, w, layers, byId, trips } = fixture();
     try {
         const exported = { id:"1710000000000abc", name:"Private recording", createdAt:1710000000000, pointCount:2, gpxContent:example };
@@ -45,10 +45,11 @@ test("web import draws and reopens a GPX without opening the export or trip ZIP 
         w.saveGpxSaves([exported, imported]);
         w.GiloaGpxAccess.refresh();
         assert.equal(byId("gpx-import-content").hidden, false);
-        assert.equal(byId("gpx-access-content").hidden, true);
-        assert.equal(byId("gpx-access-form").hidden, false);
+        assert.equal(byId("gpx-access-content").hidden, false);
+        assert.equal(byId("gpx-access-form").hidden, true);
         assert.match(byId("gpx-saved-list").textContent, /Earlier import/);
-        assert.doesNotMatch(byId("gpx-saved-list").textContent, /Private recording/);
+        assert.match(byId("gpx-saved-list").textContent, /Private recording/);
+        assert.equal(byId("gpx-access-lock").hidden, true);
 
         let picked = false;
         byId("gpx-file-input").click = () => { picked = true; };
@@ -67,12 +68,12 @@ test("web import draws and reopens a GPX without opening the export or trip ZIP 
         w.clearActiveGpxRoute();
         byId("gpx-saved-list").firstElementChild.click();
         assert.equal(w.activeGpxId, saved[2].id);
-        assert.equal(trips(), 0);
+        assert.ok(trips() > 0);
         w.clearActiveGpxRoute();
         w.toggleGpxRoute(exported);
-        w.exportGpx();
-        assert.equal(w.activeGpxId, null);
-        assert.equal(w.GiloaGpxAccess.isAuthorized(), false);
+        assert.equal(w.activeGpxId, exported.id);
+        assert.equal(w.GiloaGpxAccess.requireAccess(), true);
+        assert.equal(w.GiloaGpxAccess.isAuthorized(), true);
         assert.deepEqual(JSON.parse(JSON.stringify(w.loadGpxSaves())), JSON.parse(JSON.stringify(saved)));
     } finally { dom.window.close(); }
 });
@@ -109,7 +110,7 @@ test("web GPX import renders embedded photos without EXIF, including photos shar
         assert.equal(layers.size, 0);
         byId("gpx-saved-list").firstElementChild.click();
         assert.equal(images().length, isYeosu ? 10 : 2);
-        assert.equal(trips(), 0);
+        assert.ok(trips() > 0);
     } finally { dom.window.close(); }
 });
 
