@@ -8871,11 +8871,12 @@ window.addEventListener("online", function() {
 })();
 
 // TourAPI 愿愿묕옙? 異붿쿇
-/* Fill gaps in the food layer with nearby named OpenStreetMap restaurants. */
+/* Fill food-layer gaps with nearby OpenStreetMap places and Kakao franchise listings. */
 var restaurantCoverage = (function() {
     var radius = 1000;
     var credit = '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>';
-    var layer = L.layerGroup([], { attribution: credit });
+    var kakaoCredit = '© <a href="https://map.kakao.com/">Kakao Maps</a>';
+    var layer = L.layerGroup([], { attribution: credit + " · " + kakaoCredit });
     var results = [];
     var areaKey = "";
     var refreshAfter = 0;
@@ -8962,7 +8963,7 @@ var restaurantCoverage = (function() {
                 box.appendChild(heading);
                 var source = document.createElement("small");
                 source.className = "tour-popup-credit";
-                source.innerHTML = credit;
+                source.innerHTML = item.source === "kakao" ? kakaoCredit : credit;
                 box.appendChild(source);
                 setSelectedDestination(item.lat, item.lng, title);
                 L.popup({ className: "tour-popup", autoPan: false, closeOnClick: true })
@@ -9006,6 +9007,52 @@ var restaurantCoverage = (function() {
         throw new Error("Restaurant lookup failed");
     }
 
+    async function fetchKakaoFranchises(center, signal) {
+        await loadKakaoTrafficSdk();
+        if (signal.aborted) return [];
+        var services = window.kakao.maps.services;
+        var location = new window.kakao.maps.LatLng(center.lat, center.lng);
+        var brands = ["맥도날드", "버거킹", "KFC", "맘스터치", "롯데리아", "피자헛", "도미노피자"];
+        function search(value, category) {
+            return new Promise(function(resolve, reject) {
+                var timer = setTimeout(function() { reject(new Error("Kakao place search timed out")); }, 9000);
+                var options = { location: location, radius: 1500, size: 15, sort: services.SortBy.DISTANCE };
+                function done(places, status) {
+                    clearTimeout(timer);
+                    if (status === services.Status.OK) resolve(places || []);
+                    else if (status === services.Status.ZERO_RESULT) resolve([]);
+                    else reject(new Error("Kakao place search failed"));
+                }
+                try {
+                    var places = new services.Places();
+                    if (category) places.categorySearch(value, done, options);
+                    else places.keywordSearch(value, done, options);
+                } catch (error) {
+                    clearTimeout(timer);
+                    reject(error);
+                }
+            });
+        }
+        var searches = brands.map(function(brand) { return search(brand, false); });
+        searches.push(search("FD6", true), search("CE7", true));
+        var groups = await Promise.allSettled(searches);
+        if (groups.every(function(group) { return group.status === "rejected"; })) {
+            throw new Error("Kakao franchise lookup failed");
+        }
+        return groups.filter(function(group) { return group.status === "fulfilled"; })
+            .flatMap(function(group) { return group.value; })
+            .map(function(place) {
+                if (place.category_group_code !== "FD6" && place.category_group_code !== "CE7") return null;
+                var item = normalizeRestaurant({
+                    tags: { name: place.place_name, amenity: place.category_group_code === "CE7" ? "cafe" : "fast_food" },
+                    lat: place.y ? Number(place.y) : NaN,
+                    lon: place.x ? Number(place.x) : NaN
+                });
+                if (item) item.source = "kakao";
+                return item;
+            }).filter(Boolean);
+    }
+
     function refresh() {
         if (!mapLayerSettings.restaurant) {
             if (request) request.abort();
@@ -9038,15 +9085,21 @@ var restaurantCoverage = (function() {
             around + '["amenity"="fast_food"][~"^(name|brand|operator)(:.*)?$"~"."];' +
             around + '["amenity"="restaurant"][~"^brand(:.*)?$"~"."];' +
             ');out tags center;';
-        fetchRestaurants(query, controller.signal).then(function(elements) {
+        function addResults(items, source) {
             if (request !== controller || !mapLayerSettings.restaurant) return;
-            results = elements.map(normalizeRestaurant).filter(Boolean);
-            refreshAfter = Date.now() + 5 * 60 * 1000;
+            results = results.filter(function(item) { return item.source !== source; }).concat(items);
             render(getMapSearchCenter());
-        }).catch(function() {
-            if (request === controller) refreshAfter = Date.now() + 30 * 1000;
-        }).finally(function() {
-            if (request === controller) request = null;
+        }
+        var osm = fetchRestaurants(query, controller.signal).then(function(elements) {
+            addResults(elements.map(normalizeRestaurant).filter(Boolean), undefined);
+        });
+        var kakao = fetchKakaoFranchises(L.latLng(Number(lat), Number(lng)), controller.signal).then(function(items) {
+            addResults(items, "kakao");
+        });
+        Promise.allSettled([osm, kakao]).then(function(statuses) {
+            if (request !== controller) return;
+            refreshAfter = Date.now() + (statuses[1].status === "fulfilled" ? 5 * 60 * 1000 : 30 * 1000);
+            request = null;
         });
     }
 
