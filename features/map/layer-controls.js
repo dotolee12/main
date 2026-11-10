@@ -128,6 +128,8 @@ var MAP_LAYER_MENU_ICONS = {
     discovery: '<path d="M3 9l9-6 9 6H3zm2 3v7m5-7v7m4-7v7m5-7v7M3 21h18"/>',
     food: '<path d="M3 12h18M5 12v3a5 5 0 0 0 5 5h4a5 5 0 0 0 5-5v-3M3 15h2m14 0h2M6 12a6 6 0 0 1 12 0M10 6V4h4v2"/>',
     coffee: '<path d="M4 8h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Zm13 1h2a2.5 2.5 0 0 1 0 5h-2M3 21h17M8 5V3m5 2V3"/>',
+    cosmetics: '<rect x="8" y="8" width="8" height="13" rx="2"/><path d="M10 8V3h4v5m-6 6h8"/>',
+    varietyStore: '<path d="m3 7 9-4 9 4v10l-9 4-9-4V7Zm0 0 9 4 9-4m-9 4v10m-4.5-16 9 4"/>',
     convenience: '<rect x="2.5" y="2.5" width="19" height="19" rx="3"/><path stroke-width="2" d="M6 8a2.5 2.5 0 0 1 5 0c0 2-2 3.5-5 7h5m5-9-3 5.5h5.5M17 6v9"/>',
     fastFood: '<path d="M2 18h20l-2 3H4l-2-3Zm2-4h10m-9-2a4 4 0 0 1 8 0H5Zm0 4h8m3-9h6l-1 9h-4l-1-9Zm1 0 1-3h3"/>',
     activity: '<path d="M3 20l6-12 4 7 3-5 5 10H3zM16 3v3m-2-1h4"/>',

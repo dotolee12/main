@@ -100,28 +100,24 @@
         return '';
     }
     function placeMarkerIcon(item) {
-        var category = categoryIcon(item);
-        var named = !!brandFor(item);
-        return L.divIcon({className:'local-shop-marker',html:badge(item,true,category),iconSize:category ? [106,28] : named ? [78,26] : [39,31],iconAnchor:category ? [14,14] : named ? [39,13] : [19.5,15.5]});
+        var brand = brandFor(item);
+        var brandIcons = { 'olive-young': 'cosmetics', daiso: 'varietyStore' };
+        var codes = {HP8:'hospital',PM9:'pharmacy',AT4:'discovery',AD5:'lodging',PK6:'parking'};
+        var amenities = {hospital:'hospital',clinic:'hospital',pharmacy:'pharmacy',toilets:'restroom',parking:'parking'};
+        var kind = (brand && brandIcons[brand.id]) || categoryIcon(item) || codes[item.category] ||
+            (item.osm && amenities[item.osm.amenity]) || 'shopping';
+        var symbol = document.createElement('span');
+        symbol.className = 'local-shop-category-symbol';
+        symbol.setAttribute('aria-hidden','true');
+        if (typeof mapLayerMenuIcon === 'function') symbol.innerHTML = mapLayerMenuIcon(kind);
+        else symbol.textContent = '◇';
+        return L.divIcon({className:'local-shop-marker',html:symbol,iconSize:[28,28],iconAnchor:[14,14]});
     }
-    function badge(item, onMap, category) {
-        var brand = brandFor(item), node = document.createElement('span'); node.className = 'local-shop-pin' + (onMap ? ' map-symbol-only' : '');
-        if (onMap && category) {
-            node.classList.add('has-category-name');
-            fallbackSymbol();
-            text('span',item.name,node).className = 'local-shop-pin-name';
-            return node;
-        }
-        if (brand || !onMap) { var name = text('span',brand ? brandName(brand) : item.name,node); name.className = 'local-shop-pin-name'; }
-        function fallbackSymbol() {
-            var codes = {HP8:'hospital',PM9:'pharmacy',FD6:'food',AT4:'discovery',AD5:'lodging',PK6:'parking'};
-            var kind = category || codes[item.category] || (item.osm && ({hospital:'hospital',clinic:'hospital',pharmacy:'pharmacy',restaurant:'food',toilets:'restroom',parking:'parking'})[item.osm.amenity]) || 'shopping';
-            var symbol = document.createElement('span'); symbol.className = 'local-shop-category-symbol'; symbol.setAttribute('aria-hidden','true');
-            if (typeof mapLayerMenuIcon === 'function') symbol.innerHTML = mapLayerMenuIcon(kind);
-            else symbol.textContent = '◇';
-            node.appendChild(symbol);
-        }
-        if (onMap && !brand) fallbackSymbol();
+    function badge(item) {
+        var brand = brandFor(item);
+        var node = document.createElement('span');
+        node.className = 'local-shop-pin';
+        text('span',brand ? brandName(brand) : item.name,node).className = 'local-shop-pin-name';
         if (brand) { node.dataset.brand = brand.id; node.classList.add('has-brand-name'); }
         return node;
     }
