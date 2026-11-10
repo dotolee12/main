@@ -85,12 +85,6 @@ var restaurantCoverage = (function() {
                     html: mapPlaceSymbolHtml(item.symbol, "", "", getTourTypeMeta("39").color),
                     iconSize: [28, 28], iconAnchor: [14, 14] })
             }).addTo(layer);
-            var label = document.createElement("b");
-            label.textContent = title;
-            marker.bindTooltip(label, {
-                permanent: true, direction: "right", offset: [12, 0], pane: "tourPane",
-                className: "restaurant-coverage-label"
-            });
             marker.on("click", function() {
                 var box = document.createElement("div");
                 var heading = document.createElement("b");
