@@ -11253,7 +11253,7 @@ var MAP_LAYER_MENU_ICONS = {
     discovery: '<path d="M3 9l9-6 9 6H3zm2 3v7m5-7v7m4-7v7m5-7v7M3 21h18"/>',
     food: '<path d="M3 12h18M5 12v3a5 5 0 0 0 5 5h4a5 5 0 0 0 5-5v-3M3 15h2m14 0h2M6 12a6 6 0 0 1 12 0M10 6V4h4v2"/>',
     coffee: '<path d="M4 8h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Zm13 1h2a2.5 2.5 0 0 1 0 5h-2M3 21h17M8 5V3m5 2V3"/>',
-    convenience: '<path d="M7.5 7.5H5A3 3 0 0 0 2 10.5V12q0 1.5 2 1.5T7 12q1 1.5 2.5 1.5T12 12q1 1.5 2.5 1.5T17 12q1 1.5 3 1.5t2-1.5v-1.5a3 3 0 0 0-3-3h-2.5M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5m-10.5 7v-3a2.5 2.5 0 0 1 5 0v3"/><circle cx="12" cy="6.5" r="4.5"/><path stroke-width=".9" d="M9.5 5.5a1 1 0 0 1 2 .1c0 .8-1.2 1.4-2 2.4h2.2m2-3.2-1 2h2.2m-.6-2v3.2"/>',
+    convenience: '<rect x="2.5" y="2.5" width="19" height="19" rx="3"/><path stroke-width="2" d="M6 8a2.5 2.5 0 0 1 5 0c0 2-2 3.5-5 7h5m5-9-3 5.5h5.5M17 6v9"/>',
     fastFood: '<path d="M2 18h20l-2 3H4l-2-3Zm2-4h10m-9-2a4 4 0 0 1 8 0H5Zm0 4h8m3-9h6l-1 9h-4l-1-9Zm1 0 1-3h3"/>',
     activity: '<path d="M3 20l6-12 4 7 3-5 5 10H3zM16 3v3m-2-1h4"/>',
     restroom: '<circle cx="7" cy="5" r="2"/><circle cx="17" cy="5" r="2"/><path d="M4 10h6v6H4zm2 6v5m3-5v5m8-11l-4 7h8l-4-7zm-1 7v4m3-4v4"/>',
