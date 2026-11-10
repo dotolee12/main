@@ -28,18 +28,18 @@
         {id:'cu',label:'씨유',match:/^(씨유|cu(?=[가-힣0-9]|$))/},
         {id:'gs25',label:'쥐에스',match:/^(gs25|지에스25)/},
         {id:'emart24',label:'이마트24',match:/^(이마트24|emart24)/},
-        {id:'mega-coffee',label:'메가커피',match:/^(메가mgc커피|메가커피|메가엠지씨커피|megamgccoffee|megacoffee)/},
-        {id:'compose-coffee',label:'컴포즈커피',match:/^(컴포즈커피|컴포즈|composecoffee)/},
-        {id:'oozy-coffee',label:'우지커피',match:/^(우지커피|oozycoffee)/},
-        {id:'mammoth-coffee',label:'매머드커피',match:/^(매머드익스프레스|매머드커피|매머드|mammothexpress|mammothcoffee|mmthcoffee)/},
-        {id:'paik-coffee',label:'빽다방',match:/^(빽다방|paikscoffee|paikdabang)/},
-        {id:'the-venti',label:'더벤티',match:/^(더벤티|theventi)/},
-        {id:'ediya',label:'이디야커피',match:/^(이디야커피|이디야|ediyacoffee|ediya)/},
-        {id:'coffee-bean',label:'커피빈',match:/^(커피빈|thecoffeebean|coffeebean)/},
-        {id:'twosome',label:'투썸플레이스',match:/^(투썸플레이스|투썸|atwosomeplace|twosomeplace)/},
-        {id:'hollys',label:'할리스',match:/^(할리스커피|할리스|hollyscoffee|hollys)/},
-        {id:'coffee-banhada',label:'커피에반하다',match:/^(커피에반하다|coffeebanhada)/},
-        {id:'starbucks',label:'스타벅스',match:/^(스타벅스|starbucks)/},
+        {coffee:true,id:'mega-coffee',label:'메가커피',match:/^(메가mgc커피|메가커피|메가엠지씨커피|megamgccoffee|megacoffee)/},
+        {coffee:true,id:'compose-coffee',label:'컴포즈커피',match:/^(컴포즈커피|컴포즈|composecoffee)/},
+        {coffee:true,id:'oozy-coffee',label:'우지커피',match:/^(우지커피|oozycoffee)/},
+        {coffee:true,id:'mammoth-coffee',label:'매머드커피',match:/^(매머드익스프레스|매머드커피|매머드|mammothexpress|mammothcoffee|mmthcoffee)/},
+        {coffee:true,id:'paik-coffee',label:'빽다방',match:/^(빽다방|paikscoffee|paikdabang)/},
+        {coffee:true,id:'the-venti',label:'더벤티',match:/^(더벤티|theventi)/},
+        {coffee:true,id:'ediya',label:'이디야커피',match:/^(이디야커피|이디야|ediyacoffee|ediya)/},
+        {coffee:true,id:'coffee-bean',label:'커피빈',match:/^(커피빈|thecoffeebean|coffeebean)/},
+        {coffee:true,id:'twosome',label:'투썸플레이스',match:/^(투썸플레이스|투썸|atwosomeplace|twosomeplace)/},
+        {coffee:true,id:'hollys',label:'할리스',match:/^(할리스커피|할리스|hollyscoffee|hollys)/},
+        {coffee:true,id:'coffee-banhada',label:'커피에반하다',match:/^(커피에반하다|coffeebanhada)/},
+        {coffee:true,id:'starbucks',label:'스타벅스',match:/^(스타벅스|starbucks)/},
         {id:'emart',label:'이마트',match:/^(이마트|emart)(?!24)/},
         {id:'lotte-mart',label:'롯데마트',match:/^(롯데마트|lottemart)/}
     ];
@@ -62,6 +62,12 @@
         var tags = item.osm || {}, names = [item.name,tags.brand,tags['brand:ko']].map(normalize);
         return BRANDS.find(function(brand) { return names.some(function(name) { return brand.match.test(name); }); });
     }
+    window.GiloaIsCoffeeChain = function(tags) {
+        var names = [tags.name, tags['name:ko'], tags['name:en'], tags.brand, tags['brand:ko'], tags['brand:en']].map(normalize);
+        return BRANDS.some(function(brand) {
+            return brand.coffee && names.some(function(name) { return brand.match.test(name); });
+        });
+    };
     function brandName(brand) {
         var lang = String(typeof currentLang === 'string' ? currentLang : document.documentElement.lang || 'ko').slice(0,2);
         var names = {

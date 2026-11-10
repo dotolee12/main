@@ -17,17 +17,32 @@ var restaurantCoverage = (function() {
             map.distance([item.lat, item.lng], [other.lat, other.lng]) <= 60;
     }
 
+    // Korean and English map labels for selected major restaurant chains.
+    var foodChainNames = /^(맥도날드|mcdonalds|버거킹|burgerking|kfc|켄터키프라이드치킨|맘스터치|momstouch|롯데리아|lotteria|피자헛|pizzahut|도미노피자|도미노$|dominospizza|dominos$|프랭크버거|frankburger|노브랜드버거|nobrandburger|써브웨이|서브웨이|subway|피자스쿨|pizzaschool|피자마루|pizzamaru|피자알볼로|pizzaalvolo|파파존스|papajohns|피자나라치킨공주|교촌치킨|교촌$|kyochon|bhc|비에이치씨|bbq치킨|bbq$|비비큐|굽네치킨|goobne|처갓집양념치킨|노랑통닭|60계치킨|60계$|푸라닭|puradak|네네치킨|nenechicken|페리카나|pelicana|호식이두마리치킨|지코바치킨|지코바$|한솥도시락|한솥$|hansot|본죽|본도시락|이삭토스트|isaactoast|김가네|신전떡볶이|청년다방)/;
+
+    function isFoodChain(tags) {
+        return ["name", "name:ko", "name:en", "brand", "brand:ko", "brand:en", "operator"].some(function(key) {
+            return foodChainNames.test(String(tags[key] || "").normalize("NFKC").toLowerCase().replace(/[\s\p{P}\p{S}]/gu, ""));
+        });
+    }
+
     function normalizeRestaurant(element) {
         var tags = element.tags || {};
         var point = element.center || element;
         var names = {};
-        if (tags.amenity !== "restaurant" || !Number.isFinite(point.lat) || !Number.isFinite(point.lon) ||
+        var chainCafe = tags.amenity === "cafe" && window.GiloaIsCoffeeChain && window.GiloaIsCoffeeChain(tags);
+        var chainFood = (tags.amenity === "restaurant" || tags.amenity === "fast_food") && isFoodChain(tags);
+        if ((tags.amenity !== "restaurant" && !chainCafe && !chainFood) || !Number.isFinite(point.lat) || !Number.isFinite(point.lon) ||
             Math.abs(point.lat) > 90 || Math.abs(point.lon) > 180) return null;
         ["name", "name:ko", "name:en", "name:ja", "name:zh", "name:zh-Hans", "name:es", "name:fr"].forEach(function(key) {
             if (typeof tags[key] === "string" && tags[key].trim()) names[key] = tags[key].trim();
         });
+        if ((chainCafe || chainFood) && !Object.keys(names).length) {
+            var brand = tags["brand:ko"] || tags.brand || tags["brand:en"];
+            if (typeof brand === "string" && brand.trim()) names.name = brand.trim();
+        }
         var keys = Object.keys(names).map(function(key) { return nameKey(names[key]); }).filter(Boolean);
-        return keys.length ? { names: names, keys: keys, lat: point.lat, lng: point.lon } : null;
+        return keys.length ? { names: names, keys: keys, lat: point.lat, lng: point.lon, franchise: !!(chainCafe || chainFood) } : null;
     }
 
     function render(center) {
@@ -38,12 +53,15 @@ var restaurantCoverage = (function() {
         });
         var bounds = map.getBounds();
         var shown = [];
+        var restaurantCount = 0;
+        var franchiseCount = 0;
         results.map(function(item) {
             return { item: item, distance: center.distanceTo([item.lat, item.lng]) };
         }).filter(function(entry) {
             return entry.distance <= radius && bounds.contains([entry.item.lat, entry.item.lng]);
         }).sort(function(a, b) { return a.distance - b.distance; }).some(function(entry) {
             var item = entry.item;
+            if ((item.franchise ? franchiseCount : restaurantCount) >= 30) return false;
             if (existing.some(function(other) { return isDuplicate(item, other); }) ||
                 shown.some(function(other) { return isDuplicate(item, other); })) return false;
             var lang = normalizeLang(currentLang);
@@ -78,7 +96,9 @@ var restaurantCoverage = (function() {
                     .setLatLng(position).setContent(box).openOn(map);
             });
             shown.push(item);
-            return shown.length >= 30;
+            if (item.franchise) franchiseCount++;
+            else restaurantCount++;
+            return franchiseCount >= 30 && restaurantCount >= 30;
         });
         if (shown.length && !map.hasLayer(layer)) layer.addTo(map);
         else if (!shown.length && map.hasLayer(layer)) map.removeLayer(layer);
@@ -138,7 +158,13 @@ var restaurantCoverage = (function() {
 
         var controller = new AbortController();
         request = controller;
-        var query = '[out:json][timeout:6];nwr(around:1500,' + key + ')["amenity"="restaurant"][~"^name(:.*)?$"~"."];out tags center;';
+        var around = 'nwr(around:1500,' + key + ')';
+        var query = '[out:json][timeout:6];(' +
+            around + '["amenity"="restaurant"][~"^name(:.*)?$"~"."];' +
+            around + '["amenity"="cafe"][~"^(name|brand)(:.*)?$"~"."];' +
+            around + '["amenity"="fast_food"][~"^(name|brand|operator)(:.*)?$"~"."];' +
+            around + '["amenity"="restaurant"][~"^brand(:.*)?$"~"."];' +
+            ');out tags center;';
         fetchRestaurants(query, controller.signal).then(function(elements) {
             if (request !== controller || !mapLayerSettings.restaurant) return;
             results = elements.map(normalizeRestaurant).filter(Boolean);
