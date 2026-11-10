@@ -70,7 +70,7 @@
 | 여행 ZIP·경로와 사진 연결 | `trip-share.js`, `features/gpx/trip-presentation.css` | `gpx-access.js`, 일반 사진 저장소 |
 | 시작 동의·위치 사용·자동 기록 시작 | `privacy-policy.js`, `features/common/lifecycle.js` | `features/gps/recording.js`, `features/gps/location-disclosure.css` |
 | 음악·길로 인사 음성 | `startup-music.js` | `features/common/scripts-and-footer.html`, `features/map/map-and-controls.html` |
-| 이야기·첫 만남·튜토리얼·다시 보기 | `features/onboarding/story-and-tutorial.js`, `tutorial.js` | `features/onboarding/story.html`, `features/onboarding/*.css`, `tutorial.css` |
+| 이야기·챕터 목록·이어 읽기·첫 만남·튜토리얼 | `features/onboarding/story-and-tutorial.js`, `tutorial.js` | `features/onboarding/story.html`, `features/onboarding/*.css`, `tutorial.css` |
 | 언어·번역·외국어 | `features/i18n/languages.js`, `features/i18n/early-ui.js`, `features/i18n/static-ui.js` | 각 독립 기능 파일의 `TEXT`·`I18N`。한국어·영어·일본어·중국어 유지 |
 | 문의·도움말·설정·물가 | `features/help/help-and-prices.js` | `features/help/settings-and-memo.html`。물가는 현재 예시 데이터 |
 | 메뉴·출처·정책·업데이트 안내 | `features/ui/sidebar-and-info.js` | `features/ui/sidebar.html`, `features/help/info-panels.html`, `privacy-policy.*` |

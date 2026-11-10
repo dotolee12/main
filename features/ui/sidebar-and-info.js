@@ -61,6 +61,7 @@ function openGiloaStoryHub(event) {
     var hub = document.getElementById("giloa-story-hub");
     if (!hub) return false;
     toggleSidebar(false);
+    renderGiloaStoryChapters();
     hub.hidden = false;
     hub.setAttribute("aria-hidden", "false");
     var closeButton = hub.querySelector("header button");
@@ -78,7 +79,7 @@ document.addEventListener("keydown", function(event) {
     closeGiloaStoryHub();
     dismissGiloaUpdateNotice();
 });
-function replayGiloaStoryFromHub() { closeGiloaStoryHub(); return replayGiloaStory(); }
+
 function dismissGiloaUpdateNotice() {
     var notice = document.getElementById("giloa-update-notice");
     if (!notice || notice.hidden) return;

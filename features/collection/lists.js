@@ -7,6 +7,12 @@ function updateItemList() {
     regionCard.type = "button"; regionCard.className = "region-badge-entry-card";
     regionCard.innerHTML = '<span class="region-badge-entry-icon"><i></i></span><span><b>' + escapeHtml(collectionUiText("regional_badges")) + '</b><small>' + escapeHtml(collectionUiText("regional_hint")) + '</small></span><em>' + regionCount + '/' + REGION_BADGE_ATLAS_ENTRIES.length + '</em><strong aria-hidden="true">›</strong>';
     regionCard.addEventListener("click", openRegionBadgeAtlas); container.appendChild(regionCard);
+    var visitButton = document.createElement("button");
+    visitButton.type = "button";
+    visitButton.className = "giloa-visit-records";
+    visitButton.textContent = (UI_TEXT[normalizeLang(currentLang)] || UI_TEXT.ko).tab_visit;
+    visitButton.addEventListener("click", function() { switchAllTab("visit"); });
+    container.appendChild(visitButton);
     var wardrobe = document.createElement("section");
     wardrobe.className = "gilo-wardrobe-summary";
     var equipped = loadGiloEquipment().slots || {};

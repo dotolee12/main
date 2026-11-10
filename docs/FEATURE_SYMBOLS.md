@@ -335,7 +335,6 @@
 | `closeGiloaInfoPage` | [features/ui/sidebar-and-info.js](../features/ui/sidebar-and-info.js) |
 | `openGiloaStoryHub` | [features/ui/sidebar-and-info.js](../features/ui/sidebar-and-info.js) |
 | `closeGiloaStoryHub` | [features/ui/sidebar-and-info.js](../features/ui/sidebar-and-info.js) |
-| `replayGiloaStoryFromHub` | [features/ui/sidebar-and-info.js](../features/ui/sidebar-and-info.js) |
 | `dismissGiloaUpdateNotice` | [features/ui/sidebar-and-info.js](../features/ui/sidebar-and-info.js) |
 | `showGiloaUpdateNoticeIfNeeded` | [features/ui/sidebar-and-info.js](../features/ui/sidebar-and-info.js) |
 | `applyInfoLinkLanguage` | [features/ui/sidebar-and-info.js](../features/ui/sidebar-and-info.js) |
@@ -485,6 +484,13 @@
 | `startMapTutorial` | [features/onboarding/story-and-tutorial.js](../features/onboarding/story-and-tutorial.js) |
 | `finishGiloaOnboarding` | [features/onboarding/story-and-tutorial.js](../features/onboarding/story-and-tutorial.js) |
 | `setIntroArt` | [features/onboarding/story-and-tutorial.js](../features/onboarding/story-and-tutorial.js) |
+| `giloaChapterActions` | [features/onboarding/story-and-tutorial.js](../features/onboarding/story-and-tutorial.js) |
+| `giloaChapterLabel` | [features/onboarding/story-and-tutorial.js](../features/onboarding/story-and-tutorial.js) |
+| `giloaChapterPages` | [features/onboarding/story-and-tutorial.js](../features/onboarding/story-and-tutorial.js) |
+| `giloaStoryPosition` | [features/onboarding/story-and-tutorial.js](../features/onboarding/story-and-tutorial.js) |
+| `renderGiloaStoryChapters` | [features/onboarding/story-and-tutorial.js](../features/onboarding/story-and-tutorial.js) |
+| `openGiloaChapter` | [features/onboarding/story-and-tutorial.js](../features/onboarding/story-and-tutorial.js) |
+| `resumeGiloaStory` | [features/onboarding/story-and-tutorial.js](../features/onboarding/story-and-tutorial.js) |
 | `renderIntroStory` | [features/onboarding/story-and-tutorial.js](../features/onboarding/story-and-tutorial.js) |
 | `showGiloStory` | [features/onboarding/story-and-tutorial.js](../features/onboarding/story-and-tutorial.js) |
 | `advanceGiloaIntroStory` | [features/onboarding/story-and-tutorial.js](../features/onboarding/story-and-tutorial.js) |

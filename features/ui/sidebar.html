@@ -123,9 +123,9 @@
 
 </div>
 
-<!-- 하단 탭: 방문 / 아이템 (고정) -->
+<!-- 하단: 길로아 이야기 / 아이템 -->
 <div id="bottom-tabs">
-  <div class="sidebar-tab" id="tab-visit" onclick="switchAllTab('visit')"><span class="sidebar-tab-icon text-icon">V</span><span class="sidebar-tab-text">방문</span></div>
+  <button type="button" class="sidebar-tab" id="story-hub-entry" onclick="openGiloaStoryHub(event)"><span class="sidebar-tab-icon" aria-hidden="true">📖</span><span class="sidebar-tab-text" data-i18n-extra="storyTitle">길로아 이야기</span></button>
   <div class="sidebar-tab" id="tab-item" onclick="switchAllTab('item')"><span class="sidebar-tab-icon text-icon">I</span><span class="sidebar-tab-text">아이템</span></div>
 </div>
 
@@ -135,8 +135,6 @@
   <a id="info-link-account" href="#giloa-info" onclick="return openGiloaInfoPage('account', event)">계정 보호</a>
   <span aria-hidden="true">/</span>
   <a id="info-link-privacy" href="#giloa-info" onclick="return openGiloaInfoPage('privacy', event)">프라이버시</a>
-  <span aria-hidden="true">/</span>
-  <a id="info-link-about" href="#giloa-story-hub" onclick="return openGiloaInfoPage('about', event)">길로아 이야기</a>
 </nav>
 </div>
 

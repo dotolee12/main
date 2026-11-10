@@ -78,11 +78,11 @@ html,body{background:#1a2035;margin:0;height:100%;width:100%;overflow:hidden}
 <!-- 큰 벤더/앱 스크립트를 head 단계에서 미리 프리로드하여, 본문 파싱이 끝날 때까지
      기다리지 않고 CSS와 동시에 다운로드가 시작되도록 한다. (버퍼링 단축) -->
 <link rel="preload" as="script" href="./vendor/leaflet.js?v=app-local-9">
-<link rel="preload" as="script" href="./script.js?v=web-shop-symbols-20261110">
+<link rel="preload" as="script" href="./script.js?v=web-story-chapters-20261110">
 <link rel="stylesheet" href="./vendor/leaflet.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.Default.css?v=app-local-9">
-<link rel="stylesheet" href="./style.css?v=web-recording-20261106">
+<link rel="stylesheet" href="./style.css?v=web-story-chapters-20261110">
 <!-- 튜토리얼/타임트레이스 CSS는 첫 화면에 필요하지 않으므로 렌더 차단 없이
      비동기로 불러온다 (media=print 트릭 후 onload에서 all로 전환). -->
 <link rel="stylesheet" href="./time-trace.css?v=app-local-1" media="print" onload="this.media='all'">
@@ -318,9 +318,9 @@ var skipText={
 
 </div>
 
-<!-- 하단 탭: 방문 / 아이템 (고정) -->
+<!-- 하단: 길로아 이야기 / 아이템 -->
 <div id="bottom-tabs">
-  <div class="sidebar-tab" id="tab-visit" onclick="switchAllTab('visit')"><span class="sidebar-tab-icon text-icon">V</span><span class="sidebar-tab-text">방문</span></div>
+  <button type="button" class="sidebar-tab" id="story-hub-entry" onclick="openGiloaStoryHub(event)"><span class="sidebar-tab-icon" aria-hidden="true">📖</span><span class="sidebar-tab-text" data-i18n-extra="storyTitle">길로아 이야기</span></button>
   <div class="sidebar-tab" id="tab-item" onclick="switchAllTab('item')"><span class="sidebar-tab-icon text-icon">I</span><span class="sidebar-tab-text">아이템</span></div>
 </div>
 
@@ -330,8 +330,6 @@ var skipText={
   <a id="info-link-account" href="#giloa-info" onclick="return openGiloaInfoPage('account', event)">계정 보호</a>
   <span aria-hidden="true">/</span>
   <a id="info-link-privacy" href="#giloa-info" onclick="return openGiloaInfoPage('privacy', event)">프라이버시</a>
-  <span aria-hidden="true">/</span>
-  <a id="info-link-about" href="#giloa-story-hub" onclick="return openGiloaInfoPage('about', event)">길로아 이야기</a>
 </nav>
 </div>
 
@@ -391,7 +389,8 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
   <section class="giloa-story-hub-card" role="dialog" aria-modal="true" aria-labelledby="giloa-story-hub-title">
     <header><div><span>GILOA STORY</span><h2 id="giloa-story-hub-title" data-i18n-extra="storyTitle">길로아 이야기</h2></div><button type="button" onclick="closeGiloaStoryHub()" data-i18n-extra-aria="close" aria-label="닫기">&times;</button></header>
     <p class="giloa-story-hub-intro" data-i18n-extra="storyIntro">아직 만나지 못한 세상을 당신만의 대동여지도로 만들어 가는 이야기입니다.</p>
-    <button class="giloa-story-replay" type="button" onclick="replayGiloaStoryFromHub()" data-i18n-extra="storyReplay">길로아 이야기 다시 보기</button>
+    <button class="giloa-story-replay" id="giloa-story-resume" type="button" onclick="resumeGiloaStory()" hidden></button>
+    <div id="giloa-story-chapters"></div>
     <section class="giloa-story-update-history" aria-labelledby="giloa-story-update-title">
       <span>UPDATE STORY · 1.4</span>
       <h3 id="giloa-story-update-title" data-i18n-extra="updateTitle">길로아가 더 단단해졌어요</h3>
@@ -773,6 +772,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 
   <div id="gsi-story" class="gsi-story" hidden>
     <button id="gsi-story-close" class="gsi-story-close" type="button" aria-label="Close">&times;</button>
+    <div id="gsi-chapter-label" class="gsi-chapter-label"></div>
     <div class="gsi-story-stage">
       <div class="gsi-art-wrap"><img id="gsi-art" class="gsi-art" alt=""><div class="gsi-art-fallback" aria-hidden="true">✦</div></div>
       <div id="gsi-copy" class="gsi-copy" aria-live="polite"></div>
@@ -936,7 +936,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <script src="./data/libraries_seoul.bundle.js?v=20261021" defer></script>
 <script src="./privacy-policy.js?v=20261105-recording" defer></script>
 <script src="./gpx-access.js?v=web-gpx-open-20261109" defer></script>
-<script src="./script.js?v=web-shop-symbols-20261110" defer></script>
+<script src="./script.js?v=web-story-chapters-20261110" defer></script>
 <script src="./parking-ocr.js?v=2" defer></script>
 <script src="./parking.js?v=6" defer></script>
 <script src="./item-icons.js?v=1" defer></script>

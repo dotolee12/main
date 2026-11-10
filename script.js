@@ -5676,6 +5676,7 @@ function openGiloaStoryHub(event) {
     var hub = document.getElementById("giloa-story-hub");
     if (!hub) return false;
     toggleSidebar(false);
+    renderGiloaStoryChapters();
     hub.hidden = false;
     hub.setAttribute("aria-hidden", "false");
     var closeButton = hub.querySelector("header button");
@@ -5693,7 +5694,7 @@ document.addEventListener("keydown", function(event) {
     closeGiloaStoryHub();
     dismissGiloaUpdateNotice();
 });
-function replayGiloaStoryFromHub() { closeGiloaStoryHub(); return replayGiloaStory(); }
+
 function dismissGiloaUpdateNotice() {
     var notice = document.getElementById("giloa-update-notice");
     if (!notice || notice.hidden) return;
@@ -8426,14 +8427,95 @@ function setIntroArt(source){
     var root=document.getElementById("giloa-story-intro"),art=document.getElementById("gsi-art");if(!root||!art||!source||introStoryState.lastArt===source)return;introStoryState.lastArt=source;root.classList.add("changing");
     art.onerror=function(){root.classList.add("image-failed");root.classList.remove("changing");};art.onload=function(){root.classList.remove("image-failed","changing");};art.src=source;
 }
-function renderIntroStory(){
-    if(!introStoryState.active||introStoryState.mode!=="story")return;var words=introStoryText(),screen=Math.max(1,Math.min(6,introStoryState.screen)),copy=document.getElementById("gsi-copy"),bar=document.getElementById("gsi-progress-bar"),progress=document.getElementById("gsi-progress"),count=document.getElementById("gsi-progress-count"),next=document.getElementById("gsi-next"),close=document.getElementById("gsi-story-close");
-    setIntroArt(INTRO_SCREEN_FRAMES[screen-1]);if(copy){copy.textContent=(words.screens[screen-1]||[])[0]||"";copy.lang=normalizeLang(currentLang);}if(bar)bar.style.width=(screen/6*100)+"%";if(progress)progress.setAttribute("aria-label",screen+" / 6");if(count)count.textContent=screen+" / 6";
-    if(next){setOnboardingText("gsi-next-copy",screen<6?words.next:(introStoryState.returnToOnboarding?onboardingText().storyBack:onboardingText().storyClose));next.setAttribute("aria-label",document.getElementById("gsi-next-copy").textContent);}if(close)close.setAttribute("aria-label",onboardingText().storyClose);
+var GILOA_STORY_PROGRESS_KEY = "giloa-story-reading-position";
+var GILOA_STORY_CHAPTERS = [
+    { id: 1, titles: { ko:"길로의 첫 지도", en:"Gilo’s First Map", ja:"ギロの最初の地図", zh:"吉洛的第一张地图", fr:"La première carte de Gilo", es:"El primer mapa de Gilo" } },
+    { id: 2, titles: { ko:"닫힌 문 앞에서", en:"The Closed Gate", ja:"閉ざされた門の前で", zh:"在紧闭的门前", fr:"Devant la grille fermée", es:"Ante la puerta cerrada" }, pages: {
+        ko: [
+            "해가 지기 전에 전망대에 닿기로 했다.\n길로가 계단을 두 칸씩 뛰어올랐다. “우리, 노을 볼 수 있겠지?”",
+            "언덕 끝에 도착하니 전망대 문에 자물쇠가 걸려 있었다.\n길로는 까치발을 하고 문틈을 들여다봤다. 안쪽은 조용했다.",
+            "길로가 여행자 옆에 털썩 앉았다.\n“나도 여기서 해 지는 거 보고 싶었는데. 우리 잠깐만 앉았다 갈까?”",
+            "둘은 올라왔던 길 옆의 좁은 골목으로 내려갔다.\n먼저 모퉁이를 돈 길로가 빼꼼 고개를 내밀었다. “잠깐, 여기서도 보여!”",
+            "지붕 사이로 붉은 해가 내려앉았다. 둘은 나란히 서서 한참 바라봤다.\n여행자는 사진을 찍어 지도에 남겼다. ‘길로와 노을을 본 골목.’",
+            "며칠 뒤, 여행자가 지도에서 그날 찍은 사진을 열었다.\n길로가 화면을 들여다봤다. “여기 기억난다. 우리 한참 서 있었잖아.”"
+        ],
+        en: ["They set out to reach the lookout before sunset.\nGilo bounded up the stairs. “Think we’ll catch it?”","At the top, they found the gate padlocked.\nGilo stood on tiptoe and peered inside. It was quiet.","Gilo sat down beside the traveler.\n“I wanted to see the sunset here too. Shall we sit for a bit?”","They headed down a narrow alley.\nGilo peeked around the corner. “Wait, you can see it from here!”","The red sun sank between the rooftops. They watched side by side.\nThe traveler took a photo and saved it to the map.","Days later, the traveler opened the photo on the map.\n“I remember this,” Gilo said. “We stood there for ages.”"],
+        ja: ["日が沈む前に展望台へ向かった。\nギロは階段を駆け上がった。「夕日、見られるかな？」","坂の上で展望台の門に鍵がかかっていた。\nギロは背伸びして中をのぞいた。あたりは静かだった。","ギロは旅人の隣に腰を下ろした。\n「ここで夕日を見たかったな。少し座っていこうか？」","ふたりは細い路地を下った。\n角から顔を出したギロが言った。「待って、ここからも見えるよ！」","屋根の間に赤い夕日が沈んだ。ふたりは並んで眺めた。\n旅人は写真を撮って地図に残した。","数日後、旅人が地図から写真を開いた。\nギロは言った。「ここ覚えてる。ずっと並んで見てたね。」"],
+        zh: ["他们想在日落前赶到观景台。\n吉洛蹦上台阶，问道：“我们能赶上日落吗？”","到了坡顶，观景台的大门已经上锁。\n吉洛踮起脚往里看，里面静悄悄的。","吉洛在旅人身边坐下。\n“我也想在这里看日落。我们坐一会儿吧？”","两人沿着一条窄巷下坡。\n吉洛从拐角探出头：“等等，这里也看得见！”","红日落在屋顶之间。两人并肩看了许久。\n旅人拍下照片，把它留在地图上。","几天后，旅人从地图打开那张照片。\n吉洛说：“我记得这里。那天我们站了好久。”"],
+        fr: ["Ils voulaient atteindre le belvédère avant le coucher du soleil.\nGilo bondit dans l’escalier. « On va y arriver à temps ? »","En haut, la grille était cadenassée.\nGilo se hissa sur la pointe des pieds. Tout était silencieux.","Gilo s’assit près du voyageur.\n« Moi aussi, je voulais voir le coucher du soleil ici. On s’assoit un peu ? »","Ils descendirent par une ruelle.\nGilo passa la tête au coin. « Attends, on le voit d’ici ! »","Le soleil rouge descendit entre les toits. Ils le regardèrent côte à côte.\nLe voyageur prit une photo et l’ajouta à la carte.","Quelques jours plus tard, le voyageur rouvrit la photo sur la carte.\n« Je m’en souviens, dit Gilo. On est restés là un bon moment. »"],
+        es: ["Querían llegar al mirador antes del atardecer.\nGilo subió los escalones de un salto. «¿Llegaremos a tiempo?»","Arriba, la verja tenía un candado.\nGilo se puso de puntillas para mirar. Todo estaba en silencio.","Gilo se sentó junto al viajero.\n«Yo también quería ver la puesta de sol desde aquí. ¿Nos sentamos un rato?»","Bajaron por un callejón estrecho.\nGilo asomó la cabeza. «¡Espera, desde aquí se ve!»","El sol rojo bajó entre los tejados. Se quedaron mirando juntos.\nEl viajero hizo una foto y la guardó en el mapa.","Días después, el viajero abrió la foto en el mapa.\n«Me acuerdo», dijo Gilo. «Nos quedamos allí un buen rato.»"]
+    } }
+];
+var GILOA_CHAPTER_ACTIONS = {
+    ko:["이어 읽기","다음 이야기","지도에서 탐험하기"], en:["Continue reading","Next chapter","Explore the map"],
+    ja:["続きを読む","次の章","地図を探検する"], zh:["继续阅读","下一章","探索地图"],
+    fr:["Continuer la lecture","Chapitre suivant","Explorer la carte"], es:["Seguir leyendo","Siguiente capítulo","Explorar el mapa"]
+};
+function giloaChapterActions() {
+    return GILOA_CHAPTER_ACTIONS[normalizeLang(currentLang)] || GILOA_CHAPTER_ACTIONS.en;
+}
+function giloaChapterLabel(chapter) {
+    return "CHAPTER " + String(chapter.id).padStart(2, "0") + " · " + (chapter.titles[normalizeLang(currentLang)] || chapter.titles.en);
+}
+function giloaChapterPages(chapter) {
+    return chapter.pages ? (chapter.pages[normalizeLang(currentLang)] || chapter.pages.en) : introStoryText().screens.map(function(screen) { return screen[0]; });
+}
+function giloaStoryPosition() {
+    var parts = (safeStorageGet(GILOA_STORY_PROGRESS_KEY) || "").split(":");
+    var chapter = GILOA_STORY_CHAPTERS.find(function(entry) { return entry.id === Number(parts[0]); });
+    var screen = Number(parts[1]);
+    return chapter && Number.isInteger(screen) && screen >= 1 && screen <= giloaChapterPages(chapter).length ? { chapter: chapter, screen: screen } : null;
+}
+function renderGiloaStoryChapters() {
+    var list = document.getElementById("giloa-story-chapters");
+    var resume = document.getElementById("giloa-story-resume");
+    if (!list || !resume) return;
+    var position = giloaStoryPosition();
+    resume.hidden = !position;
+    if (position) resume.textContent = giloaChapterActions()[0] + " · " + giloaChapterLabel(position.chapter);
+    list.replaceChildren();
+    GILOA_STORY_CHAPTERS.forEach(function(chapter) {
+        var button = document.createElement("button");
+        button.type = "button";
+        button.className = "giloa-story-replay";
+        button.textContent = giloaChapterLabel(chapter);
+        button.onclick = function() { openGiloaChapter(chapter, 1); };
+        list.appendChild(button);
+    });
+}
+function openGiloaChapter(chapter, screen) {
+    closeGiloaStoryHub();
+    return showGiloStory({ chapter: chapter, screen: screen, fromHub: true });
+}
+function resumeGiloaStory() {
+    var position = giloaStoryPosition();
+    if (position) openGiloaChapter(position.chapter, position.screen);
+}
+function renderIntroStory() {
+    if (!introStoryState.active || introStoryState.mode !== "story") return;
+    var chapter = introStoryState.chapter;
+    var pages = giloaChapterPages(chapter);
+    var screen = introStoryState.screen;
+    var isLast = screen === pages.length;
+    var nextChapter = GILOA_STORY_CHAPTERS[GILOA_STORY_CHAPTERS.indexOf(chapter) + 1];
+    var copy = document.getElementById("gsi-copy");
+    var count = screen + " / " + pages.length;
+    setIntroArt(chapter.pages ? "./assets/gilo/story/chapter-" + String(chapter.id).padStart(2, "0") + "/" + screen + ".webp" : INTRO_SCREEN_FRAMES[screen - 1]);
+    setOnboardingText("gsi-chapter-label", giloaChapterLabel(chapter));
+    if (copy) { copy.textContent = pages[screen - 1]; copy.lang = normalizeLang(currentLang); }
+    document.getElementById("gsi-progress-bar").style.width = (screen / pages.length * 100) + "%";
+    document.getElementById("gsi-progress").setAttribute("aria-label", count);
+    setOnboardingText("gsi-progress-count", count);
+    var label = introStoryText().next;
+    if (isLast) label = introStoryState.fromHub ? giloaChapterActions()[nextChapter ? 1 : 2] : (introStoryState.returnToOnboarding ? onboardingText().storyBack : onboardingText().storyClose);
+    setOnboardingText("gsi-next-copy", label);
+    document.getElementById("gsi-next").setAttribute("aria-label", label);
+    document.getElementById("gsi-story-close").setAttribute("aria-label", introStoryState.fromHub ? giloaChapterActions()[2] : onboardingText().storyClose);
+    if (introStoryState.fromHub) safeStorageSet(GILOA_STORY_PROGRESS_KEY, chapter.id + ":" + screen);
 }
 function showGiloStory(options){
     options=options||{};var root=document.getElementById("giloa-story-intro"),onboarding=document.getElementById("gsi-onboarding"),story=document.getElementById("gsi-story");if(!root||!story)return false;
-    introStoryState={active:true,mode:"story",screen:1,returnToOnboarding:!!options.returnToOnboarding,completeToMap:!!options.completeToMap,lastArt:""};root.className="gsi active story-mode";root.setAttribute("aria-hidden","false");root.setAttribute("aria-labelledby","gsi-copy");if(onboarding)onboarding.hidden=true;story.hidden=false;document.body.classList.add("gsi-active");
+    introStoryState={active:true,mode:"story",screen:options.screen||1,chapter:options.chapter||GILOA_STORY_CHAPTERS[0],fromHub:!!options.fromHub,returnToOnboarding:!!options.returnToOnboarding,completeToMap:!!options.completeToMap,lastArt:""};root.className="gsi active story-mode";root.setAttribute("aria-hidden","false");root.setAttribute("aria-labelledby","gsi-copy");if(onboarding)onboarding.hidden=true;story.hidden=false;document.body.classList.add("gsi-active");
     // gsi-next/gsi-story-close가 혹시라도 DOM에 없으면(null) .onclick 대입에서 바로
     // 예외가 나서 이 함수가 그 자리에서 멈추고, 그 아래 story.onclick 연결과
     // renderIntroStory() 호출까지 전부 건너뛰어 화면만 뜨고 아무것도 안 눌리는
@@ -8452,7 +8534,23 @@ root.onclick=function(event){
     try { renderIntroStory(); } catch (error) { console.warn("renderIntroStory failed", error && error.message); }
     return true;
 }
-function advanceGiloaIntroStory(event){if(event){event.preventDefault();event.stopPropagation();}if(!introStoryState.active||introStoryState.mode!=="story")return;if(introStoryState.screen<6){introStoryState.screen+=1;introStoryState.lastArt="";renderIntroStory();}else closeGiloStory();}
+function advanceGiloaIntroStory(event) {
+    if (event) { event.preventDefault(); event.stopPropagation(); }
+    if (!introStoryState.active || introStoryState.mode !== "story") return;
+    var chapter = introStoryState.chapter;
+    if (introStoryState.screen < giloaChapterPages(chapter).length) {
+        introStoryState.screen += 1;
+        renderIntroStory();
+        return;
+    }
+    var next = GILOA_STORY_CHAPTERS[GILOA_STORY_CHAPTERS.indexOf(chapter) + 1];
+    if (introStoryState.fromHub && next) {
+        openGiloaChapter(next, 1);
+        return;
+    }
+    if (introStoryState.fromHub) safeStorageSet(GILOA_STORY_PROGRESS_KEY, "");
+    closeGiloStory();
+}
 function closeGiloStory() {
     var returnToOnboarding =
         introStoryState.returnToOnboarding;
@@ -13636,6 +13734,12 @@ function updateItemList() {
     regionCard.type = "button"; regionCard.className = "region-badge-entry-card";
     regionCard.innerHTML = '<span class="region-badge-entry-icon"><i></i></span><span><b>' + escapeHtml(collectionUiText("regional_badges")) + '</b><small>' + escapeHtml(collectionUiText("regional_hint")) + '</small></span><em>' + regionCount + '/' + REGION_BADGE_ATLAS_ENTRIES.length + '</em><strong aria-hidden="true">›</strong>';
     regionCard.addEventListener("click", openRegionBadgeAtlas); container.appendChild(regionCard);
+    var visitButton = document.createElement("button");
+    visitButton.type = "button";
+    visitButton.className = "giloa-visit-records";
+    visitButton.textContent = (UI_TEXT[normalizeLang(currentLang)] || UI_TEXT.ko).tab_visit;
+    visitButton.addEventListener("click", function() { switchAllTab("visit"); });
+    container.appendChild(visitButton);
     var wardrobe = document.createElement("section");
     wardrobe.className = "gilo-wardrobe-summary";
     var equipped = loadGiloEquipment().slots || {};

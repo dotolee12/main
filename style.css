@@ -445,7 +445,12 @@ body.gft-active .giloa-tutorial,
 
 /* Bottom tab button area */
 #bottom-tabs .sidebar-tab { min-height: 68px; }
-#tab-visit.active { border-color: #78dc8c; background: linear-gradient(180deg, rgba(0,60,20,0.9), rgba(0,44,14,0.9)); color: #fff; }
+#story-hub-entry { color: #c8eaff; border-color: rgba(79,195,247,.42); }
+#giloa-story-chapters { display: grid; gap: 8px; }
+#giloa-story-chapters .giloa-story-replay { margin: 0; text-align: left; }
+#giloa-story-resume[hidden] { display: none; }
+.giloa-visit-records { width: 100%; min-height: 44px; border: 1px solid rgba(255,255,255,.18); border-radius: 12px; background: #1a2035; color: #e2edf8; cursor: pointer; }
+.gsi-chapter-label { position: absolute; top: 16px; left: 16px; right: 56px; z-index: 5; color: #c8eaff; font-size: 12px; }
 #tab-item.active { border-color: #c084fc; background: linear-gradient(180deg, rgba(50,0,80,0.9), rgba(36,0,60,0.9)); color: #fff; }
 
 /* Badge grid */

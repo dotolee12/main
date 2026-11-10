@@ -103,7 +103,7 @@
         },
         {
           "path": "features/onboarding/story-and-tutorial.js",
-          "role": "첫 만남·이야기·언어 선택·기존 튜토리얼"
+          "role": "첫 만남·이야기 챕터·이어 읽기·언어 선택·기존 튜토리얼"
         },
         {
           "path": "features/common/lifecycle.js",
@@ -277,11 +277,11 @@
         },
         {
           "path": "features/ui/sidebar.html",
-          "role": "메뉴·지도 표시·사진 GPX 방문 아이템 탭"
+          "role": "메뉴·지도 표시·사진 GPX 아이템 탭·이야기 입구·방문 패널"
         },
         {
           "path": "features/help/info-panels.html",
-          "role": "출처·정책·업데이트·이야기 안내"
+          "role": "출처·정책·업데이트·이야기 챕터 목록"
         },
         {
           "path": "features/regions/badge-atlas.html",

@@ -32,7 +32,7 @@
 | `script.js` | [features/photos/image-processing.js](../features/photos/image-processing.js) | 티처블 머신 인식·사진 처리·인식 뱃지 |
 | `script.js` | [features/photos/exif-and-import.js](../features/photos/exif-and-import.js) | EXIF GPS·날짜·HEIC·압축·사진 진단·가져오기 |
 | `script.js` | [features/photos/markers-and-recovery.js](../features/photos/markers-and-recovery.js) | 사진 마커·미리보기 복구·삭제·경로 날짜·일부 HUD 연결 |
-| `script.js` | [features/onboarding/story-and-tutorial.js](../features/onboarding/story-and-tutorial.js) | 첫 만남·이야기·언어 선택·기존 튜토리얼 |
+| `script.js` | [features/onboarding/story-and-tutorial.js](../features/onboarding/story-and-tutorial.js) | 첫 만남·이야기 챕터·이어 읽기·언어 선택·기존 튜토리얼 |
 | `script.js` | [features/common/lifecycle.js](../features/common/lifecycle.js) | 시작 순서·복원 완료 확인·앱 재개 |
 | `script.js` | [features/places/restaurant-coverage.js](../features/places/restaurant-coverage.js) | OpenStreetMap 주변 음식점 보완·중복 제거·가게 이름 표시 |
 | `script.js` | [features/places/tourism.js](../features/places/tourism.js) | 관광·축제·상세·좋아요·관광 데이터 캐시 |
@@ -73,8 +73,8 @@
 | `style.css` | [features/map/layer-controls.css](../features/map/layer-controls.css) | 지도 표시 타일·순서 편집 |
 | `style.css` | [features/gpx/access.css](../features/gpx/access.css) | 발급 ID 입력·이용 잠금 |
 | `index.html` | [features/common/head-and-startup.html](../features/common/head-and-startup.html) | 문서 head·외부 파일 연결·로딩 화면 |
-| `index.html` | [features/ui/sidebar.html](../features/ui/sidebar.html) | 메뉴·지도 표시·사진 GPX 방문 아이템 탭 |
-| `index.html` | [features/help/info-panels.html](../features/help/info-panels.html) | 출처·정책·업데이트·이야기 안내 |
+| `index.html` | [features/ui/sidebar.html](../features/ui/sidebar.html) | 메뉴·지도 표시·사진 GPX 아이템 탭·이야기 입구·방문 패널 |
+| `index.html` | [features/help/info-panels.html](../features/help/info-panels.html) | 출처·정책·업데이트·이야기 챕터 목록 |
 | `index.html` | [features/regions/badge-atlas.html](../features/regions/badge-atlas.html) | 지역 뱃지 지도·진단 화면 |
 | `index.html` | [features/map/map-and-controls.html](../features/map/map-and-controls.html) | 지도·숨은 미션·할 일·음악·관광지·오른쪽 버튼 |
 | `index.html` | [features/photos/panels.html](../features/photos/panels.html) | 사진 메뉴·위치 선택·시간의 흔적 |
