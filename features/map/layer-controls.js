@@ -126,7 +126,10 @@ var MAP_LAYER_GROUPS = {
 };
 var MAP_LAYER_MENU_ICONS = {
     discovery: '<path d="M3 9l9-6 9 6H3zm2 3v7m5-7v7m4-7v7m5-7v7M3 21h18"/>',
-    food: '<path d="M5 3v7m3-7v7M3 3v5a3 3 0 006 0V3M6 11v10M17 3v18m0-18c-4 3-4 9 0 9"/>',
+    food: '<path d="M3 12h18M5 12v3a5 5 0 0 0 5 5h4a5 5 0 0 0 5-5v-3M3 15h2m14 0h2M6 12a6 6 0 0 1 12 0M10 6V4h4v2"/>',
+    coffee: '<path d="M4 8h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Zm13 1h2a2.5 2.5 0 0 1 0 5h-2M3 21h17M8 5V3m5 2V3"/>',
+    convenience: '<path d="M4 10v10h16V10M3 10l2-6h14l2 6M3 10a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M9 4l-1 6m7-6 1 6m-6 10v-6h4v6"/>',
+    fastFood: '<path d="M2 18h20l-2 3H4l-2-3Zm2-4h10m-9-2a4 4 0 0 1 8 0H5Zm0 4h8m3-9h6l-1 9h-4l-1-9Zm1 0 1-3h3"/>',
     convenience: '<rect x="4" y="5" width="16" height="16" rx="3"/><path d="M9 5V3h6v2m-3 5v6m-3-3h6"/>',
     activity: '<path d="M3 20l6-12 4 7 3-5 5 10H3zM16 3v3m-2-1h4"/>',
     restroom: '<circle cx="7" cy="5" r="2"/><circle cx="17" cy="5" r="2"/><path d="M4 10h6v6H4zm2 6v5m3-5v5m8-11l-4 7h8l-4-7zm-1 7v4m3-4v4"/>',

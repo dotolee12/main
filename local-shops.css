@@ -11,6 +11,9 @@
 .local-shop-marker .has-brand-name .local-shop-pin-name{display:block;white-space:nowrap;font:600 12px/1.3 system-ui,sans-serif;text-shadow:0 1px 3px #080b12,0 0 4px #080b12}
 .local-shop-category-symbol{display:grid;place-items:center;width:28px;height:28px;color:#86daff;filter:drop-shadow(0 1px 2px #101624)}
 .local-shop-category-symbol svg{width:24px;height:24px}
+.local-shop-marker .local-shop-pin.has-category-name{justify-content:flex-start;width:106px;height:28px;gap:3px}
+.local-shop-marker .has-category-name .local-shop-category-symbol{flex:0 0 28px}
+.local-shop-marker .has-category-name .local-shop-pin-name{display:block;white-space:nowrap;text-overflow:ellipsis;color:#f5f7fb;font:600 11px/1.3 system-ui,sans-serif;text-shadow:0 1px 3px #080b12,0 0 4px #080b12}
 .map-place-symbol{position:relative;display:grid;place-items:center;width:28px;height:28px;box-sizing:border-box;color:var(--tour-color,#86daff);filter:drop-shadow(0 1px 2px #101624)}
 .map-place-symbol>svg{width:24px;height:24px}
 .map-place-symbol.state-liked .place-liked-star{display:block;position:absolute;right:-3px;top:-5px;margin:0;font-size:10px}

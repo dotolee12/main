@@ -27,6 +27,13 @@ var restaurantCoverage = (function() {
         });
     }
 
+    function iconForName(name, category) {
+        if (category === "CE7" || (window.GiloaIsCoffeeChain && window.GiloaIsCoffeeChain({ name: name }))) return "coffee";
+        if (/패스트푸드|햄버거|피자|샌드위치/i.test(category || "") ||
+            /^(맥도날드|mcdonalds|버거킹|burgerking|kfc|맘스터치|momstouch|롯데리아|lotteria|피자헛|pizzahut|도미노|dominos|프랭크버거|frankburger|노브랜드버거|nobrandburger|써브웨이|서브웨이|subway|피자스쿨|pizzaschool|피자마루|pizzamaru|피자알볼로|pizzaalvolo|파파존스|papajohns|이삭토스트|isaactoast)/.test(String(name || "").normalize("NFKC").toLowerCase().replace(/[\s\p{P}\p{S}]/gu, ""))) return "fastFood";
+        return "food";
+    }
+
     function normalizeRestaurant(element) {
         var tags = element.tags || {};
         var point = element.center || element;
@@ -43,7 +50,9 @@ var restaurantCoverage = (function() {
             if (typeof brand === "string" && brand.trim()) names.name = brand.trim();
         }
         var keys = Object.keys(names).map(function(key) { return nameKey(names[key]); }).filter(Boolean);
-        return keys.length ? { names: names, keys: keys, lat: point.lat, lng: point.lon, franchise: !!(chainCafe || chainFood) } : null;
+        var symbol = tags.amenity === "cafe" ? "coffee" : tags.amenity === "fast_food" ? "fastFood" :
+            iconForName(names.name || names["name:ko"] || names["name:en"], "");
+        return keys.length ? { names: names, keys: keys, lat: point.lat, lng: point.lon, franchise: !!(chainCafe || chainFood), symbol: symbol } : null;
     }
 
     function render(center) {
@@ -73,7 +82,7 @@ var restaurantCoverage = (function() {
             var marker = L.marker(position, {
                 pane: "tourPane", title: title,
                 icon: L.divIcon({ className: "tour-map-marker-wrap",
-                    html: mapPlaceSymbolHtml("food", "", "", getTourTypeMeta("39").color),
+                    html: mapPlaceSymbolHtml(item.symbol, "", "", getTourTypeMeta("39").color),
                     iconSize: [28, 28], iconAnchor: [14, 14] })
             }).addTo(layer);
             var label = document.createElement("b");
@@ -175,7 +184,10 @@ var restaurantCoverage = (function() {
                     lat: place.y ? Number(place.y) : NaN,
                     lon: place.x ? Number(place.x) : NaN
                 });
-                if (item) item.source = "kakao";
+                if (item) {
+                    item.source = "kakao";
+                    item.symbol = iconForName(place.place_name, place.category_group_code === "CE7" ? "CE7" : place.category_name);
+                }
                 return item;
             }).filter(Boolean);
     }
@@ -230,5 +242,5 @@ var restaurantCoverage = (function() {
         });
     }
 
-    return { refresh: refresh };
+    return { refresh: refresh, iconForName: iconForName };
 })();

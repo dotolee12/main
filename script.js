@@ -8900,6 +8900,13 @@ var restaurantCoverage = (function() {
         });
     }
 
+    function iconForName(name, category) {
+        if (category === "CE7" || (window.GiloaIsCoffeeChain && window.GiloaIsCoffeeChain({ name: name }))) return "coffee";
+        if (/패스트푸드|햄버거|피자|샌드위치/i.test(category || "") ||
+            /^(맥도날드|mcdonalds|버거킹|burgerking|kfc|맘스터치|momstouch|롯데리아|lotteria|피자헛|pizzahut|도미노|dominos|프랭크버거|frankburger|노브랜드버거|nobrandburger|써브웨이|서브웨이|subway|피자스쿨|pizzaschool|피자마루|pizzamaru|피자알볼로|pizzaalvolo|파파존스|papajohns|이삭토스트|isaactoast)/.test(String(name || "").normalize("NFKC").toLowerCase().replace(/[\s\p{P}\p{S}]/gu, ""))) return "fastFood";
+        return "food";
+    }
+
     function normalizeRestaurant(element) {
         var tags = element.tags || {};
         var point = element.center || element;
@@ -8916,7 +8923,9 @@ var restaurantCoverage = (function() {
             if (typeof brand === "string" && brand.trim()) names.name = brand.trim();
         }
         var keys = Object.keys(names).map(function(key) { return nameKey(names[key]); }).filter(Boolean);
-        return keys.length ? { names: names, keys: keys, lat: point.lat, lng: point.lon, franchise: !!(chainCafe || chainFood) } : null;
+        var symbol = tags.amenity === "cafe" ? "coffee" : tags.amenity === "fast_food" ? "fastFood" :
+            iconForName(names.name || names["name:ko"] || names["name:en"], "");
+        return keys.length ? { names: names, keys: keys, lat: point.lat, lng: point.lon, franchise: !!(chainCafe || chainFood), symbol: symbol } : null;
     }
 
     function render(center) {
@@ -8946,7 +8955,7 @@ var restaurantCoverage = (function() {
             var marker = L.marker(position, {
                 pane: "tourPane", title: title,
                 icon: L.divIcon({ className: "tour-map-marker-wrap",
-                    html: mapPlaceSymbolHtml("food", "", "", getTourTypeMeta("39").color),
+                    html: mapPlaceSymbolHtml(item.symbol, "", "", getTourTypeMeta("39").color),
                     iconSize: [28, 28], iconAnchor: [14, 14] })
             }).addTo(layer);
             var label = document.createElement("b");
@@ -9048,7 +9057,10 @@ var restaurantCoverage = (function() {
                     lat: place.y ? Number(place.y) : NaN,
                     lon: place.x ? Number(place.x) : NaN
                 });
-                if (item) item.source = "kakao";
+                if (item) {
+                    item.source = "kakao";
+                    item.symbol = iconForName(place.place_name, place.category_group_code === "CE7" ? "CE7" : place.category_name);
+                }
                 return item;
             }).filter(Boolean);
     }
@@ -9103,7 +9115,7 @@ var restaurantCoverage = (function() {
         });
     }
 
-    return { refresh: refresh };
+    return { refresh: refresh, iconForName: iconForName };
 })();
 var TOUR_API_KEY = window.GILOA_TOUR_API_KEY || "";
 
@@ -10245,7 +10257,7 @@ function addTourMarkers() {
     logGpsLayerChange("BEFORE tour-refresh", before);
     tourMarkerLayer.clearLayers();
     tourMarkers = [];
-    getVisibleTourMarkerItems().forEach(function(item, index) { var lat = parseFloat(item.mapy); var lng = parseFloat(item.mapx); if (!isFinite(lat) || !isFinite(lng)) return; var meta = getTourTypeMeta(item.contenttypeid); var state = getTourMarkerState(item, index); var liked = isTourLiked(item); var likeKey = getTourLikeKey(item); var classes = [state.visited ? "state-visited" : "", state.selected ? "state-selected" : "", state.nearby ? "state-nearby" : "", state.discoverable ? "state-discoverable" : "", liked ? "state-liked" : ""].filter(Boolean).join(" "); var badge = liked ? "★" : state.visited ? "✓" : state.missionAvailable ? "📷" : state.discoverable ? "◎" : ""; var icon = L.divIcon({ className: "tour-map-marker-wrap", html: mapPlaceSymbolHtml(({"39":"food","38":"shopping","32":"lodging","25":"activity","28":"activity"})[String(item.contenttypeid)] || "discovery", classes, likeKey, meta.color), iconSize: [28,28], iconAnchor: [14,14] }); var marker = L.marker([lat, lng], { pane: "tourPane", icon: icon, title: (getTourTypeName(item.contenttypeid) || meta.label) + " - " + (getTourDisplayTitle(item) || "") }).addTo(tourMarkerLayer); marker._tourItem = item; marker.on("click", function() { focusTourItemBelowPanel(item); }); tourMarkers.push(marker); });
+    getVisibleTourMarkerItems().forEach(function(item, index) { var lat = parseFloat(item.mapy); var lng = parseFloat(item.mapx); if (!isFinite(lat) || !isFinite(lng)) return; var meta = getTourTypeMeta(item.contenttypeid); var state = getTourMarkerState(item, index); var liked = isTourLiked(item); var likeKey = getTourLikeKey(item); var classes = [state.visited ? "state-visited" : "", state.selected ? "state-selected" : "", state.nearby ? "state-nearby" : "", state.discoverable ? "state-discoverable" : "", liked ? "state-liked" : ""].filter(Boolean).join(" "); var badge = liked ? "★" : state.visited ? "✓" : state.missionAvailable ? "📷" : state.discoverable ? "◎" : ""; var icon = L.divIcon({ className: "tour-map-marker-wrap", html: mapPlaceSymbolHtml(({"39":restaurantCoverage.iconForName(item.title, ""),"38":"shopping","32":"lodging","25":"activity","28":"activity"})[String(item.contenttypeid)] || "discovery", classes, likeKey, meta.color), iconSize: [28,28], iconAnchor: [14,14] }); var marker = L.marker([lat, lng], { pane: "tourPane", icon: icon, title: (getTourTypeName(item.contenttypeid) || meta.label) + " - " + (getTourDisplayTitle(item) || "") }).addTo(tourMarkerLayer); marker._tourItem = item; marker.on("click", function() { focusTourItemBelowPanel(item); }); tourMarkers.push(marker); });
     refreshGpsVisualsAfterPlaceLayerChange("tour-refresh", before);
     restaurantCoverage.refresh();
 }
@@ -11245,7 +11257,10 @@ var MAP_LAYER_GROUPS = {
 };
 var MAP_LAYER_MENU_ICONS = {
     discovery: '<path d="M3 9l9-6 9 6H3zm2 3v7m5-7v7m4-7v7m5-7v7M3 21h18"/>',
-    food: '<path d="M5 3v7m3-7v7M3 3v5a3 3 0 006 0V3M6 11v10M17 3v18m0-18c-4 3-4 9 0 9"/>',
+    food: '<path d="M3 12h18M5 12v3a5 5 0 0 0 5 5h4a5 5 0 0 0 5-5v-3M3 15h2m14 0h2M6 12a6 6 0 0 1 12 0M10 6V4h4v2"/>',
+    coffee: '<path d="M4 8h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Zm13 1h2a2.5 2.5 0 0 1 0 5h-2M3 21h17M8 5V3m5 2V3"/>',
+    convenience: '<path d="M4 10v10h16V10M3 10l2-6h14l2 6M3 10a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M9 4l-1 6m7-6 1 6m-6 10v-6h4v6"/>',
+    fastFood: '<path d="M2 18h20l-2 3H4l-2-3Zm2-4h10m-9-2a4 4 0 0 1 8 0H5Zm0 4h8m3-9h6l-1 9h-4l-1-9Zm1 0 1-3h3"/>',
     convenience: '<rect x="4" y="5" width="16" height="16" rx="3"/><path d="M9 5V3h6v2m-3 5v6m-3-3h6"/>',
     activity: '<path d="M3 20l6-12 4 7 3-5 5 10H3zM16 3v3m-2-1h4"/>',
     restroom: '<circle cx="7" cy="5" r="2"/><circle cx="17" cy="5" r="2"/><path d="M4 10h6v6H4zm2 6v5m3-5v5m8-11l-4 7h8l-4-7zm-1 7v4m3-4v4"/>',

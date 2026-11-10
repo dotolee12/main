@@ -89,16 +89,33 @@
         };
         return lang === 'ko' ? brand.label : names[brand.id][lang === 'ja' ? 1 : lang === 'zh' ? 2 : 0];
     }
-    function placeMarkerIcon(item) {
-        var named = !!brandFor(item);
-        return L.divIcon({className:'local-shop-marker',html:badge(item,true),iconSize:named ? [78,26] : [39,31],iconAnchor:named ? [39,13] : [19.5,15.5]});
+    function categoryIcon(item) {
+        var tags = item.osm || {};
+        if (item.category === 'CS2' || tags.shop === 'convenience') return 'convenience';
+        if (item.category === 'CE7' || tags.amenity === 'cafe') return 'coffee';
+        if (tags.amenity === 'fast_food') return 'fastFood';
+        if (item.category === 'FD6' || tags.amenity === 'restaurant') {
+            return restaurantCoverage.iconForName(item.name, item.categoryDetail);
+        }
+        return '';
     }
-    function badge(item, onMap) {
+    function placeMarkerIcon(item) {
+        var category = categoryIcon(item);
+        var named = !!brandFor(item);
+        return L.divIcon({className:'local-shop-marker',html:badge(item,true,category),iconSize:category ? [106,28] : named ? [78,26] : [39,31],iconAnchor:category ? [14,14] : named ? [39,13] : [19.5,15.5]});
+    }
+    function badge(item, onMap, category) {
         var brand = brandFor(item), node = document.createElement('span'); node.className = 'local-shop-pin' + (onMap ? ' map-symbol-only' : '');
+        if (onMap && category) {
+            node.classList.add('has-category-name');
+            fallbackSymbol();
+            text('span',item.name,node).className = 'local-shop-pin-name';
+            return node;
+        }
         if (brand || !onMap) { var name = text('span',brand ? brandName(brand) : item.name,node); name.className = 'local-shop-pin-name'; }
         function fallbackSymbol() {
             var codes = {HP8:'hospital',PM9:'pharmacy',FD6:'food',AT4:'discovery',AD5:'lodging',PK6:'parking'};
-            var kind = codes[item.category] || (item.osm && ({hospital:'hospital',clinic:'hospital',pharmacy:'pharmacy',restaurant:'food',toilets:'restroom',parking:'parking'})[item.osm.amenity]) || 'shopping';
+            var kind = category || codes[item.category] || (item.osm && ({hospital:'hospital',clinic:'hospital',pharmacy:'pharmacy',restaurant:'food',toilets:'restroom',parking:'parking'})[item.osm.amenity]) || 'shopping';
             var symbol = document.createElement('span'); symbol.className = 'local-shop-category-symbol'; symbol.setAttribute('aria-hidden','true');
             if (typeof mapLayerMenuIcon === 'function') symbol.innerHTML = mapLayerMenuIcon(kind);
             else symbol.textContent = '◇';
@@ -118,7 +135,7 @@
     function shop(item, center, localOnly) {
         var lat = Number(item.y), lng = Number(item.x);
         if (!item.id || !item.place_name || !validPoint(lat,lng) || (localOnly && shopMap.distance(center,[lat,lng]) > 1000)) return null;
-        return {id:String(item.id),name:String(item.place_name),address:String(item.road_address_name || item.address_name || ''),phone:String(item.phone || ''),category:String(item.category_group_code || ''),lat:lat,lng:lng,distance:Math.round(shopMap.distance(center,[lat,lng]))};
+        return {id:String(item.id),name:String(item.place_name),address:String(item.road_address_name || item.address_name || ''),phone:String(item.phone || ''),category:String(item.category_group_code || ''),categoryDetail:String(item.category_name || ''),lat:lat,lng:lng,distance:Math.round(shopMap.distance(center,[lat,lng]))};
     }
     function cancelLinks() { linkRequest++; if (controller) controller.abort(); controller = null; }
     function close() { panel.hidden = true; button.setAttribute('aria-expanded','false'); request++; cancelLinks(); el('search').disabled = false; }
