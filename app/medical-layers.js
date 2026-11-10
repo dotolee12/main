@@ -24,7 +24,7 @@
             var script = document.createElement("script"), done = false;
             var timer = setTimeout(function() { finish(new Error("Medical data timeout")); }, 45000);
             function finish(error) { if (done) return; done = true; clearTimeout(timer); script.remove(); error ? reject(error) : resolve(window.GILOA_MEDICAL_BUNDLE); }
-            script.src = "./data/medical/bundle.js?v=1";
+            script.src = location.protocol === "file:" ? "./data/medical/bundle.js?v=1" : "/data/medical/bundle.js?v=1";
             script.onload = function() { finish(window.GILOA_MEDICAL_BUNDLE ? null : new Error("Medical data invalid")); };
             script.onerror = function() { finish(new Error("Medical data unavailable")); };
             document.head.appendChild(script);

@@ -12,3 +12,7 @@ exclude:
   - data/전국주차장정보표준데이터.json
   - app/data/전국주차장정보표준데이터.csv
   - app/data/전국주차장정보표준데이터.json
+  # The /app/ web copy reads these identical datasets from the site root.
+  - app/data/durunubi-routes.json
+  - app/data/medical/bundle.js
+  - app/data/parking/bundle.js

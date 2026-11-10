@@ -10020,7 +10020,7 @@ function loadParkingBundle() {
             if (error) reject(error);
             else resolve(window.GILOA_PARKING_BUNDLE);
         }
-        script.src = "./data/parking/bundle.js?v=1";
+        script.src = location.protocol === "file:" ? "./data/parking/bundle.js?v=1" : "/data/parking/bundle.js?v=1";
         script.onload = function() {
             var data = window.GILOA_PARKING_BUNDLE;
             finish(data && data.manifest && data.tiles ? null : new Error("Invalid parking bundle"));
@@ -11368,7 +11368,7 @@ function loadDurunubiLocalBundle() {
     }
     if (durunubiLocalBundlePromise) return durunubiLocalBundlePromise;
     durunubiDiagnostics.stage = "경로 파일 불러오는 중";
-    var load = window.location.protocol === "file:" ? loadDurunubiLocalScriptBundle() : fetch("./data/durunubi-routes.json", { cache:"no-store" }).then(function(response) {
+    var load = window.location.protocol === "file:" ? loadDurunubiLocalScriptBundle() : fetch("/data/durunubi-routes.json", { cache:"no-store" }).then(function(response) {
         if (!response.ok) throw new Error("경로 파일 HTTP " + response.status + " (data/durunubi-routes.json 배포 확인)");
         return response.json();
     });
