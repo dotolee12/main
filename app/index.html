@@ -47,7 +47,7 @@ html,body{background:#1a2035;margin:0;height:100%;width:100%;overflow:hidden}
 <!-- 큰 벤더/앱 스크립트를 head 단계에서 미리 프리로드하여, 본문 파싱이 끝날 때까지
      기다리지 않고 CSS와 동시에 다운로드가 시작되도록 한다. (버퍼링 단축) -->
 <link rel="preload" as="script" href="./vendor/leaflet.js?v=app-local-9">
-<link rel="preload" as="script" href="./script.js?v=shared-data-20261110">
+<link rel="preload" as="script" href="./script.js?v=shared-art-20261110">
 <link rel="stylesheet" href="./vendor/leaflet.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.Default.css?v=app-local-9">
@@ -67,13 +67,13 @@ html,body{background:#1a2035;margin:0;height:100%;width:100%;overflow:hidden}
      로직은 전혀 건드리지 않고, 그 위에 얹히는 별도 레이어라서 기존 흐름에 영향이 없다.
      목적: "로딩 중 빈 화면"을 없애서 로딩 시간 자체가 아니라 체감 대기를 줄인다. -->
 <div id="giloa-boot-splash" aria-live="polite" aria-label="GILOA loading">
-  <div class="gbs-slide is-active"><img src="./images/startup/01-memories.png" alt="" decoding="async"></div>
-  <div class="gbs-slide"><img src="./images/startup/02-horizon.png" alt="" decoding="async"></div>
-  <div class="gbs-slide"><img src="./images/startup/03-hello.png" alt="" decoding="async"></div>
-  <div class="gbs-slide"><img src="./images/startup/04-photo.png" alt="" decoding="async"></div>
-  <div class="gbs-slide"><img src="./images/startup/05-fog-map.png" alt="" decoding="async"></div>
-  <div class="gbs-slide"><img src="./images/startup/06-discovery.png" alt="" decoding="async"></div>
-  <div class="gbs-slide"><img src="./images/startup/07-glowing-map.png" alt="" decoding="async"></div>
+  <div class="gbs-slide is-active"><img src="../images/startup/01-memories.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img src="../images/startup/02-horizon.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img src="../images/startup/03-hello.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img src="../images/startup/04-photo.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img src="../images/startup/05-fog-map.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img src="../images/startup/06-discovery.png" alt="" decoding="async"></div>
+  <div class="gbs-slide"><img src="../images/startup/07-glowing-map.png" alt="" decoding="async"></div>
   <button id="gbs-skip" class="gbs-skip" type="button">지도 먼저 보기</button>
   <div class="gbs-ui">
     <div class="gbs-brand"><i></i><span>GILOA</span></div>
@@ -635,7 +635,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
   <div id="gsi-onboarding" class="gsi-onboarding">
     <header class="gsi-onboarding-head">
       <div class="gsi-brand-logo" data-i18n-extra-aria="brandLabel" aria-label="GILOA 나의 대동여지도">
-        <img src="./gilo many appearance/길로아 대동여지도.png" width="1536" height="1024" decoding="async" data-i18n-extra-alt="brandLabel" alt="GILOA 나의 대동여지도">
+        <img src="../gilo many appearance/길로아 대동여지도.png" width="1536" height="1024" decoding="async" data-i18n-extra-alt="brandLabel" alt="GILOA 나의 대동여지도">
         <div id="gsi-brand-localized" hidden><strong>GILOA</strong><span data-i18n-extra="brandSubtitle"></span></div>
       </div>
       <label class="gsi-language-picker">
@@ -680,7 +680,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
         <span class="gsi-mystery gsi-mystery-one" aria-hidden="true">?</span>
         <span class="gsi-mystery gsi-mystery-two" aria-hidden="true">?</span>
         <div id="gsi-gilo-hint" class="gsi-gilo-hint">주변을 둘러봐요!</div>
-        <img class="gsi-preview-gilo" src="./gilo many appearance/gilo-tutorial-welcome-transparent.png" width="1024" height="1024" decoding="async" alt="Gilo">
+        <img class="gsi-preview-gilo" src="../gilo many appearance/gilo-tutorial-welcome-transparent.png" width="1024" height="1024" decoding="async" alt="Gilo">
       </div>
 
       <ul class="gsi-feature-hints" aria-label="GILOA features">
@@ -783,14 +783,14 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <div id="hud" onclick="event.stopPropagation()">
 <button id="hud-close" type="button" onclick="event.preventDefault(); event.stopPropagation(); if (isHudExpanded) toggleHud();" data-i18n-extra-aria="close" aria-label="닫기">&times;</button>
 <div id="hud-handle" onclick="event.preventDefault(); event.stopPropagation(); toggleHud();" role="button" data-i18n-extra-aria="openHud" aria-label="HUD 열기">
-<div id="hud-mini-avatar" class="my-gilo-avatar my-gilo-avatar-mini" aria-hidden="true"><div class="my-gilo-aura"></div><img class="my-gilo-character" src="./gilo%20many%20appearance/gilo-tutorial-welcome-transparent.png" alt=""><span class="my-gilo-equipped-item" hidden><img alt=""></span></div>
+<div id="hud-mini-avatar" class="my-gilo-avatar my-gilo-avatar-mini" aria-hidden="true"><div class="my-gilo-aura"></div><img class="my-gilo-character" src="../gilo%20many%20appearance/gilo-tutorial-welcome-transparent.png" alt=""><span class="my-gilo-equipped-item" hidden><img alt=""></span></div>
 <div id="hud-mini-main"><div id="hud-mini-line">LV 1</div><div id="hud-mini-xp-track"><div class="hud-mini-xp-fill" id="hud-mini-progress"></div></div></div>
 </div>
 <div id="hud-basic">
 <div class="hud-identity-sync-layout">
 <section id="rpg-growth-panel" class="rpg-growth-panel" data-i18n-extra-aria="travelGrowth" aria-label="실시간 여행 성장">
 <div class="rpg-growth-head"><div><div id="rpg-growth-kicker" class="rpg-growth-kicker">REAL-WORLD TRAVEL RPG</div><strong id="rpg-trait-name">Travel growth</strong></div><div class="rpg-level-badge">LV <b id="rpg-level">1</b><span id="rpg-level-max" hidden>MAX</span></div></div>
-<div class="my-gilo-profile"><div id="rpg-my-gilo-title" class="my-gilo-title">나의 길로</div><div id="hud-main-gilo" class="my-gilo-avatar my-gilo-avatar-main" aria-hidden="true"><div class="my-gilo-aura"></div><img class="my-gilo-character" src="./gilo%20many%20appearance/gilo-tutorial-welcome-transparent.png" alt=""><span class="my-gilo-equipped-item" hidden><img alt=""></span></div></div>
+<div class="my-gilo-profile"><div id="rpg-my-gilo-title" class="my-gilo-title">나의 길로</div><div id="hud-main-gilo" class="my-gilo-avatar my-gilo-avatar-main" aria-hidden="true"><div class="my-gilo-aura"></div><img class="my-gilo-character" src="../gilo%20many%20appearance/gilo-tutorial-welcome-transparent.png" alt=""><span class="my-gilo-equipped-item" hidden><img alt=""></span></div></div>
 <div id="rpg-trait-copy" class="rpg-trait-copy"></div>
 <div id="rpg-today-summary" class="rpg-today-summary">
 <button id="rpg-today-distance" type="button" onclick="event.stopPropagation(); openRpgJourneyView('distance');"></button>
@@ -867,17 +867,17 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <script src="./data/libraries_seoul.bundle.js?v=20261021" defer></script>
 <script src="./privacy-policy.js?v=20261021" defer></script>
 <script src="./gpx-access.js?v=1" defer></script>
-<script src="./script.js?v=shared-data-20261110" defer></script>
+<script src="./script.js?v=shared-art-20261110" defer></script>
 <script src="./trip-share.js?v=app-local-1" defer></script>
 <script src="./supabase-sync.js?v=app-local-3" defer></script>
 <script src="./medical-layers.js?v=shared-data-20261110" defer></script>
 <script src="./time-trace.js?v=app-local-1" defer></script>
 <script src="./hidden-missions.obfuscated.js?v=app-local-2" defer></script>
-<script src="./tutorial.js?v=app-local-134" defer></script>
+<script src="./tutorial.js?v=shared-art-20261110" defer></script>
 <script>
 if (window.location.protocol !== "file:" && "serviceWorker" in navigator && !(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) {
     window.addEventListener("load", function() {
-    navigator.serviceWorker.register("./sw.js?v=shared-data-20261110", { updateViaCache: "none" })
+    navigator.serviceWorker.register("./sw.js?v=shared-art-20261110", { updateViaCache: "none" })
             .then(function(registration) { console.log("SW 등록 완료"); return registration.update(); })
             .catch(function(e) { console.warn("SW 등록 실패", e); });
     });

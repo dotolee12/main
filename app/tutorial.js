@@ -3,12 +3,12 @@
   "use strict";
 
   var DONE_KEY = "giloa-tutorial-completed";
-  var HELLO_IMAGE = encodeURI("./gilo many appearance/gilo-actions-transparent/07-waving-transparent.png");
-  var LOCATION_IMAGE = encodeURI("./gilo many appearance/gilo-actions-transparent/10-map-transparent.png");
-  var EXPLAIN_IMAGE = encodeURI("./gilo many appearance/gilo-actions-transparent/09-explaining-transparent.png");
-  var WALK_IMAGE = encodeURI("./gilo many appearance/gilo-actions-transparent/01-walking-transparent.png");
-  var SURPRISED_IMAGE = encodeURI("./gilo many appearance/gilo-emotions-transparent/12-surprised-transparent.png");
-  var FINISH_IMAGE = encodeURI("./gilo many appearance/gilo-actions-transparent/06-thumbs-up-transparent.png");
+  var HELLO_IMAGE = encodeURI("../gilo many appearance/gilo-actions-transparent/07-waving-transparent.png");
+  var LOCATION_IMAGE = encodeURI("../gilo many appearance/gilo-actions-transparent/10-map-transparent.png");
+  var EXPLAIN_IMAGE = encodeURI("../gilo many appearance/gilo-actions-transparent/09-explaining-transparent.png");
+  var WALK_IMAGE = encodeURI("../gilo many appearance/gilo-actions-transparent/01-walking-transparent.png");
+  var SURPRISED_IMAGE = encodeURI("../gilo many appearance/gilo-emotions-transparent/12-surprised-transparent.png");
+  var FINISH_IMAGE = encodeURI("../gilo many appearance/gilo-actions-transparent/06-thumbs-up-transparent.png");
   var MOVE_DISTANCE_M = 12;
   var MAX_ACCURACY_M = 50;
   var STATES = Object.freeze({
@@ -215,7 +215,7 @@
   var DONE="giloa-tutorial-completed", S={HELLO:0,WAKE:1,MAP:2,LOCATE:3,FOUND:4,RECORD:5,WALK:6,REVEAL:7,PHOTO:8,MENU:9,HELP:10};
   var phases=["phase-black","phase-blink","phase-map","phase-dim","phase-clear","phase-error"];
   var images={hello:"07-waving-transparent.png",map:"10-map-transparent.png",explain:"09-explaining-transparent.png",walk:"01-walking-transparent.png",photo:"11-photo-transparent.png",found:"12-surprised-transparent.png"};
-  var actionBase=encodeURI("./gilo many appearance/gilo-actions-transparent/"), emotionBase=encodeURI("./gilo many appearance/gilo-emotions-transparent/");
+  var actionBase=encodeURI("../gilo many appearance/gilo-actions-transparent/"), emotionBase=encodeURI("../gilo many appearance/gilo-emotions-transparent/");
   var strings={
     ko:{next:"다음",skip:"건너뛰기",retry:"다시 시도",help:"해결 방법",skipMove:"이동 확인 건너뛰기",finish:"튜토리얼 마치기",lines:["안녕! 나는 길로야.","어? 깨어났네!","보이지? 길이 나타났어!","우선 우리가 어디 있는지부터 찾아볼까?","찾았다! 지금 네가 있는 곳이 여기야.","이제 기록을 시작해볼까? 네가 움직이는 길이 지도에 남을 거야.","이제 조금 걸어봐!","","사진 미션이야. 실제 사진 버튼으로 여행의 순간을 남겨 봐.","왼쪽 위 메뉴 버튼에서는 기억, 사진, 지나온 길과 방문 기록을 다시 볼 수 있어.","내 도움이 필요하면 ? 버튼의 설명하기에서 ‘길로 부르기’를 눌러 다시 불러 줘."],reveal:["보이죠?","세상이 새로 생긴 게 아니에요.","당신의 세계가 하나 더 생긴 거예요."],finding:"현재 위치를 찾고 있어…",denied:"위치 권한이 거부됐어.",timeout:"GPS 응답 시간이 초과됐어.",off:"위치 서비스가 꺼져 있거나 사용할 수 없어.",failed:"현재 위치를 찾지 못했어.",movement:"실제 이동을 기다리고 있어…"},
     en:{next:"Next",skip:"Skip",retry:"Try again",help:"How to fix",skipMove:"Skip movement check",finish:"Finish",lines:["Hi! I'm Gilo.","Oh? You're awake!","See? The roads have appeared!","First, shall we find where we are?","Found you! This is where you are.","Shall we start recording? The path you take will stay on the map.","Now walk a little!","","Photo mission: save this journey with the real photo button.","The menu button at the top left lets you revisit memories, photos, routes, and visits.","If you need me, open ? → Guide and tap ‘Call Gilo’ to bring me back."],reveal:["See?","The world itself wasn’t newly created.","Your world has grown by one more place."],finding:"Finding your current location…",denied:"Location permission was denied.",timeout:"GPS timed out.",off:"Location services are off or unavailable.",failed:"I couldn't find your location.",movement:"Waiting for real movement…"},
@@ -464,7 +464,7 @@
     root=document.getElementById("giloa-first-tutorial");if(!root)return false;if(typeof window.closeMapTransientPanels==="function")window.closeMapTransientPanels();if(typeof window.toggleSidebar==="function")window.toggleSidebar(false);
     active=true;root.className="gft active gft-overview-mode";root.setAttribute("aria-hidden","false");document.body.classList.add("gft-active");
     layer=document.createElement("section");layer.className="sg-overview";layer.setAttribute("aria-label",text("map"));var shade=document.createElement("div");shade.className="sg-shade";layer.appendChild(shade);svg=document.createElementNS("http://www.w3.org/2000/svg","svg");svg.classList.add("sg-wires");svg.setAttribute("aria-hidden","true");layer.appendChild(svg);
-    footer=document.createElement("div");footer.className="sg-footer";var img=document.createElement("img");img.alt="";img.src=encodeURI("./gilo many appearance/gilo-tutorial-welcome-transparent.png");var body=document.createElement("div"),heading=document.createElement("h2"),hint=document.createElement("p");
+    footer=document.createElement("div");footer.className="sg-footer";var img=document.createElement("img");img.alt="";img.src=encodeURI("../gilo many appearance/gilo-tutorial-welcome-transparent.png");var body=document.createElement("div"),heading=document.createElement("h2"),hint=document.createElement("p");
     var doneButton=document.createElement("button");doneButton.id="sg-done";doneButton.className="sg-close";doneButton.type="button";doneButton.textContent="×";doneButton.setAttribute("aria-label",text("done"));doneButton.onclick=function(){finish(true);};body.append(heading,hint);footer.append(img,body,doneButton);layer.appendChild(footer);root.appendChild(layer);
     observer=new MutationObserver(schedule);document.addEventListener("click",clicked,true);document.addEventListener("scroll",schedule,true);document.addEventListener("pointerdown",pointerDown,true);document.addEventListener("pointermove",pointerMove,true);window.addEventListener("resize",schedule);window.addEventListener("orientationchange",clicked);render();return true;
   }

@@ -16,3 +16,6 @@ exclude:
   - app/data/durunubi-routes.json
   - app/data/medical/bundle.js
   - app/data/parking/bundle.js
+  # The /app/ web entry point loads identical artwork from the site root.
+  - "app/gilo many appearance/"
+  - app/images/startup/

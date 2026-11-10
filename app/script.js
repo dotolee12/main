@@ -713,7 +713,7 @@ const RPG_GROWTH_KEY = "giloa-rpg-growth-v1";
 // 최초 로드할 때 v2의 relic 슬롯으로 안전하게 옮겨 기존 사용자의 선택을 보존한다.
 const GILO_EQUIPMENT_KEY = "giloa-gilo-equipment-v2";
 const GILO_EQUIPMENT_LEGACY_KEY = "giloa-gilo-equipment-v1";
-const GILO_LEVEL_IMAGE_BASE = "./gilo%20many%20appearance/";
+const GILO_LEVEL_IMAGE_BASE = "../gilo%20many%20appearance/";
 const GILO_WEARABLE_SHEET_BASE = "./assets/gilo-wearables/sheets/";
 const GILO_FITTED_WEARABLE_SHEETS = {
     "01-footwear-10.png":"./assets/gilo-wearables/fitted/01-footwear-fitted-v2.png",
@@ -784,7 +784,7 @@ let selectedDestination = null;
 let selectedVisitMarker = null;
 var discoveryRewardTimer = null;
 var giloLastReactionAt = 0;
-var GILO_30_SCENE_BASE = "./gilo many appearance/";
+var GILO_30_SCENE_BASE = "../gilo many appearance/";
 // The 30-scene folder (길로_장면별_30장_PNG) is not in the project yet.
 // Each scene number points to an image that exists in "gilo many appearance".
 // When the 30 scene images are added later, restore:
@@ -7829,15 +7829,15 @@ function initHudTapTargets() { var hud = document.getElementById("hud"); var han
 var tutorialStepIndex = 0;
 var tutorialRecordCompleted = false;
 var tutorialRecordingPrepared = false;
-var TUTORIAL_GUIDE_FALLBACK = encodeURI("./gilo many appearance/gilo-scenes-transparent/01-first-meeting-transparent.png");
+var TUTORIAL_GUIDE_FALLBACK = encodeURI("../gilo many appearance/gilo-scenes-transparent/01-first-meeting-transparent.png");
 var TUTORIAL_GUIDE_IMAGES = [
-    encodeURI("./gilo many appearance/gilo-actions-transparent/07-waving-transparent.png"),
-    encodeURI("./gilo many appearance/gilo-actions-transparent/10-map-transparent.png"),
-    encodeURI("./gilo many appearance/gilo-actions-transparent/09-explaining-transparent.png"),
-    encodeURI("./gilo many appearance/gilo-actions-transparent/11-photo-transparent.png"),
-    encodeURI("./gilo many appearance/gilo-actions-transparent/16-memo-transparent.png"),
-    encodeURI("./gilo many appearance/gilo-emotions-transparent/11-curious-transparent.png"),
-    encodeURI("./gilo many appearance/gilo-actions-transparent/06-thumbs-up-transparent.png")
+    encodeURI("../gilo many appearance/gilo-actions-transparent/07-waving-transparent.png"),
+    encodeURI("../gilo many appearance/gilo-actions-transparent/10-map-transparent.png"),
+    encodeURI("../gilo many appearance/gilo-actions-transparent/09-explaining-transparent.png"),
+    encodeURI("../gilo many appearance/gilo-actions-transparent/11-photo-transparent.png"),
+    encodeURI("../gilo many appearance/gilo-actions-transparent/16-memo-transparent.png"),
+    encodeURI("../gilo many appearance/gilo-emotions-transparent/11-curious-transparent.png"),
+    encodeURI("../gilo many appearance/gilo-actions-transparent/06-thumbs-up-transparent.png")
 ];
 var TUTORIAL_GUIDE_IMAGE_POSITIONS = ["center", "center", "center", "center", "center", "center", "center"];
 var tutorialStepsByLang = {
@@ -8211,7 +8211,7 @@ var ONBOARDING_I18N = {
 
 // Story assets remain intact but are assigned to the image element only after the optional story is opened.
 var INTRO_SCREEN_FRAMES = [
-    encodeURI("./gilo many appearance/gilo-awake-transparent.png"),
+    encodeURI("../gilo many appearance/gilo-awake-transparent.png"),
     "./assets/gilo/story/gilo_story_01.png",
     "./assets/gilo/story/gilo_story_05.png",
     "./assets/gilo/story/gilo_story_10.png",
@@ -12307,7 +12307,7 @@ function getVisitDisplayName(visit) {
 var activeDiscoveryRewardOptions = null;
 
 function getCollectionImage(fileName) {
-    return encodeURI("./gilo many appearance/" + fileName);
+    return encodeURI("../gilo many appearance/" + fileName);
 }
 function getProvinceAsset(path) { return encodeURI("./assets/province/" + path); }
 var DEFAULT_COLLECTION_IMAGE = getCollectionImage("gilo-tutorial-thumbs-transparent.png");
@@ -13300,11 +13300,11 @@ function showCollectionToast(msg) {
 }
 
 // Bottom Gilo dialogue (kept independent from the tutorial/prologue systems).
-const GILO_DIALOG_IMAGE = encodeURI("./gilo many appearance/gilo-tutorial-welcome-transparent.png");
+const GILO_DIALOG_IMAGE = encodeURI("../gilo many appearance/gilo-tutorial-welcome-transparent.png");
 const GILO_DIALOG_PAGE_IMAGES = [
     GILO_DIALOG_IMAGE,
-    encodeURI("./gilo many appearance/gilo-tutorial-thumbs-transparent.png"),
-    encodeURI("./gilo many appearance/gilo-tutorial-curious-transparent.png")
+    encodeURI("../gilo many appearance/gilo-tutorial-thumbs-transparent.png"),
+    encodeURI("../gilo many appearance/gilo-tutorial-curious-transparent.png")
 ];
 var giloDialogueState = { pages: [], index: 0, data: null, closeTimer: null };
 var GILO_DIALOGUE_TEXT = {

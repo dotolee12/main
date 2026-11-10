@@ -1,4 +1,4 @@
-var APP_CACHE = "giloa-app-shell-v254-shared-data";
+var APP_CACHE = "giloa-app-shell-v254-shared-art";
 var RUNTIME_CACHE = "giloa-runtime-v77";
 var TILE_CACHE = "giloa-map-tiles-v6";
 var TILE_CACHE_MAX = 300;
@@ -18,7 +18,7 @@ var CORE_ASSETS = [
 var OPTIONAL_CORE_ASSETS = [
   "./time-trace.css", "./tutorial.css", "./time-trace.js", "./hidden-missions.obfuscated.js", "./tutorial.js", "./config.js",
   // HUD 아바타에 항상 즉시 표시되는 유일한 이미지이므로 core로 유지한다.
-  "./gilo many appearance/gilo-tutorial-welcome-transparent.png",
+  "../gilo many appearance/gilo-tutorial-welcome-transparent.png",
   "./vendor/heic2any.min.js", "./vendor/exifr.full.umd.js"
 ];
 
