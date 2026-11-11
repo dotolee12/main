@@ -36,3 +36,9 @@
 .region-badge-symbol-slot.earned .region-badge-symbol-art{filter:none;opacity:1;box-shadow:0 0 12px rgba(220,177,105,.28);border:1px solid rgba(225,184,113,.65)}
 .region-badge-symbol-slot.locked small{color:#92939a}
 .region-badge-symbol-slot.earned small{color:#e8c58d}
+
+/* Apply the collection state to the complete badge tile, including emoji and label. */
+.region-badge-symbol-slot.locked{filter:grayscale(1);opacity:.78}
+.region-badge-symbol-slot.locked .region-badge-symbol-art{filter:grayscale(1)}
+.region-badge-symbol-slot.earned{filter:none;opacity:1}
+.region-badge-symbol-slot.earned .region-badge-symbol-art{filter:none}
