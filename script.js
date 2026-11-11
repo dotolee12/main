@@ -13637,6 +13637,81 @@ function bindRegionStayDiagnosticGesture() {
     });
 }
 document.addEventListener("DOMContentLoaded", bindRegionStayDiagnosticGesture);
+function getRegionSymbolMunicipality(feature) {
+    var title = getAdminFeatureTitle(feature);
+    if (!title) return "";
+    var tokens = String(title).match(/[가-힣]+/g) || [];
+    var specialCity = tokens.find(function(token) {
+        return token === "세종특별자치시";
+    });
+    if (specialCity) return specialCity;
+    var municipality = tokens.find(function(token) {
+        return /[시군구]$/.test(token) &&
+            !/(특별시|광역시|특별자치시)$/.test(token);
+    });
+    return municipality || "";
+}
+
+var REGION_SYMBOL_MARKS = ["⛰️", "🌊", "🌿", "🌾", "🌸", "🏙️", "🌳", "🧭"];
+
+function getRegionSymbolMark(city) {
+    var hash = 0;
+    String(city || "").split("").forEach(function(character) {
+        hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+    });
+    return REGION_SYMBOL_MARKS[hash % REGION_SYMBOL_MARKS.length];
+}
+
+function getRegionSymbolEntries() {
+    var features = typeof adminDistrictFeatures !== "undefined" && Array.isArray(adminDistrictFeatures)
+        ? adminDistrictFeatures
+        : [];
+    var officialCities = Object.create(null);
+    REGION_BADGE_ATLAS_ENTRIES.forEach(function(entry) {
+        officialCities[entry.city] = true;
+    });
+    var cities = Object.create(null);
+    features.forEach(function(feature) {
+        var city = getRegionSymbolMunicipality(feature);
+        if (city && !officialCities[city]) cities[city] = true;
+    });
+    return Object.keys(cities).sort(function(a, b) {
+        return a.localeCompare(b, "ko");
+    }).map(function(city) {
+        return { id:"region_symbol_" + encodeURIComponent(city), city:city, symbol:getRegionSymbolMark(city) };
+    });
+}
+
+function renderRegionSymbolBadges() {
+    var grid = document.getElementById("region-badge-symbol-grid");
+    if (!grid) return;
+    var entries = getRegionSymbolEntries();
+    grid.innerHTML = "";
+    if (!entries.length) {
+        grid.innerHTML = '<p class="region-badge-symbol-empty">전국 행정구역 정보를 불러오면 지역상징배지가 표시돼요.</p>';
+        return;
+    }
+    entries.forEach(function(entry) {
+        var button = document.createElement("button");
+        button.type = "button";
+        button.className = "region-badge-symbol-slot";
+        button.setAttribute("aria-label", entry.city + " 지역상징 배지");
+        button.innerHTML =
+            '<span class="region-badge-symbol-art" aria-hidden="true">' + entry.symbol + '</span>' +
+            '<b>' + escapeHtml(entry.city) + '</b>' +
+            '<small>길로아 상징</small>';
+        button.addEventListener("click", function() {
+            var detail = document.getElementById("region-badge-atlas-detail");
+            if (!detail) return;
+            detail.innerHTML =
+                '<strong>' + escapeHtml(entry.city) + ' 지역상징 배지</strong>' +
+                '<span>공식 마스코트 이용 조건이 확인되지 않은 지역을 위해 길로아가 만든 자체 상징이에요.</span>' +
+                '<em>공식 캐릭터가 아닌 길로아 오리지널 장식 모티프</em>';
+        });
+        grid.appendChild(button);
+    });
+}
+
 function renderRegionBadgeAtlas() {
     var slots = document.getElementById("region-badge-map-slots");
     if (!slots) return;
@@ -13703,6 +13778,7 @@ function renderRegionBadgeAtlas() {
         }) || REGION_BADGE_ATLAS_ENTRIES[0];
 
     setRegionBadgeAtlasDetail(selected);
+    renderRegionSymbolBadges();
 }
 function openRegionBadgeAtlas() {
     var atlas = document.getElementById("region-badge-atlas"); if (!atlas) return;
