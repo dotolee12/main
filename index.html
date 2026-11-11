@@ -78,11 +78,11 @@ html,body{background:#1a2035;margin:0;height:100%;width:100%;overflow:hidden}
 <!-- 큰 벤더/앱 스크립트를 head 단계에서 미리 프리로드하여, 본문 파싱이 끝날 때까지
      기다리지 않고 CSS와 동시에 다운로드가 시작되도록 한다. (버퍼링 단축) -->
 <link rel="preload" as="script" href="./vendor/leaflet.js?v=app-local-9">
-<link rel="preload" as="script" href="./script.js?v=web-story-chapters-20261110">
+<link rel="preload" as="script" href="./script.js?v=regional-symbol-atlas-20261111b">
 <link rel="stylesheet" href="./vendor/leaflet.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.Default.css?v=app-local-9">
-<link rel="stylesheet" href="./style.css?v=web-story-chapters-20261110">
+<link rel="stylesheet" href="./style.css?v=regional-symbol-atlas-20261111b">
 <!-- 튜토리얼/타임트레이스 CSS는 첫 화면에 필요하지 않으므로 렌더 차단 없이
      비동기로 불러온다 (media=print 트릭 후 onload에서 all로 전환). -->
 <link rel="stylesheet" href="./time-trace.css?v=app-local-1" media="print" onload="this.media='all'">
@@ -421,6 +421,13 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
         <button id="region-badge-atlas-diagnostic-close" data-i18n-extra="close" type="button">닫기</button>
       </div>
     </section>
+    <section class="region-badge-symbol-section" aria-labelledby="region-badge-symbol-title">
+      <h3 id="region-badge-symbol-title">지역상징 배지</h3>
+      <p>공식 마스코트 이용 조건이 확인되지 않은 지역은 길로아 자체 상징으로 표시해요.</p>
+      <div id="region-badge-symbol-grid" class="region-badge-symbol-grid">
+        <p class="region-badge-symbol-empty">전국 지역 배지를 준비하고 있어요.</p>
+      </div>
+    </section>
     <div class="region-badge-map" data-i18n-extra-aria="atlasMapLabel" aria-label="대한민국 지역 뱃지 지도">
       <svg class="region-badge-korea" viewBox="0 0 300 470" aria-hidden="true">
         <path d="M151 13c24 15 31 45 49 62 20 19 45 28 50 57 5 27-12 46-3 72 8 25 32 38 31 67-1 31-29 48-38 75-8 25-1 55-21 76-18 19-48 20-69 34-19-16-45-20-58-44-13-25-3-51-12-76-9-24-34-39-35-67-1-27 22-45 25-71 4-28-13-51-4-78 9-26 35-36 51-56 13-16 17-38 34-51z"/>
@@ -428,7 +435,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
       </svg>
       <div id="region-badge-map-slots"></div>
     </div>
-    <section class="region-badge-symbol-section" aria-labelledby="region-badge-symbol-title">\n      <h3 id="region-badge-symbol-title">지역상징 배지</h3>\n      <p>공식 마스코트 이용 조건이 확인되지 않은 지역은 길로아 자체 상징으로 표시해요.</p>\n      <div id="region-badge-symbol-grid" class="region-badge-symbol-grid"></div>\n    </section>\n    <div id="region-badge-atlas-detail" class="region-badge-atlas-detail" aria-live="polite"></div>
+    \n    <div id="region-badge-atlas-detail" class="region-badge-atlas-detail" aria-live="polite"></div>
   </section>
 </div>
 <div id="sidebar-overlay" onclick="toggleSidebar(false)"></div>
@@ -936,7 +943,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <script src="./data/libraries_seoul.bundle.js?v=20261021" defer></script>
 <script src="./privacy-policy.js?v=20261105-recording" defer></script>
 <script src="./gpx-access.js?v=web-gpx-open-20261109" defer></script>
-<script src="./script.js?v=web-story-chapters-20261110" defer></script>
+<script src="./script.js?v=regional-symbol-atlas-20261111b" defer></script>
 <script src="./parking-ocr.js?v=2" defer></script>
 <script src="./parking.js?v=6" defer></script>
 <script src="./item-icons.js?v=1" defer></script>
