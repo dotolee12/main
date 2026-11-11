@@ -13652,14 +13652,33 @@ function getRegionSymbolMunicipality(feature) {
     return municipality || "";
 }
 
-var REGION_SYMBOL_MARKS = ["⛰️", "🌊", "🌿", "🌾", "🌸", "🏙️", "🌳", "🧭"];
-
+// Regional symbols stay neutral until a locally meaningful motif has been researched.
+// Do not assign arbitrary scenery (for example, waves to an inland district).
 function getRegionSymbolMark(city) {
-    var hash = 0;
-    String(city || "").split("").forEach(function(character) {
-        hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+    return "✦";
+}
+
+function hasVisitedRegionSymbolCity(city) {
+    var features = typeof adminDistrictFeatures !== "undefined" && Array.isArray(adminDistrictFeatures)
+        ? adminDistrictFeatures
+        : [];
+    var visits = typeof visitStamps !== "undefined" && Array.isArray(visitStamps)
+        ? visitStamps
+        : [];
+    if (!features.length || !visits.length) return false;
+    var cityFeatures = features.filter(function(feature) {
+        return getRegionSymbolMunicipality(feature) === city;
     });
-    return REGION_SYMBOL_MARKS[hash % REGION_SYMBOL_MARKS.length];
+    if (!cityFeatures.length) return false;
+    return visits.some(function(visit) {
+        var lat = Number(visit && visit.lat);
+        var lng = Number(visit && visit.lng);
+        if (!isFinite(lat) || !isFinite(lng)) return false;
+        var point = L.latLng(lat, lng);
+        return cityFeatures.some(function(feature) {
+            return typeof adminFeatureContains === "function" && adminFeatureContains(feature, point);
+        });
+    });
 }
 
 function getRegionSymbolEntries() {
@@ -13678,7 +13697,12 @@ function getRegionSymbolEntries() {
     return Object.keys(cities).sort(function(a, b) {
         return a.localeCompare(b, "ko");
     }).map(function(city) {
-        return { id:"region_symbol_" + encodeURIComponent(city), city:city, symbol:getRegionSymbolMark(city) };
+        return {
+            id:"region_symbol_" + encodeURIComponent(city),
+            city:city,
+            symbol:getRegionSymbolMark(city),
+            earned:hasVisitedRegionSymbolCity(city)
+        };
     });
 }
 
@@ -13694,19 +13718,19 @@ function renderRegionSymbolBadges() {
     entries.forEach(function(entry) {
         var button = document.createElement("button");
         button.type = "button";
-        button.className = "region-badge-symbol-slot";
-        button.setAttribute("aria-label", entry.city + " 지역상징 배지");
+        button.className = "region-badge-symbol-slot" + (entry.earned ? " earned" : " locked");
+        button.setAttribute("aria-label", entry.city + " 지역상징 배지 " + (entry.earned ? "획득" : "미획득"));
         button.innerHTML =
             '<span class="region-badge-symbol-art" aria-hidden="true">' + entry.symbol + '</span>' +
             '<b>' + escapeHtml(entry.city) + '</b>' +
-            '<small>길로아 상징</small>';
+            '<small>' + (entry.earned ? '획득 완료' : '미획득') + '</small>';
         button.addEventListener("click", function() {
             var detail = document.getElementById("region-badge-atlas-detail");
             if (!detail) return;
             detail.innerHTML =
                 '<strong>' + escapeHtml(entry.city) + ' 지역상징 배지</strong>' +
-                '<span>공식 마스코트 이용 조건이 확인되지 않은 지역을 위해 길로아가 만든 자체 상징이에요.</span>' +
-                '<em>공식 캐릭터가 아닌 길로아 오리지널 장식 모티프</em>';
+                '<span>' + (entry.earned ? '이 지역에서 저장된 방문 기록을 확인했어요.' : '이 지역에서 방문 기록을 남기면 배지를 획득해요.') + '</span>' +
+                '<em>현재 문양은 지역 특산물이나 명소를 뜻하지 않는 길로아 임시 문양이에요.</em>';
         });
         grid.appendChild(button);
     });
