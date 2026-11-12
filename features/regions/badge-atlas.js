@@ -360,10 +360,10 @@ var REGION_SYMBOL_DATA = {
 };
 function getRegionSymbolData(city) {
     return REGION_SYMBOL_DATA[city] || {
-        mark: "🔎",
-        title: "상징 조사 중",
-        description: "이 지역의 공식 마스코트 또는 대표 특산품을 확인하고 있어요.",
-        category: "정보 확인 중",
+        mark: "🧭",
+        title: "길로아 지역 탐험가",
+        description: city + "의 공식 상징물과 지역 이야기를 조사하는 동안 이 지역의 탐험을 안내하는 길로아 창작 기본 캐릭터예요.",
+        category: "길로아 창작 캐릭터 · 전국 공통 기본형",
         source: ""
     };
 }
