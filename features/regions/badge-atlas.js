@@ -319,10 +319,28 @@ function getRegionSymbolMunicipality(feature) {
     return municipality || "";
 }
 
-// Regional symbols stay neutral until a locally meaningful motif has been researched.
-// Do not assign arbitrary scenery (for example, waves to an inland district).
+// 지역별 상징은 지자체 공식 안내 등으로 확인된 정보만 사용한다.
+// 공식 마스코트 이미지의 무단 복제 대신 문자·이모지로 자체 배지 형태를 만든다.
+var REGION_SYMBOL_DATA = {
+    "강남구": {
+        mark: "🐦‍⬛",
+        title: "까치",
+        description: "강남구를 상징하는 새",
+        category: "공식 상징물",
+        source: "https://www.gangnam.go.kr/contents/hello/3/view.do?mid=ID06_040401"
+    }
+};
+function getRegionSymbolData(city) {
+    return REGION_SYMBOL_DATA[city] || {
+        mark: "🔎",
+        title: "상징 조사 중",
+        description: "이 지역의 공식 마스코트 또는 대표 특산품을 확인하고 있어요.",
+        category: "정보 확인 중",
+        source: ""
+    };
+}
 function getRegionSymbolMark(city) {
-    return "✦";
+    return getRegionSymbolData(city).mark;
 }
 
 function hasVisitedRegionSymbolCity(city) {
@@ -368,6 +386,7 @@ function getRegionSymbolEntries() {
             id:"region_symbol_" + encodeURIComponent(city),
             city:city,
             symbol:getRegionSymbolMark(city),
+            symbolData:getRegionSymbolData(city),
             earned:hasVisitedRegionSymbolCity(city)
         };
     });
@@ -386,18 +405,22 @@ function renderRegionSymbolBadges() {
         var button = document.createElement("button");
         button.type = "button";
         button.className = "region-badge-symbol-slot" + (entry.earned ? " earned" : " locked");
-        button.setAttribute("aria-label", entry.city + " 지역상징 배지 " + (entry.earned ? "획득" : "미획득"));
+        button.setAttribute("aria-label", entry.city + " " + entry.symbolData.title + " 배지 " + (entry.earned ? "획득" : "미획득"));
         button.innerHTML =
             '<span class="region-badge-symbol-art" aria-hidden="true">' + entry.symbol + '</span>' +
             '<b>' + escapeHtml(entry.city) + '</b>' +
+            '<small>' + escapeHtml(entry.symbolData.title) + '</small>' +
             '<small>' + (entry.earned ? '획득 완료' : '미획득') + '</small>';
         button.addEventListener("click", function() {
             var detail = document.getElementById("region-badge-atlas-detail");
             if (!detail) return;
             detail.innerHTML =
-                '<strong>' + escapeHtml(entry.city) + ' 지역상징 배지</strong>' +
-                '<span>' + (entry.earned ? '이 지역에서 저장된 방문 기록을 확인했어요.' : '이 지역에서 방문 기록을 남기면 배지를 획득해요.') + '</span>' +
-                '<em>현재 문양은 지역 특산물이나 명소를 뜻하지 않는 길로아 임시 문양이에요.</em>';
+                '<strong>' + escapeHtml(entry.city) + ' · ' + escapeHtml(entry.symbolData.title) + '</strong>' +
+                '<span>' + escapeHtml(entry.symbolData.description) + '</span>' +
+                '<em>' + escapeHtml(entry.symbolData.category) + ' · ' +
+                (entry.earned ? '방문 기록 확인 · 배지 획득 완료' : '이 지역에서 방문 기록을 남기면 배지를 획득해요.') +
+                '</em>' +
+                (entry.symbolData.source ? '<small><a href="' + escapeHtml(entry.symbolData.source) + '" target="_blank" rel="noopener noreferrer">공식 출처 확인</a></small>' : '');
         });
         grid.appendChild(button);
     });
