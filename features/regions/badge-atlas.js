@@ -322,13 +322,41 @@ function getRegionSymbolMunicipality(feature) {
 // 지역별 상징은 지자체 공식 안내 등으로 확인된 정보만 사용한다.
 // 공식 마스코트 이미지의 무단 복제 대신 문자·이모지로 자체 배지 형태를 만든다.
 var REGION_SYMBOL_DATA = {
+    // 강남구 까치는 구의 공식 상징물(구새)로 확인된 항목이다.
     "강남구": {
         mark: "🐦‍⬛",
         title: "까치",
         description: "강남구를 상징하는 새",
-        category: "공식 상징물",
+        category: "공식 상징물 · 구새",
         source: "https://www.gangnam.go.kr/contents/hello/3/view.do?mid=ID06_040401"
-    }
+    },
+
+    // 아래 24개는 공식 마스코트가 아닌 길로아의 창작 캐릭터 시안이다.
+    // 지역의 장소·문화에서 착안했으며, 공식 상징물로 오인되지 않도록 분류를 명시한다.
+    "종로구": { mark:"🏯", title:"궁궐 수호대", description:"궁궐과 오래된 골목의 이야기를 지키는 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 역사 모티프", source:"" },
+    "중구": { mark:"⭐", title:"남산 별빛 요정", description:"남산의 밤과 도심의 빛에서 착안한 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 장소 모티프", source:"" },
+    "용산구": { mark:"🧭", title:"박물관 탐험가", description:"박물관과 여러 문화가 만나는 동네에서 착안한 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 문화 모티프", source:"" },
+    "성동구": { mark:"👞", title:"수제화 장인", description:"성수동 수제화 거리와 장인 정신에서 착안한 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 산업문화 모티프", source:"" },
+    "광진구": { mark:"🐿️", title:"아차산 숲 친구", description:"아차산의 숲과 자연을 모티프로 만든 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 자연 모티프", source:"" },
+    "동대문구": { mark:"🌿", title:"약초 요정", description:"약령시의 한약재 문화를 모티프로 만든 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 지역문화 모티프", source:"" },
+    "중랑구": { mark:"🌹", title:"장미 요정", description:"장미와 산책길을 모티프로 만든 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 자연 모티프", source:"" },
+    "성북구": { mark:"🧱", title:"성곽 수호자", description:"한양도성과 성북동의 역사 공간에서 착안한 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 역사 모티프", source:"" },
+    "강북구": { mark:"🥾", title:"북한산 탐험가", description:"북한산의 산길과 숲을 모티프로 만든 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 자연 모티프", source:"" },
+    "도봉구": { mark:"🦕", title:"도봉산 공룡 친구", description:"도봉산의 산세에서 착안한 오리지널 공룡형 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 자연 모티프", source:"" },
+    "노원구": { mark:"🍂", title:"은행잎 요정", description:"가을 은행잎을 모티프로 만든 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 식물 모티프", source:"" },
+    "은평구": { mark:"🏡", title:"한옥 여행자", description:"은평한옥마을과 북한산 자락의 풍경에서 착안한 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 장소 모티프", source:"" },
+    "서대문구": { mark:"🕯️", title:"기억의 등불", description:"독립과 민주주의의 역사를 기억하는 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 역사 모티프", source:"" },
+    "마포구": { mark:"🎧", title:"거리 음악가", description:"홍대와 지역 음악문화에서 착안한 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 문화 모티프", source:"" },
+    "양천구": { mark:"🕊️", title:"하늘새 친구", description:"도심의 공원과 하늘을 모티프로 만든 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 자연 모티프", source:"" },
+    "강서구": { mark:"🌱", title:"약초 탐험가", description:"허준박물관과 전통 의약문화를 모티프로 만든 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 문화 모티프", source:"" },
+    "구로구": { mark:"🤖", title:"디지털 로봇", description:"디지털 산업과 기술의 이미지를 모티프로 만든 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 산업 모티프", source:"" },
+    "금천구": { mark:"🌳", title:"초록 은행나무", description:"도심 속 자연과 성장의 이미지를 모티프로 만든 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 자연 모티프", source:"" },
+    "영등포구": { mark:"🌸", title:"봄꽃 요정", description:"여의도 봄꽃 풍경에서 착안한 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 계절 모티프", source:"" },
+    "동작구": { mark:"🐟", title:"노량진 물고기", description:"노량진 수산시장과 물길의 이미지를 모티프로 만든 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 지역문화 모티프", source:"" },
+    "관악구": { mark:"🛡️", title:"산성 수호 장군", description:"관악산과 강감찬 장군의 역사에서 착안한 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 역사 모티프", source:"" },
+    "서초구": { mark:"🎨", title:"예술의 요정", description:"예술의전당과 문화예술 공간에서 착안한 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 문화 모티프", source:"" },
+    "송파구": { mark:"🎭", title:"탈춤 광대", description:"송파산대놀이의 전통 탈춤에서 착안한 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 무형문화 모티프", source:"" },
+    "강동구": { mark:"🪨", title:"선사시대 탐험가", description:"암사동 선사유적의 역사에서 착안한 길로아 창작 캐릭터", category:"길로아 창작 캐릭터 · 역사 모티프", source:"" }
 };
 function getRegionSymbolData(city) {
     return REGION_SYMBOL_DATA[city] || {
