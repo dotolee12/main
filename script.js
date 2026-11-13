@@ -14574,7 +14574,7 @@ window.giloaRouteTrackingDiagnostic = function() {
         {id:"gsi-story",card:".gsi-story-stage",close:function(){closeGiloStory();}},
         {id:"gsi-feature-guide",card:".gsi-feature-guide-card",close:function(){closeGiloaFeatureGuide();}},
         {id:"giloa-story-intro",card:".gsi-onboarding,.gsi-story-stage",close:function(){closeGiloStory();}},
-        {id:"giloa-first-tutorial",card:".gft-guide",close:function(){closeGiloaGuideTutorial(false);}},
+        {id:"giloa-first-tutorial",card:".gft-guide",close:function(){var b=document.getElementById("gft-skip");if(b)b.click();}},
         {id:"hidden-mission-novel",card:".hidden-mission-stage",close:function(){var b=document.getElementById("hidden-mission-close");if(b)b.click();}},
         {id:"journey-recap",card:".journey-recap-card",close:function(){hideTodayJourneyRecap();}}
     ];
