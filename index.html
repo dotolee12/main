@@ -78,11 +78,11 @@ html,body{background:#1a2035;margin:0;height:100%;width:100%;overflow:hidden}
 <!-- 큰 벤더/앱 스크립트를 head 단계에서 미리 프리로드하여, 본문 파싱이 끝날 때까지
      기다리지 않고 CSS와 동시에 다운로드가 시작되도록 한다. (버퍼링 단축) -->
 <link rel="preload" as="script" href="./vendor/leaflet.js?v=app-local-9">
-<link rel="preload" as="script" href="./script.js?v=regional-medallion-20261113b">
+<link rel="preload" as="script" href="./script.js?v=regional-medallion-20261113c">
 <link rel="stylesheet" href="./vendor/leaflet.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.css?v=app-local-9">
 <link rel="stylesheet" href="./vendor/MarkerCluster.Default.css?v=app-local-9">
-<link rel="stylesheet" href="./style.css?v=regional-medallion-20261113b">
+<link rel="stylesheet" href="./style.css?v=regional-medallion-20261113c">
 <link rel="stylesheet" href="./features/regions/atlas-overrides.css?v=regional-symbol-earned-gray11d">
 <!-- 튜토리얼/타임트레이스 CSS는 첫 화면에 필요하지 않으므로 렌더 차단 없이
      비동기로 불러온다 (media=print 트릭 후 onload에서 all로 전환). -->
@@ -345,14 +345,14 @@ var skipText={
     </header>
     <p class="giloa-sources-intro" data-i18n-extra="sourcesIntro">길로아의 ‘나의 대동여지도’에는 다음 기관과 서비스의 데이터가 사용됩니다.</p>
     <div class="giloa-sources-list">
-      <article><strong data-i18n-extra="sourceTourismTypes">관광지 · 음식점 · 숙박 · 축제 · 관광사진</strong><span data-i18n-extra="sourceTourism"><a href="https://api.visitkorea.or.kr/" target="_blank" rel="noopener noreferrer">ⓒ한국관광공사 TourAPI</a></span></article>
-      <article><strong data-i18n-extra="sourceTrailsType">공식 탐방로</strong><span data-i18n-extra="sourceTrails"><a href="https://www.durunubi.kr/" target="_blank" rel="noopener noreferrer">한국관광공사 두루누비</a> · <a href="https://www.komount.or.kr/" target="_blank" rel="noopener noreferrer">한국등산·트레킹지원센터</a></span></article>
-      <article><strong data-i18n-extra="sourceFacilitiesTypes">도서관 · 공중화장실</strong><span data-i18n-extra="sourceSeoul"><a href="https://data.seoul.go.kr/" target="_blank" rel="noopener noreferrer">서울 열린데이터광장</a> · <a href="https://map.kakao.com/" target="_blank" rel="noopener noreferrer">카카오맵</a></span></article>
-      <article><strong data-i18n-extra="sourceParkingType">주차장</strong><span data-i18n-extra="sourceParking"><a href="https://www.data.go.kr/" target="_blank" rel="noopener noreferrer">공공데이터포털</a> · <a href="https://www.data.go.kr/data/15012896/standard.do" target="_blank" rel="noopener noreferrer">전국주차장정보표준데이터</a></span></article>
-      <article><strong data-i18n-extra="sourceFishingType">낚시터</strong><span data-i18n-extra="sourceFishing"><a href="https://www.data.go.kr/" target="_blank" rel="noopener noreferrer">행정안전부·공공데이터포털</a> · <a href="https://www.data.go.kr/" target="_blank" rel="noopener noreferrer">전국 낚시터정보 검색</a></span></article>
-      <article><strong data-i18n-extra="sourceDirectionsTypes">장소 검색 · 교통정보 · 길찾기</strong><span data-i18n-extra="sourceKakao"><a href="https://map.kakao.com/" target="_blank" rel="noopener noreferrer">카카오맵</a></span></article>
-      <article><strong data-i18n-extra="sourceMapType">기본 지도</strong><span data-i18n-extra="sourceMap"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">ⓒ OpenStreetMap contributors</a> · <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">ⓒ CARTO</a></span></article>
-      <article class="giloa-sources-mascots"><strong data-i18n-extra="sourceMascotsType">지역 마스코트·캐릭터</strong><span data-i18n-extra-html="sourceMascots"><a href="https://www.gimpo.go.kr/" target="_blank" rel="noopener noreferrer">포미·포수 ⓒ 김포시</a><br><a href="https://www.goyang.go.kr/" target="_blank" rel="noopener noreferrer">고양고양이 ⓒ 고양특례시</a></span></article>
+      <article><strong data-i18n-extra="sourceTourismTypes">관광지 · 음식점 · 숙박 · 축제 · 관광사진</strong><span><a href="https://api.visitkorea.or.kr/" target="_blank" rel="noopener noreferrer">ⓒ한국관광공사 TourAPI</a></span></article>
+      <article><strong data-i18n-extra="sourceTrailsType">공식 탐방로</strong><span><a href="https://www.durunubi.kr/" target="_blank" rel="noopener noreferrer">한국관광공사 두루누비</a> · <a href="https://www.komount.or.kr/" target="_blank" rel="noopener noreferrer">한국등산·트레킹지원센터</a></span></article>
+      <article><strong data-i18n-extra="sourceFacilitiesTypes">도서관 · 공중화장실</strong><span><a href="https://data.seoul.go.kr/" target="_blank" rel="noopener noreferrer">서울 열린데이터광장</a> · <a href="https://map.kakao.com/" target="_blank" rel="noopener noreferrer">카카오맵</a></span></article>
+      <article><strong data-i18n-extra="sourceParkingType">주차장</strong><span><a href="https://www.data.go.kr/" target="_blank" rel="noopener noreferrer">공공데이터포털</a> · <a href="https://www.data.go.kr/data/15012896/standard.do" target="_blank" rel="noopener noreferrer">전국주차장정보표준데이터</a></span></article>
+      <article><strong data-i18n-extra="sourceFishingType">낚시터</strong><span><a href="https://www.data.go.kr/" target="_blank" rel="noopener noreferrer">행정안전부·공공데이터포털</a> · <a href="https://www.data.go.kr/" target="_blank" rel="noopener noreferrer">전국 낚시터정보 검색</a></span></article>
+      <article><strong data-i18n-extra="sourceDirectionsTypes">장소 검색 · 교통정보 · 길찾기</strong><span><a href="https://map.kakao.com/" target="_blank" rel="noopener noreferrer">카카오맵</a></span></article>
+      <article><strong data-i18n-extra="sourceMapType">기본 지도</strong><span><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">ⓒ OpenStreetMap contributors</a> · <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">ⓒ CARTO</a></span></article>
+      <article class="giloa-sources-mascots"><strong data-i18n-extra="sourceMascotsType">지역 마스코트·캐릭터</strong><span><a href="https://www.gimpo.go.kr/" target="_blank" rel="noopener noreferrer">포미·포수 ⓒ 김포시</a><br><a href="https://www.goyang.go.kr/" target="_blank" rel="noopener noreferrer">고양고양이 ⓒ 고양특례시</a></span></article>
     </div>
     <p class="giloa-sources-note" data-i18n-extra="sourcesNote">지역 마스코트와 캐릭터의 명칭·이미지 저작권은 각 지자체에 있습니다. 그 밖의 데이터 저작권은 해당 제공기관과 원저작자에게 있으며, 사진 등 개별 콘텐츠에는 별도의 출처가 표시될 수 있습니다.</p>
   </section>
@@ -947,7 +947,7 @@ class="giloa-update-notice" aria-hidden="true" hidden role="dialog" aria-modal="
 <script src="./data/libraries_seoul.bundle.js?v=20261021" defer></script>
 <script src="./privacy-policy.js?v=20261105-recording" defer></script>
 <script src="./gpx-access.js?v=web-gpx-open-20261109" defer></script>
-<script src="./script.js?v=regional-medallion-20261113b" defer></script>
+<script src="./script.js?v=regional-medallion-20261113c" defer></script>
 <script src="./parking-ocr.js?v=2" defer></script>
 <script src="./parking.js?v=6" defer></script>
 <script src="./item-icons.js?v=1" defer></script>
