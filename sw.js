@@ -1,4 +1,4 @@
-var APP_CACHE = "giloa-app-shell-v291";
+var APP_CACHE = "giloa-app-shell-v292";
 var RUNTIME_CACHE = "giloa-runtime-v77";
 var TILE_CACHE = "giloa-map-tiles-v6";
 var TILE_CACHE_MAX = 300;
@@ -12,8 +12,8 @@ var CORE_ASSETS = [
   "./item-recognition.js?v=1", "./item-recognition-worker.js?v=1", "./item-icons.js?v=1", "./photo-items.js?v=4", "./photo-items.css?v=4",
   "./gpx-access.js?v=web-gpx-open-20261109", "./startup-music.js?v=4",
   "./data/libraries_seoul.bundle.js?v=20261021",
-  "./privacy-policy.js?v=20261105-recording", "./privacy-policy.html", "./privacy-policy.css",
-  "./index.html", "./manifest.json", "./style.css?v=web-story-chapters-20261110", "./map-bootstrap.js?v=app-local-4", "./region-stay-core.js?v=app-local-1", "./script.js?v=web-story-chapters-20261110", "./trip-share.js?v=app-local-1", "./supabase-sync.js?v=app-local-3", "./medical-layers.js?v=map-order-3", "./community-places.js?v=1",
+  "./privacy-policy.js?v=20261105-recording", "./privacy-policy.html", "./privacy-policy.css", "./features/regions/atlas-overrides.css?v=regional-symbol-earned-gray11d",
+  "./index.html", "./manifest.json", "./style.css?v=regional-symbol-earned-gray-20261111d", "./map-bootstrap.js?v=app-local-4", "./region-stay-core.js?v=app-local-1", "./script.js?v=regional-symbol-earned-gray-20261111d", "./trip-share.js?v=app-local-1", "./supabase-sync.js?v=app-local-3", "./medical-layers.js?v=map-order-3", "./community-places.js?v=1",
   "./parking-ocr.js?v=2", "./parking.js?v=6", "./parking.css?v=4", "./local-shops.js?v=16", "./local-shops.css?v=10",
   "./vendor/leaflet.css?v=app-local-9", "./vendor/leaflet.js?v=app-local-9", "./vendor/MarkerCluster.css?v=app-local-9", "./vendor/MarkerCluster.Default.css?v=app-local-9", "./vendor/leaflet.markercluster.js?v=app-local-9"
 ];
