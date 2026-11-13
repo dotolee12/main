@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 142" role="img" aria-label="GILOA regional collectible badge">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0bd"/><stop offset=".28" stop-color="#d9a94f"/><stop offset=".62" stop-color="#8e5b22"/><stop offset="1" stop-color="#f4d58b"/></linearGradient>
+    <radialGradient id="face" cx=".32" cy=".22" r=".9"><stop offset="0" stop-color="#fff5d6"/><stop offset=".45" stop-color="#d9a84e"/><stop offset="1" stop-color="#70421b"/></radialGradient>
+    <linearGradient id="ribbon" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#8c55cf"/><stop offset="1" stop-color="#48227c"/></linearGradient>
+  </defs>
+  <path d="M34 88 L25 137 L58 120 L91 137 L82 88" fill="url(#ribbon)" stroke="#d6b16c" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M60 4 C91 4 115 28 115 59 C115 90 91 111 60 111 C29 111 5 90 5 59 C5 28 29 4 60 4Z" fill="url(#gold)" stroke="#68421e" stroke-width="3"/>
+  <path d="M60 12 C86 12 106 32 106 59 C106 85 86 103 60 103 C34 103 14 85 14 59 C14 32 34 12 60 12Z" fill="url(#face)" stroke="#fff0bd" stroke-width="2"/>
+  <path d="M60 20 C82 20 98 37 98 59 C98 80 82 95 60 95 C38 95 22 80 22 59 C22 37 38 20 60 20Z" fill="none" stroke="#81501f" stroke-width="2" stroke-dasharray="2 4"/>
+  <path d="M60 25 L64 48 L87 59 L64 64 L60 88 L55 64 L33 59 L55 48Z" fill="none" stroke="#fff1c8" stroke-opacity=".75" stroke-width="1.5"/>
+  <circle cx="60" cy="59" r="3" fill="#fff4d3"/>
+</svg>
