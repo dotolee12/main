@@ -42,3 +42,10 @@
 .region-badge-symbol-slot.locked .region-badge-symbol-art{filter:grayscale(1)}
 .region-badge-symbol-slot.earned{filter:none;opacity:1}
 .region-badge-symbol-slot.earned .region-badge-symbol-art{filter:none}
+
+/* Visible collectible medallion artwork and local motif overlay */
+.region-badge-symbol-art{position:relative;width:54px;height:64px;display:grid;place-items:center;border-radius:0;background:transparent;font-size:22px;line-height:1;flex:0 0 auto}
+.region-badge-medallion-frame{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none}
+.region-badge-symbol-glyph{position:relative;z-index:1;display:grid;place-items:center;width:27px;height:27px;margin-top:-8px;border-radius:50%;font-size:19px;line-height:1;text-shadow:0 1px 2px rgba(0,0,0,.35)}
+.region-badge-symbol-slot.locked .region-badge-symbol-glyph{filter:grayscale(1)}
+.region-badge-symbol-slot.earned .region-badge-symbol-glyph{filter:none}
