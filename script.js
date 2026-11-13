@@ -13749,7 +13749,10 @@ function renderRegionSymbolBadges() {
         button.className = "region-badge-symbol-slot" + (entry.earned ? " earned" : " locked");
         button.setAttribute("aria-label", entry.city + " 지역상징 배지 " + (entry.earned ? "획득" : "미획득"));
         button.innerHTML =
-            '<span class="region-badge-symbol-art" aria-hidden="true">' + entry.symbol + '</span>' +
+            '<span class="region-badge-symbol-art" aria-hidden="true">' +
+                '<img class="region-badge-medallion-frame" src="./features/regions/region-badge-medallion.svg" alt="" loading="lazy">' +
+                '<span class="region-badge-symbol-glyph">' + entry.symbol + '</span>' +
+            '</span>' +
             '<b>' + escapeHtml(entry.city) + '</b>' +
             '<small>' + (entry.earned ? '획득 완료' : '미획득') + '</small>';
         button.addEventListener("click", function() {
