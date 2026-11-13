@@ -2170,3 +2170,6 @@ body.giloa-restoring #map, body.giloa-restoring #top-bar, body.giloa-restoring #
 .map-layer-order-controls[hidden]{display:none!important}
 #map-layer-panel.map-layer-icon-grid.is-order-editing .map-layer-item.unavailable{opacity:1}
 .map-layer-order-controls button:focus-visible{outline:2px solid #ffd166;outline-offset:1px}
+
+/* Make source credits visibly tappable on mobile and open in the same webview. */
+.giloa-sources-list a{position:relative;z-index:2;display:inline-block;min-height:28px;padding:3px 2px;color:#8edfff;text-decoration:underline;text-decoration-color:rgba(142,223,255,.65);text-underline-offset:3px;pointer-events:auto;cursor:pointer;touch-action:manipulation}.giloa-sources-list a:active{color:#fff;background:rgba(79,195,247,.16);border-radius:4px}.giloa-sources-list article span{position:relative;z-index:2;pointer-events:auto}
