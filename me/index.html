@@ -4,64 +4,102 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101321">
-  <meta name="description" content="길로아를 만든 사람의 이야기와 개인 공간">
-  <title>길로아 아저씨 | GILOA</title>
+  <meta name="description" content="길로아를 통해 세상으로 나아가는 메이커의 작업실. 직접 만든 서비스와 홈페이지, 아이디어를 소개합니다.">
+  <title>길로아 아저씨 — 나의 작업실 | GILOA</title>
   <style>
-    :root{color-scheme:dark;--bg:#0d1020;--panel:#171b2d;--line:rgba(219,173,99,.28);--gold:#e5b66e;--muted:#aab0c2;--purple:#9d78df}
+    :root{color-scheme:dark;--bg:#0c1020;--panel:#171c30;--line:rgba(220,179,112,.22);--gold:#e6bb78;--muted:#aab2c7;--purple:#a98ae5;--white:#f7f4fc}
     *{box-sizing:border-box}
-    body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 0%,rgba(112,75,164,.22),transparent 48%),var(--bg);color:#f5f2fb;font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif}
+    html{scroll-behavior:smooth}
+    body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% -10%,rgba(117,76,173,.27),transparent 48%),var(--bg);color:var(--white);font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif}
     a{color:inherit}
-    .wrap{width:min(100% - 32px,760px);margin:0 auto;padding:28px 0 max(36px,env(safe-area-inset-bottom))}
-    .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:34px}
-    .brand{font-size:12px;font-weight:900;letter-spacing:.2em;color:var(--gold)}
+    .wrap{width:min(100% - 32px,900px);margin:auto;padding:24px 0 max(42px,env(safe-area-inset-bottom))}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:28px}
+    .brand{font-size:12px;font-weight:950;letter-spacing:.2em;color:var(--gold)}
     .back{display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border:1px solid var(--line);border-radius:999px;text-decoration:none;color:#f5dfbd;font-size:13px;font-weight:750}
-    .hero{padding:30px 24px;border:1px solid var(--line);border-radius:24px;background:linear-gradient(145deg,rgba(42,35,61,.94),rgba(20,24,40,.96));box-shadow:0 24px 70px rgba(0,0,0,.24);text-align:center}
-    .compass{display:grid;place-items:center;width:82px;height:82px;margin:0 auto 18px;border:1px solid rgba(229,182,110,.55);border-radius:50%;background:radial-gradient(circle at 35% 28%,#59447b,#211c35 72%);font-size:38px;box-shadow:0 0 34px rgba(157,120,223,.18)}
-    .eyebrow{margin:0 0 8px;color:var(--gold);font-size:11px;font-weight:900;letter-spacing:.18em}
-    h1{margin:0;font-size:clamp(28px,7vw,42px);letter-spacing:-.05em}
-    .lead{max-width:520px;margin:14px auto 0;color:#c7c6d2;font-size:14px;line-height:1.8}
-    .quote{margin:22px 0 0;color:#f0d5a5;font-size:16px;font-weight:850;line-height:1.65}
-    .section{margin-top:18px;padding:22px;border:1px solid rgba(255,255,255,.09);border-radius:18px;background:rgba(23,27,45,.82)}
-    h2{margin:0 0 10px;font-size:17px}
-    .section p{margin:0;color:var(--muted);font-size:13px;line-height:1.8}
-    .site-link{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px;padding:15px 16px;border:1px dashed rgba(229,182,110,.42);border-radius:13px;background:rgba(229,182,110,.06)}
-    .site-link strong{display:block;font-size:14px}
-    .site-link small{display:block;margin-top:4px;color:var(--muted);font-size:11px}
-    .pending{flex:0 0 auto;padding:6px 9px;border-radius:999px;background:rgba(157,120,223,.15);color:#d6c0ff;font-size:10px;font-weight:850}
-    .bottom{margin:24px 0 0;text-align:center;color:#777f94;font-size:11px;line-height:1.7}
-    @media(min-width:600px){.wrap{padding-top:42px}.hero{padding:42px 36px}}
+    .hero{position:relative;overflow:hidden;padding:34px 24px;border:1px solid var(--line);border-radius:26px;background:linear-gradient(145deg,rgba(43,34,66,.96),rgba(18,23,41,.97));box-shadow:0 24px 70px rgba(0,0,0,.25);text-align:center}
+    .hero:after{content:"✦";position:absolute;right:8%;top:8%;font-size:62px;color:rgba(230,187,120,.09)}
+    .compass{display:grid;place-items:center;width:78px;height:78px;margin:0 auto 18px;border:1px solid rgba(230,187,120,.58);border-radius:50%;background:radial-gradient(circle at 35% 28%,#59447b,#211c35 72%);font-size:36px;box-shadow:0 0 34px rgba(169,138,229,.2)}
+    .eyebrow{margin:0 0 9px;color:var(--gold);font-size:11px;font-weight:900;letter-spacing:.19em}
+    h1{margin:0;font-size:clamp(30px,7vw,48px);letter-spacing:-.055em}
+    .lead{max-width:620px;margin:16px auto 0;color:#d0cede;font-size:14px;line-height:1.9}
+    .quote{margin:22px 0 0;color:#f0d5a5;font-size:16px;font-weight:850;line-height:1.7}
+    .intro-line{margin:20px auto 0;max-width:650px;color:#aeb6ca;font-size:12px;line-height:1.8}
+    .section{margin-top:20px;padding:23px;border:1px solid rgba(255,255,255,.09);border-radius:20px;background:rgba(23,28,48,.82)}
+    .section-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:14px}
+    h2{margin:0;font-size:19px;letter-spacing:-.03em}
+    .kicker{margin:0 0 5px;color:var(--gold);font-size:10px;font-weight:900;letter-spacing:.15em}
+    .section-desc{margin:8px 0 0;color:var(--muted);font-size:13px;line-height:1.8}
+    .projects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}
+    .project{display:flex;flex-direction:column;min-height:190px;padding:18px;border:1px solid rgba(255,255,255,.1);border-radius:16px;background:linear-gradient(155deg,rgba(36,42,66,.92),rgba(21,25,42,.95));text-decoration:none;transition:transform .18s,border-color .18s}
+    .project:hover{transform:translateY(-3px);border-color:rgba(230,187,120,.5)}
+    .project-icon{display:grid;place-items:center;width:42px;height:42px;margin-bottom:14px;border:1px solid rgba(230,187,120,.25);border-radius:13px;background:rgba(230,187,120,.08);font-size:22px}
+    .project h3{margin:0;font-size:16px}
+    .project p{margin:8px 0 14px;color:var(--muted);font-size:12px;line-height:1.7}
+    .project-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;color:#d8c29f;font-size:11px;font-weight:800}
+    .status{padding:5px 8px;border-radius:999px;background:rgba(94,190,146,.12);color:#9de0bd;font-size:10px}
+    .status.soon{background:rgba(169,138,229,.13);color:#d1bcff}
+    .manifesto{padding:19px;border-left:2px solid var(--gold);background:rgba(230,187,120,.045);color:#d9d7e2;font-size:13px;line-height:1.9}
+    .bottom{margin:26px 0 0;text-align:center;color:#7f879c;font-size:11px;line-height:1.8}
+    @media(max-width:560px){.projects{grid-template-columns:1fr}.project{min-height:155px}.hero{padding:30px 19px}.section{padding:19px}}
+    @media(min-width:700px){.wrap{padding-top:38px}.hero{padding:48px 38px}}
   </style>
 </head>
 <body>
   <main class="wrap">
     <header class="top">
-      <span class="brand">GILOA · CREATOR'S SPACE</span>
+      <span class="brand">GILOA · MAKER'S WORKSPACE</span>
       <a class="back" href="../">← 길로아로 돌아가기</a>
     </header>
+
     <section class="hero" aria-labelledby="page-title">
       <div class="compass" aria-hidden="true">🧭</div>
-      <p class="eyebrow">A LITTLE SPACE BEHIND GILOA</p>
+      <p class="eyebrow">MY IDEAS, MY WORKS, MY NEXT JOURNEY</p>
       <h1 id="page-title">길로아 아저씨</h1>
-      <p class="lead">길로아를 기획하고 만들어 가는 사람의 공간입니다.<br>세상을 걸으며 발견한 생각과 프로젝트 이야기를 이곳에 기록합니다.</p>
-      <p class="quote">“내가 걸은 길이 곧 지도다.”</p>
+      <p class="lead">길로아를 통해 세상으로 나아갑니다.<br>이곳은 내가 상상하고, 만들고, 세상에 소개하는 것들이 모이는 나의 작업실입니다.</p>
+      <p class="quote">“하나의 길에서 시작해, 더 넓은 세상으로.”</p>
+      <p class="intro-line">새로운 홈페이지와 서비스, 실험과 프로젝트를 이곳에 하나씩 펼쳐 놓겠습니다.</p>
     </section>
-    <section class="section">
-      <h2>길로아를 만든 이유</h2>
-      <p>가까운 곳에도 아직 발견하지 못한 여행이 있습니다. 길로아는 사람들이 익숙한 일상에서 새로운 장소와 이야기를 발견하고, 자신만의 지도를 만들어 가도록 돕기 위해 시작한 프로젝트입니다.</p>
-    </section>
-    <section class="section">
-      <h2>만드는 사람</h2>
-      <p>길로아는 한 사람의 호기심과 꾸준한 실험에서 출발했습니다. 이 공간에는 길로아의 제작 과정, 새로운 아이디어, 다른 프로젝트와 개인 활동을 차근차근 소개할 예정입니다.</p>
-    </section>
-    <section class="section">
-      <h2>개인 홈페이지</h2>
-      <p>개인 홈페이지 주소를 연결할 자리입니다. 주소를 정하면 이 영역에 방문 링크를 추가할 수 있습니다.</p>
-      <div class="site-link">
-        <div><strong>개인 홈페이지</strong><small>사이트 주소 연결 예정</small></div>
-        <span class="pending">준비 중</span>
+
+    <section class="section" aria-labelledby="works-title">
+      <div class="section-head">
+        <div><p class="kicker">MADE & MAKING</p><h2 id="works-title">내가 만든 것들</h2></div>
+      </div>
+      <p class="section-desc">완성된 작품은 세상과 연결하고, 만들고 있는 프로젝트는 진행 과정을 기록합니다. 새로운 작품이 생기면 이곳에 계속 추가됩니다.</p>
+      <div class="projects">
+        <a class="project" href="../">
+          <span class="project-icon" aria-hidden="true">🧭</span>
+          <h3>GILOA · 나의 대동여지도</h3>
+          <p>내가 걸은 길이 곧 지도가 되는 여행 기록 게임. 가까운 곳에서 새로운 세상을 발견하는 프로젝트.</p>
+          <span class="project-foot"><span>프로젝트 바로가기</span><span class="status">운영 중</span></span>
+        </a>
+        <article class="project">
+          <span class="project-icon" aria-hidden="true">🌐</span>
+          <h3>새로운 홈페이지</h3>
+          <p>앞으로 직접 기획하고 제작할 홈페이지와 웹서비스를 소개할 공간입니다.</p>
+          <span class="project-foot"><span>새 작품을 준비하고 있어요</span><span class="status soon">준비 중</span></span>
+        </article>
+        <article class="project">
+          <span class="project-icon" aria-hidden="true">💡</span>
+          <h3>아이디어와 실험</h3>
+          <p>작은 불편에서 시작한 도구, AI 활용 실험, 새로운 서비스 구상을 기록합니다.</p>
+          <span class="project-foot"><span>기록을 쌓아가는 중</span><span class="status soon">계속 추가</span></span>
+        </article>
+        <article class="project">
+          <span class="project-icon" aria-hidden="true">🎨</span>
+          <h3>창작과 콘텐츠</h3>
+          <p>직접 만든 디자인, 이야기, 영상과 그 밖의 창작물을 모아 소개합니다.</p>
+          <span class="project-foot"><span>작품 아카이브</span><span class="status soon">계속 추가</span></span>
+        </article>
       </div>
     </section>
-    <p class="bottom">GILOA · 내가 걸은 길이 곧 지도다.<br>이 페이지는 길로아 프로젝트의 제작자 소개 공간입니다.</p>
+
+    <section class="section">
+      <p class="kicker">WHY I MAKE</p>
+      <h2>내가 만들고 싶은 세상</h2>
+      <div class="manifesto">세상 사람들이 세상을 자유로이 탐험하며 살게 만드는 것.<br>게임과 현실의 경계를 잊고, 걷고 발견하는 순간 자체가 즐거운 경험이 되는 것.<br><br>길로아는 그 첫 번째 시작입니다. 그리고 이곳은 다음 도전을 세상에 소개하는 출발점입니다.</div>
+    </section>
+
+    <p class="bottom">GILOA · 길로아 아저씨의 작업실<br>작은 생각을 만들고, 세상과 연결합니다.</p>
   </main>
 </body>
 </html>
