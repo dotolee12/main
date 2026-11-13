@@ -14552,3 +14552,81 @@ window.giloaRouteTrackingDiagnostic = function() {
     if (!bridge || typeof bridge.getRouteTrackingStatus !== "function") return null;
     try { return JSON.parse(bridge.getRouteTrackingStatus()); } catch (_) { return null; }
 };
+
+
+/* GILOA: consistent modal dismissal (close button + outside tap). */
+(function initUniversalModalDismissal() {
+    if (document.documentElement.dataset.universalModalDismiss === "1") return;
+    document.documentElement.dataset.universalModalDismiss = "1";
+    var configs = [
+        {id:"giloa-sources",card:".giloa-sources-card",close:function(){closeGiloaSources();}},
+        {id:"giloa-info",card:".giloa-info-card",close:function(){closeGiloaInfoPage();}},
+        {id:"giloa-story-hub",card:".giloa-story-hub-card",close:function(){closeGiloaStoryHub();}},
+        {id:"region-badge-atlas",card:".region-badge-atlas-card",close:function(){closeRegionBadgeAtlas();}},
+        {id:"giloa-update-notice",card:".giloa-update-card",close:function(){dismissGiloaUpdateNotice();}},
+        {id:"photo-menu",card:".photo-menu",close:function(){closePhotoMenu();}},
+        {id:"photo-location-dialog",card:".photo-location-card",close:function(){closePhotoLocationDialog("cancel");}},
+        {id:"time-trace-panel",card:".time-trace-card",close:function(){var b=this.querySelector(".time-trace-close");if(b)b.click();else this.hidden=true;}},
+        {id:"time-trace-camera",card:".time-trace-camera-shell",close:function(){var b=this.querySelector(".camera-close");if(b)b.click();}},
+        {id:"time-trace-result",card:".time-trace-result-card",close:function(){var b=this.querySelector(".time-trace-close");if(b)b.click();}},
+        {id:"time-trace-compare",card:".time-trace-compare-card",close:function(){var b=this.querySelector(".time-trace-close");if(b)b.click();}},
+        {id:"special-place-editor",card:".special-place-card",close:function(){closeSpecialPlaceEditor();}},
+        {id:"gsi-story",card:".gsi-story-stage",close:function(){closeGiloStory();}},
+        {id:"gsi-feature-guide",card:".gsi-feature-guide-card",close:function(){closeGiloaFeatureGuide();}},
+        {id:"giloa-story-intro",card:".gsi-onboarding,.gsi-story-stage",close:function(){closeGiloStory();}},
+        {id:"giloa-first-tutorial",card:".gft-guide",close:function(){closeGiloaGuideTutorial(false);}},
+        {id:"hidden-mission-novel",card:".hidden-mission-stage",close:function(){var b=document.getElementById("hidden-mission-close");if(b)b.click();}},
+        {id:"journey-recap",card:".journey-recap-card",close:function(){hideTodayJourneyRecap();}}
+    ];
+    function isOpen(root) {
+        if (!root) return false;
+        if (root.hidden || root.getAttribute("aria-hidden") === "true") return false;
+        return root.classList.contains("open") || root.classList.contains("show") ||
+            root.classList.contains("active") || root.classList.contains("is-open") ||
+            root.classList.contains("gsi") && root.classList.contains("active") ||
+            root.getAttribute("aria-modal") === "true";
+    }
+    function closeConfig(config, root) {
+        try { config.close.call(root); } catch (error) { console.warn("GILOA modal close:", config.id, error); }
+    }
+    function installButtons() {
+        configs.forEach(function(config) {
+            var root = document.getElementById(config.id);
+            if (!root) return;
+            var card = root.querySelector(config.card);
+            if (!card) return;
+            var hasClose = card.querySelector('button[aria-label*="닫기"],button[aria-label*="Close"],button[aria-label*="close"],.time-trace-close,.journey-recap-close,#hidden-mission-close,[data-region-atlas-close],[data-gsi-guide-close],.gsi-story-close');
+            if (hasClose || card.querySelector("[data-giloa-universal-close]")) return;
+            var button = document.createElement("button");
+            button.type = "button";
+            button.className = "giloa-universal-close";
+            button.setAttribute("data-giloa-universal-close", config.id);
+            button.setAttribute("aria-label", "닫기");
+            button.textContent = "×";
+            button.addEventListener("click", function(event) {
+                event.preventDefault(); event.stopPropagation(); closeConfig(config, root);
+            });
+            card.appendChild(button);
+        });
+    }
+    installButtons();
+    if (window.MutationObserver) {
+        new MutationObserver(installButtons).observe(document.body, {childList:true,subtree:true});
+    }
+    document.addEventListener("click", function(event) {
+        var target = event.target;
+        configs.forEach(function(config) {
+            var root = document.getElementById(config.id);
+            if (!isOpen(root) || !target || !root.contains(target)) return;
+            var card = root.querySelector(config.card);
+            if (card && !card.contains(target)) closeConfig(config, root);
+        });
+    }, true);
+    document.addEventListener("keydown", function(event) {
+        if (event.key !== "Escape") return;
+        for (var i=configs.length-1;i>=0;i--) {
+            var root=document.getElementById(configs[i].id);
+            if (isOpen(root)) { closeConfig(configs[i],root); break; }
+        }
+    });
+})();
