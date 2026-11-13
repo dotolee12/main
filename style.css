@@ -2173,3 +2173,9 @@ body.giloa-restoring #map, body.giloa-restoring #top-bar, body.giloa-restoring #
 
 /* Make source credits visibly tappable on mobile and open in the same webview. */
 .giloa-sources-list a{position:relative;z-index:2;display:inline-block;min-height:28px;padding:3px 2px;color:#8edfff;text-decoration:underline;text-decoration-color:rgba(142,223,255,.65);text-underline-offset:3px;pointer-events:auto;cursor:pointer;touch-action:manipulation}.giloa-sources-list a:active{color:#fff;background:rgba(79,195,247,.16);border-radius:4px}.giloa-sources-list article span{position:relative;z-index:2;pointer-events:auto}
+
+
+/* Shared close control for every GILOA modal/page. */
+.giloa-universal-close{position:absolute!important;z-index:30!important;top:10px!important;right:10px!important;width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;display:grid!important;place-items:center!important;padding:0!important;border:1px solid rgba(255,255,255,.16)!important;border-radius:50%!important;background:rgba(255,255,255,.10)!important;color:#fff!important;font:300 28px/1 system-ui,sans-serif!important;cursor:pointer!important;box-shadow:0 4px 14px rgba(0,0,0,.22)!important;touch-action:manipulation!important}
+.giloa-universal-close:active{background:rgba(79,195,247,.32)!important;transform:scale(.96)}
+.giloa-sources-card,.giloa-info-card,.giloa-story-hub-card,.region-badge-atlas-card,.giloa-update-card,.photo-location-card,.time-trace-card,.time-trace-camera-shell,.time-trace-result-card,.time-trace-compare-card,.special-place-card,.gsi-story-stage,.gsi-feature-guide-card,.gsi-onboarding,.gft-guide,.hidden-mission-stage,.journey-recap-card{position:relative}
