@@ -316,6 +316,12 @@ function getRegionSymbolMunicipality(feature) {
         return /[시군구]$/.test(token) &&
             !/(특별시|광역시|특별자치시)$/.test(token);
     });
+    if (municipality && /구$/.test(municipality)) {
+        var parent = tokens.find(function(token) {
+            return /(특별시|광역시|특별자치시)$/.test(token);
+        });
+        if (parent) return parent + " " + municipality;
+    }
     return municipality || "";
 }
 
@@ -379,13 +385,17 @@ var REGION_SYMBOL_THEME_GROUPS = [
     { names:["세종특별자치시"], mark:"🌱", title:"행복도시 새싹이", motif:"정원과 미래도시의 이미지에서 착안한 세종 모티프" }
 ];
 function getRegionSymbolTheme(city) {
+    var simpleCity = String(city || "").split(/\s+/).pop();
     for (var i = 0; i < REGION_SYMBOL_THEME_GROUPS.length; i++) {
-        if (REGION_SYMBOL_THEME_GROUPS[i].names.indexOf(city) >= 0) return REGION_SYMBOL_THEME_GROUPS[i];
+        if (REGION_SYMBOL_THEME_GROUPS[i].names.indexOf(city) >= 0 ||
+            REGION_SYMBOL_THEME_GROUPS[i].names.indexOf(simpleCity) >= 0) return REGION_SYMBOL_THEME_GROUPS[i];
     }
     return { mark:"🧭", title:"길로아 탐험가", motif:"지역 고유의 역사·자연·생활문화를 찾아가는 전국 공통 창작 모티프" };
 }
 function getRegionSymbolData(city) {
+    var simpleCity = String(city || "").split(/\s+/).pop();
     if (REGION_SYMBOL_DATA[city]) return REGION_SYMBOL_DATA[city];
+    if (REGION_SYMBOL_DATA[simpleCity]) return REGION_SYMBOL_DATA[simpleCity];
     var theme = getRegionSymbolTheme(city);
     return {
         mark: theme.mark,
@@ -406,6 +416,15 @@ function hasVisitedRegionSymbolCity(city) {
     var visits = typeof visitStamps !== "undefined" && Array.isArray(visitStamps)
         ? visitStamps
         : [];
+    // Verified GPS residence is the primary nationwide badge path.
+    // A full hour in this municipality unlocks its symbol badge; place visit
+    // stamps remain a compatible immediate unlock path.
+    var stayDetails = typeof window.getGiloaRegionStayDetail === "function"
+        ? window.getGiloaRegionStayDetail()
+        : {};
+    var stay = stayDetails && stayDetails[city];
+    if (stay && Number(stay.minutes) >= 60) return true;
+
     if (!features.length || !visits.length) return false;
     var cityFeatures = features.filter(function(feature) {
         return getRegionSymbolMunicipality(feature) === city;
@@ -474,7 +493,7 @@ function renderRegionSymbolBadges() {
                 '<strong>' + escapeHtml(entry.city) + ' · ' + escapeHtml(entry.symbolData.title) + '</strong>' +
                 '<span>' + escapeHtml(entry.symbolData.description) + '</span>' +
                 '<em>' + escapeHtml(entry.symbolData.category) + ' · ' +
-                (entry.earned ? '방문 기록 확인 · 배지 획득 완료' : '이 지역에서 방문 기록을 남기면 배지를 획득해요.') +
+                (entry.earned ? 'GPS 체류 또는 장소 방문 기록 확인 · 배지 획득 완료' : 'GPS 기록으로 이 지역에 누적 1시간 머물거나 장소 방문 기록을 남기면 획득해요.') +
                 '</em>' +
                 (entry.symbolData.source ? '<small><a href="' + escapeHtml(entry.symbolData.source) + '" target="_blank" rel="noopener noreferrer">공식 출처 확인</a></small>' : '');
         });
