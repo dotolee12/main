@@ -13735,7 +13735,8 @@ var REGION_SYMBOL_MARKS = {
     "화성시":"🚀","화순군":"🌼","횡성군":"🥩"
 };
 function getRegionSymbolMark(city) {
-    return REGION_SYMBOL_MARKS[city] || "📍";
+    var simpleCity = String(city || "").split(/\\s+/).pop();
+    return REGION_SYMBOL_MARKS[city] || REGION_SYMBOL_MARKS[simpleCity] || "📍";
 }
 
 function hasVisitedRegionSymbolCity(city) {
