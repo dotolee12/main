@@ -32,9 +32,9 @@ function getRegionStayMunicipalityFromFeature(feature) {
     });
     if (!municipality) return "";
     // Keep repeated metropolitan districts (e.g. Seoul/Busan Gangseo-gu) separate.
-    if (/구$/.test(municipality)) {
+    if (/구$|군$/.test(municipality)) {
         var parent = tokens.find(function(token) {
-            return /(특별시|광역시|특별자치시)$/.test(token);
+            return /(특별시|광역시|특별자치시|특별자치도|도)$/.test(token);
         });
         if (parent) return parent + " " + municipality;
     }
