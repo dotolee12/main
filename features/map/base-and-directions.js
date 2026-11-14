@@ -412,6 +412,7 @@ function loadAdminDistrictBoundaries() {
     setAdminBoundaryStatus("loading", "");
     return loadAdminBoundaryJson().then(function(data) {
         adminDistrictFeatures = Array.isArray(data && data.features) ? data.features : [];
+        if (typeof registerRegionStayMunicipalities === "function") registerRegionStayMunicipalities(adminDistrictFeatures);
         adminDistrictFeatures.forEach(function(feature) { feature._giloaBbox = getAdminFeatureBbox(feature); });
         adminBoundaryLayer = L.geoJSON(data, {
             pane:"adminBoundaryPane",
