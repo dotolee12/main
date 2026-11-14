@@ -13695,9 +13695,9 @@ function getRegionSymbolMunicipality(feature) {
         return /[시군구]$/.test(token) &&
             !/(특별시|광역시|특별자치시)$/.test(token);
     });
-    if (municipality && /구$/.test(municipality)) {
+    if (municipality && /구$|군$/.test(municipality)) {
         var parent = tokens.find(function(token) {
-            return /(특별시|광역시|특별자치시)$/.test(token);
+            return /(특별시|광역시|특별자치시|특별자치도|도)$/.test(token);
         });
         if (parent) return parent + " " + municipality;
     }
