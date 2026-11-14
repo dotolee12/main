@@ -1,7 +1,7 @@
 var REGION_STAY_KEY = "giloa-region-stay-v2";
 // Bumped with every region-stay change. The atlas prints this on screen so a
 // stale Capacitor bundle can be spotted without any developer tooling.
-var GILOA_REGION_STAY_BUILD = "rs-2026-09-06b-heicgps";
+var GILOA_REGION_STAY_BUILD = "rs-2026-11-14-regional-gps-1";
 var REGION_STAY_REQUIRED_MS = 60 * 60 * 1000;
 var REGION_STAY_MAX_SAMPLE_GAP_MS = 2 * 60 * 1000;
 var REGION_STAY_MAX_ACCURACY_M = 100;
@@ -17,6 +17,53 @@ var REGION_STAY_TARGETS = {
     "하남시": "region_hanam_1h",
     "고양시": "region_goyang_1h"
 };
+
+// Register every municipality in the administrative GeoJSON for GPS residence tracking.
+// Existing IDs and stored counters are preserved for backward compatibility.
+function getRegionStayMunicipalityFromFeature(feature) {
+    var title = typeof getAdminFeatureTitle === "function"
+        ? getAdminFeatureTitle(feature)
+        : String(feature && feature.properties && feature.properties.title || "");
+    if (!title) return "";
+    var tokens = String(title).match(/[가-힣]+/g) || [];
+    if (tokens.indexOf("세종특별자치시") >= 0) return "세종특별자치시";
+    var municipality = tokens.find(function(token) {
+        return /[시군구]$/.test(token) && !/(특별시|광역시|특별자치시)$/.test(token);
+    });
+    if (!municipality) return "";
+    // Keep repeated metropolitan districts (e.g. Seoul/Busan Gangseo-gu) separate.
+    if (/구$/.test(municipality)) {
+        var parent = tokens.find(function(token) {
+            return /(특별시|광역시|특별자치시)$/.test(token);
+        });
+        if (parent) return parent + " " + municipality;
+    }
+    return municipality;
+}
+
+function registerRegionStayMunicipalities(features) {
+    if (!Array.isArray(features)) return 0;
+    var added = 0;
+    features.forEach(function(feature) {
+        var city = getRegionStayMunicipalityFromFeature(feature);
+        if (!city || Object.prototype.hasOwnProperty.call(REGION_STAY_TARGETS, city)) return;
+        REGION_STAY_TARGETS[city] = "region_symbol_" + encodeURIComponent(city) + "_1h";
+        added += 1;
+    });
+    // The state may have loaded before GeoJSON. Add counters without replacing history.
+    var state = loadRegionStayState();
+    Object.keys(REGION_STAY_TARGETS).forEach(function(city) {
+        var entry = state[city];
+        if (!entry || typeof entry !== "object") entry = {};
+        entry.pathMs = Math.max(0, Number(entry.pathMs) || 0);
+        entry.liveMs = Math.max(0, Number(entry.liveMs) || 0);
+        entry.accumulatedMs = Math.max(entry.pathMs, entry.liveMs, Number(entry.accumulatedMs) || 0);
+        state[city] = entry;
+    });
+    saveRegionStayState();
+    if (added) invalidateRegionStayCache();
+    return added;
+}
 
 // Coarse municipal outlines, [lng, lat]. These are only consulted when
 // data/admin-districts.geojson is missing, still loading, or names the
@@ -190,7 +237,7 @@ function calculateRegionStayFromPoints(points) {
 function grantEarnedRegionBadges(state) {
     Object.keys(REGION_STAY_TARGETS).forEach(function(city) {
         var entry = state[city];
-        if (entry && entry.accumulatedMs >= REGION_STAY_REQUIRED_MS && typeof earnBadge === "function") earnBadge(REGION_STAY_TARGETS[city]);
+        if (entry && entry.accumulatedMs >= REGION_STAY_REQUIRED_MS && typeof earnBadge === "function" && Array.isArray(BADGE_DEFS) && BADGE_DEFS.some(function(def) { return def.id === REGION_STAY_TARGETS[city]; })) earnBadge(REGION_STAY_TARGETS[city]);
     });
 }
 
@@ -380,6 +427,7 @@ function updateRegionEdgeFrame(fix) {
     }
 
     var badgeId = city ? REGION_STAY_TARGETS[city] : "";
+    if (badgeId && (!Array.isArray(BADGE_DEFS) || !BADGE_DEFS.some(function(def) { return def.id === badgeId; }))) badgeId = "";
     var completed =
         !!badgeId &&
         Array.isArray(badges) &&
@@ -463,7 +511,7 @@ window.getGiloaRegionStayDetail = function() {
             minutes: Math.floor((Number(entry.accumulatedMs) || 0) / 60000),
             pathMinutes: Math.floor((Number(entry.pathMs) || 0) / 60000),
             liveMinutes: Math.floor((Number(entry.liveMs) || 0) / 60000),
-            earned: typeof getEarnedBadge === "function" ? !!getEarnedBadge(REGION_STAY_TARGETS[city]) : false
+            earned: Number(entry.accumulatedMs) >= REGION_STAY_REQUIRED_MS || (typeof getEarnedBadge === "function" ? !!getEarnedBadge(REGION_STAY_TARGETS[city]) : false)
         };
     });
     return detail;
