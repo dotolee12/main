@@ -116,6 +116,7 @@ test("opening tools through menu buttons survives outside-map click handlers", a
         });
         f.w.document.querySelector('[data-nearby-open="walk"]').click();
         assert.equal(f.w.document.getElementById("nearby-tools").hidden, false);
+        assert.equal(f.w.document.activeElement.id, "nearby-tools");
         f.node("clear").click();
         assert.equal(f.w.document.getElementById("nearby-tools").hidden, false);
         f.node("close").click();

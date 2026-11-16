@@ -14852,7 +14852,7 @@ window.giloaRouteTrackingDiagnostic = function() {
         panel.hidden = false; panel.classList.remove("is-picking");
         if (typeof toggleSidebar === "function") toggleSidebar(false);
         refreshText(); status("");
-        node("close").focus();
+        panel.focus();
         if (mode === "items") { node("editor").hidden = true; refreshItems(); }
     }
     function position() {
@@ -15056,7 +15056,7 @@ window.giloaRouteTrackingDiagnostic = function() {
         toolsMap.createPane("nearbyToolsPane"); toolsMap.getPane("nearbyToolsPane").style.zIndex = 635;
         routeLayer = L.layerGroup().addTo(toolsMap); itemLayer = L.layerGroup().addTo(toolsMap);
         panel = document.createElement("section");
-        panel.id = "nearby-tools"; panel.hidden = true; panel.setAttribute("role", "dialog"); panel.setAttribute("aria-labelledby", "nearby-tools-title");
+        panel.id = "nearby-tools"; panel.tabIndex = -1; panel.hidden = true; panel.setAttribute("role", "dialog"); panel.setAttribute("aria-labelledby", "nearby-tools-title");
         panel.innerHTML = '<header><h2 id="nearby-tools-title" data-nearby="title"></h2><button type="button" data-nearby="close" data-nearby-text="close"></button></header>' +
             '<div data-nearby="walk"><div class="nearby-time">' + [10,20,40].map(function (m) { return '<button type="button" data-minutes="' + m + '"></button>'; }).join("") + '</div>' +
             '<p data-nearby-text="consent"></p><button type="button" data-nearby="make" data-nearby-text="make"></button><button type="button" data-nearby="clear" data-nearby-text="clear"></button>' +
