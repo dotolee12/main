@@ -21,6 +21,7 @@ async function fixture() {
     w.confirm = () => true;
     w.map = {createPane(){}, getPane:() => ({style:{}}), on:(name, callback) => { events[name] = callback; }, wrapLatLng:p => p, setView(){}, fitBounds(){}};
     w.L = {
+        DomEvent:{disableClickPropagation(){}},
         layerGroup:() => ({addTo(){return this;}, clearLayers(){}}),
         marker:() => ({addTo(){return this;}, bindPopup(){return this;}, on(){}, openPopup(){}}),
         polyline:coords => ({addTo(){routes.push(coords); return this;}}),
@@ -105,5 +106,21 @@ test("route requests use a disposable worker and closing cancels stale results",
         f.node("make").click(); await tick();
         assert(f.node("status").textContent.includes("불러오지"));
         assert.equal(f.node("make").disabled, false);
+    } finally {f.dom.window.close();}
+});
+test("opening tools through menu buttons survives outside-map click handlers", async () => {
+    const f = await fixture();
+    try {
+        f.w.document.addEventListener("click", event => {
+            f.events.click({originalEvent:event, latlng:{lat:37,lng:127}});
+        });
+        f.w.document.querySelector('[data-nearby-open="walk"]').click();
+        assert.equal(f.w.document.getElementById("nearby-tools").hidden, false);
+        f.node("clear").click();
+        assert.equal(f.w.document.getElementById("nearby-tools").hidden, false);
+        f.node("close").click();
+        f.w.document.querySelector('[data-nearby-open="items"]').click();
+        await tick();
+        assert.equal(f.w.document.getElementById("nearby-tools").hidden, false);
     } finally {f.dom.window.close();}
 });

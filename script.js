@@ -14843,6 +14843,8 @@ window.giloaRouteTrackingDiagnostic = function() {
         document.querySelectorAll("[data-nearby-open]").forEach(function (button) { button.textContent = label(button.dataset.nearbyOpen === "walk" ? "walk" : "items"); });
         node("walk").hidden = mode !== "walk"; node("items").hidden = mode !== "items";
         node("title").textContent = label(mode === "walk" ? "walk" : "items");
+        node("close").textContent = "×";
+        node("close").setAttribute("aria-label", label("close"));
     }
     function open(modeName) {
         cancelWork(); mode = modeName; picking = false;
@@ -15067,9 +15069,10 @@ window.giloaRouteTrackingDiagnostic = function() {
             '<button type="button" data-nearby="save" data-nearby-text="save"></button><button type="button" data-nearby="cancel" data-nearby-text="cancel"></button></div><div data-nearby="list"></div><button type="button" data-nearby="more" data-nearby-text="more" hidden></button></div>' +
             '<p data-nearby="status" role="status" aria-live="polite"></p>';
         document.body.append(panel);
+        L.DomEvent.disableClickPropagation(panel);
         var host = document.createElement("div"); host.className = "nearby-tools-entry";
         ["walk", "items"].forEach(function (kind) {
-            var b = document.createElement("button"); b.type = "button"; b.dataset.nearbyOpen = kind; b.onclick = function () { open(kind); }; host.append(b);
+            var b = document.createElement("button"); b.type = "button"; b.dataset.nearbyOpen = kind; b.onclick = function (event) { event.preventDefault(); event.stopPropagation(); open(kind); }; host.append(b);
         });
         var sidebar = document.querySelector("#sidebar .sidebar-header");
         if (sidebar) sidebar.after(host);
@@ -15091,6 +15094,8 @@ window.giloaRouteTrackingDiagnostic = function() {
         node("save").onclick = saveItem;
         toolsMap.on("click", function (event) {
             if (panel.hidden) return;
+            var target = event.originalEvent && event.originalEvent.target;
+            if (target && target.closest && target.closest("#nearby-tools,.nearby-tools-entry")) return;
             if (!picking) {
                 if (mode === "items" && !node("editor").hidden) return;
                 close(); return;
