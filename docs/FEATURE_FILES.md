@@ -49,6 +49,7 @@
 | `script.js` | [features/character/dialogue.js](../features/character/dialogue.js) | 길로 대사·페이지 넘김·기존 첫 인사 |
 | `script.js` | [features/map/heading-and-events.js](../features/map/heading-and-events.js) | 방향 부채꼴·지도 이벤트·화면 복귀 연결 |
 | `script.js` | [features/i18n/static-ui.js](../features/i18n/static-ui.js) | 정적 화면 추가 번역·안내 문구 |
+| `script.js` | [features/explore/nearby-tools.js](../features/explore/nearby-tools.js) | 탐험 코스·소지품 사진·메모·위치 기기 저장 UI |
 | `style.css` | [features/common/base.css](../features/common/base.css) | 브랜드 색상·기본 레이아웃·지도 공통 |
 | `style.css` | [features/map/canvas.css](../features/map/canvas.css) | 지도 캔버스·레이어·사진 군집 |
 | `style.css` | [features/tasks/top-bar-and-tasks.css](../features/tasks/top-bar-and-tasks.css) | 상단·음악 버튼·할 일·기록 상태 |
@@ -72,6 +73,7 @@
 | `style.css` | [features/gps/location-disclosure.css](../features/gps/location-disclosure.css) | 위치·기록 동의 창 |
 | `style.css` | [features/map/layer-controls.css](../features/map/layer-controls.css) | 지도 표시 타일·순서 편집 |
 | `style.css` | [features/gpx/access.css](../features/gpx/access.css) | 발급 ID 입력·이용 잠금 |
+| `style.css` | [features/explore/nearby-tools.css](../features/explore/nearby-tools.css) | 탐험과 소지품 패널·메뉴 디자인 |
 | `index.html` | [features/common/head-and-startup.html](../features/common/head-and-startup.html) | 문서 head·외부 파일 연결·로딩 화면 |
 | `index.html` | [features/ui/sidebar.html](../features/ui/sidebar.html) | 메뉴·지도 표시·사진 GPX 아이템 탭·이야기 입구·방문 패널 |
 | `index.html` | [features/help/info-panels.html](../features/help/info-panels.html) | 출처·정책·업데이트·이야기 챕터 목록 |
@@ -119,5 +121,7 @@
 | [config.js](../config.js) | 외부 서비스 설정 — 비밀키 추가·공개 금지 |
 | [sw.js](../sw.js) | 오프라인·캐시·PWA 업데이트 |
 | [manifest.json](../manifest.json) | PWA 설치 정보 |
+| [features/explore/walk-core.js](../features/explore/walk-core.js) | 요청 시 Worker에서 읽는 보행로 그래프와 경로 계산 |
+| [features/explore/walk-worker.js](../features/explore/walk-worker.js) | 화면과 분리된 산책 코스 계산·취소 |
 
 HTML 조각은 완성된 페이지가 아닙니다. 화면 확인은 조립한 프로젝트 루트의 `index.html`을 서버로 열거나 https://giloa.kr/ 에서 하세요.

@@ -168,6 +168,10 @@
         {
           "path": "features/i18n/static-ui.js",
           "role": "정적 화면 추가 번역·안내 문구"
+        },
+        {
+          "path": "features/explore/nearby-tools.js",
+          "role": "탐험 코스·소지품 사진·메모·위치 기기 저장 UI"
         }
       ]
     },
@@ -265,6 +269,10 @@
         {
           "path": "features/gpx/access.css",
           "role": "발급 ID 입력·이용 잠금"
+        },
+        {
+          "path": "features/explore/nearby-tools.css",
+          "role": "탐험과 소지품 패널·메뉴 디자인"
         }
       ]
     },
@@ -447,6 +455,14 @@
     {
       "path": "manifest.json",
       "role": "PWA 설치 정보"
+    },
+    {
+      "path": "features/explore/walk-core.js",
+      "role": "요청 시 Worker에서 읽는 보행로 그래프와 경로 계산"
+    },
+    {
+      "path": "features/explore/walk-worker.js",
+      "role": "화면과 분리된 산책 코스 계산·취소"
     }
   ]
 }

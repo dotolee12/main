@@ -18,8 +18,7 @@ var REGION_STAY_TARGETS = {
     "고양시": "region_goyang_1h"
 };
 
-// Register every municipality in the administrative GeoJSON for GPS residence tracking.
-// Existing IDs and stored counters are preserved for backward compatibility.
+// Register all municipalities in the administrative GeoJSON for GPS stay tracking.
 function getRegionStayMunicipalityFromFeature(feature) {
     var title = typeof getAdminFeatureTitle === "function"
         ? getAdminFeatureTitle(feature)
@@ -31,10 +30,9 @@ function getRegionStayMunicipalityFromFeature(feature) {
         return /[시군구]$/.test(token) && !/(특별시|광역시|특별자치시)$/.test(token);
     });
     if (!municipality) return "";
-    // Keep repeated metropolitan districts (e.g. Seoul/Busan Gangseo-gu) separate.
-    if (/구$|군$/.test(municipality)) {
+    if (/구$/.test(municipality)) {
         var parent = tokens.find(function(token) {
-            return /(특별시|광역시|특별자치시|특별자치도|도)$/.test(token);
+            return /(특별시|광역시|특별자치시)$/.test(token);
         });
         if (parent) return parent + " " + municipality;
     }
@@ -50,7 +48,6 @@ function registerRegionStayMunicipalities(features) {
         REGION_STAY_TARGETS[city] = "region_symbol_" + encodeURIComponent(city) + "_1h";
         added += 1;
     });
-    // The state may have loaded before GeoJSON. Add counters without replacing history.
     var state = loadRegionStayState();
     Object.keys(REGION_STAY_TARGETS).forEach(function(city) {
         var entry = state[city];
@@ -511,7 +508,7 @@ window.getGiloaRegionStayDetail = function() {
             minutes: Math.floor((Number(entry.accumulatedMs) || 0) / 60000),
             pathMinutes: Math.floor((Number(entry.pathMs) || 0) / 60000),
             liveMinutes: Math.floor((Number(entry.liveMs) || 0) / 60000),
-            earned: Number(entry.accumulatedMs) >= REGION_STAY_REQUIRED_MS || (typeof getEarnedBadge === "function" ? !!getEarnedBadge(REGION_STAY_TARGETS[city]) : false)
+            earned: typeof getEarnedBadge === "function" ? !!getEarnedBadge(REGION_STAY_TARGETS[city]) : false
         };
     });
     return detail;

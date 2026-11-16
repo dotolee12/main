@@ -57,6 +57,8 @@
 | `loadAdminBoundaryJsonByXhr` | [features/map/base-and-directions.js](../features/map/base-and-directions.js) |
 | `loadAdminBoundaryJson` | [features/map/base-and-directions.js](../features/map/base-and-directions.js) |
 | `loadAdminDistrictBoundaries` | [features/map/base-and-directions.js](../features/map/base-and-directions.js) |
+| `getRegionStayMunicipalityFromFeature` | [features/regions/stay.js](../features/regions/stay.js) |
+| `registerRegionStayMunicipalities` | [features/regions/stay.js](../features/regions/stay.js) |
 | `loadRegionStayState` | [features/regions/stay.js](../features/regions/stay.js) |
 | `saveRegionStayState` | [features/regions/stay.js](../features/regions/stay.js) |
 | `normalizeRegionName` | [features/regions/stay.js](../features/regions/stay.js) |
@@ -785,6 +787,11 @@
 | `getRegionBadgeCityLabelFromName` | [features/regions/badge-atlas.js](../features/regions/badge-atlas.js) |
 | `setRegionBadgeAtlasDetail` | [features/regions/badge-atlas.js](../features/regions/badge-atlas.js) |
 | `bindRegionStayDiagnosticGesture` | [features/regions/badge-atlas.js](../features/regions/badge-atlas.js) |
+| `getRegionSymbolMunicipality` | [features/regions/badge-atlas.js](../features/regions/badge-atlas.js) |
+| `getRegionSymbolMark` | [features/regions/badge-atlas.js](../features/regions/badge-atlas.js) |
+| `hasVisitedRegionSymbolCity` | [features/regions/badge-atlas.js](../features/regions/badge-atlas.js) |
+| `getRegionSymbolEntries` | [features/regions/badge-atlas.js](../features/regions/badge-atlas.js) |
+| `renderRegionSymbolBadges` | [features/regions/badge-atlas.js](../features/regions/badge-atlas.js) |
 | `renderRegionBadgeAtlas` | [features/regions/badge-atlas.js](../features/regions/badge-atlas.js) |
 | `openRegionBadgeAtlas` | [features/regions/badge-atlas.js](../features/regions/badge-atlas.js) |
 | `closeRegionBadgeAtlas` | [features/regions/badge-atlas.js](../features/regions/badge-atlas.js) |
