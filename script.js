@@ -61,6 +61,8 @@ const EARLY_UI_I18N = {
     photoFailed: ["일부 사진({count}장)을 처리하지 못했습니다.", "Could not process {count} photo(s).", "{count}枚の写真を処理できませんでした。", "有{count}张照片无法处理。", "No se pudieron procesar {count} fotos.", "Impossible de traiter {count} photo(s)."],
     photoOpenFailed: ["사진을 외부 앱에서 열지 못했습니다.", "Could not open the photo in another app.", "別のアプリで写真を開けませんでした。", "无法在其他应用中打开照片。", "No se pudo abrir la foto en otra aplicación.", "Impossible d’ouvrir la photo dans une autre application."],
     locating: ["현재 위치를 다시 확인하는 중…", "Checking your current location…", "現在地を再確認しています…", "正在重新确定当前位置…", "Comprobando tu ubicación actual…", "Vérification de votre position actuelle…"],
+    locationPermissionHelp: ["위치 접근이 차단됐어요. 주소창 왼쪽 사이트 설정에서 위치를 허용하고 기기의 위치 서비스도 켜 주세요.", "Location access is blocked. Allow location in site settings beside the address bar and enable device location services.", "位置情報がブロックされています。アドレスバー横のサイト設定で許可し、端末の位置情報も有効にしてください。", "定位访问被阻止。请在地址栏旁的网站设置中允许定位，并开启设备定位服务。", "La ubicación está bloqueada. Permítela en los ajustes del sitio junto a la barra de direcciones y activa la ubicación del dispositivo.", "La localisation est bloquée. Autorisez-la dans les paramètres du site près de la barre d’adresse et activez celle de l’appareil."],
+    locationWebHelp: ["브라우저가 위치를 알려주지 못했어요. 사이트 위치 권한과 기기의 위치 서비스를 확인한 뒤 다시 눌러 주세요. PC는 대략적인 위치만 제공할 수 있어요.", "The browser could not provide a location. Check site permission and device location services, then retry. A PC may only provide an approximate location.", "ブラウザから位置情報を取得できませんでした。サイトの権限と端末の位置情報を確認して再試行してください。PCではおおよその位置しか取得できない場合があります。", "浏览器未能提供位置。请检查网站权限和设备定位服务后重试。电脑可能只能提供大致位置。", "El navegador no pudo obtener la ubicación. Revisa los permisos y la ubicación del dispositivo y vuelve a intentarlo. Un PC puede dar solo una ubicación aproximada.", "Le navigateur n’a pas fourni de position. Vérifiez les autorisations et la localisation de l’appareil, puis réessayez. Sur PC, la position peut être approximative."],
     locationImprecise: ["위치를 맞췄지만 오차가 큽니다 (±{accuracy}m). 실내라면 창가나 야외에서 다시 눌러 주세요.", "Location updated, but accuracy is low (±{accuracy}m). Try again near a window or outdoors.", "現在地を更新しましたが誤差が大きいです（±{accuracy}m）。窓際や屋外でもう一度お試しください。", "位置已更新，但误差较大（±{accuracy}米）。请到窗边或室外重试。", "Ubicación actualizada, pero con poca precisión (±{accuracy} m). Inténtalo cerca de una ventana o al aire libre.", "Position actualisée, mais peu précise (±{accuracy} m). Réessayez près d’une fenêtre ou à l’extérieur."],
     locationUpdated: ["현재 위치로 맞췄습니다 (±{accuracy}m)", "Location updated (±{accuracy}m)", "現在地を更新しました（±{accuracy}m）", "位置已更新（±{accuracy}米）", "Ubicación actualizada (±{accuracy} m)", "Position actualisée (±{accuracy} m)"],
     locationFailed: ["위치를 확인하지 못했습니다. 위치 권한과 GPS를 확인해 주세요.", "Could not locate you. Check location permission and GPS.", "現在地を取得できませんでした。位置情報の権限とGPSを確認してください。", "无法确定位置。请检查位置权限和GPS。", "No se pudo obtener tu ubicación. Comprueba el permiso de ubicación y el GPS.", "Impossible de vous localiser. Vérifiez l’autorisation de localisation et le GPS."],
@@ -4157,27 +4159,45 @@ function acquireBestPosition(options) {
     var target = options.targetAccuracy || RESYNC_TARGET_ACCURACY_M;
     return new Promise(function(resolve, reject) {
         if (!navigator.geolocation) { reject(new Error("Geolocation unavailable")); return; }
-        var best = null, watch = null, timer = null, settled = false;
+        var best = null, watch = null, timer = null, settled = false, lastError = null;
         function accuracyOf(position) { return Number(position && position.coords && position.coords.accuracy) || Infinity; }
         function finish(error) {
             if (settled) return;
             settled = true;
             if (timer) clearTimeout(timer);
             if (watch !== null) { try { navigator.geolocation.clearWatch(watch); } catch (e) {} }
-            if (best) resolve(best); else reject(error || new Error("No position fix"));
+            if (best) resolve(best); else reject(error || lastError || Object.assign(new Error("Location timeout"), {code:3}));
         }
         function onSample(position) {
             if (settled) return;
+            var coords = position && position.coords;
+            if (!coords || !Number.isFinite(coords.latitude) || !Number.isFinite(coords.longitude) ||
+                Math.abs(coords.latitude) > 90 || Math.abs(coords.longitude) > 180 ||
+                !Number.isFinite(coords.accuracy) || coords.accuracy <= 0) return;
             if (accuracyOf(position) >= accuracyOf(best)) return;
             best = position;
             if (typeof options.onImproved === "function") options.onImproved(position);
             if (accuracyOf(position) <= target) finish();
         }
+        function onError(error) {
+            if (settled) return;
+            lastError = error;
+            // A failed GPS source does not mean the concurrent network source
+            // has failed. Only permission denial ends all requests immediately.
+            if (error && error.code === 1) finish(error);
+        }
         timer = setTimeout(function() { finish(); }, durationMs);
         try {
-            watch = navigator.geolocation.watchPosition(onSample, function(error) { if (!best) finish(error); }, { enableHighAccuracy: true, maximumAge: 0, timeout: durationMs });
+            watch = navigator.geolocation.watchPosition(onSample, onError, { enableHighAccuracy: true, maximumAge: 0, timeout: durationMs });
+            if (settled && watch !== null) navigator.geolocation.clearWatch(watch);
         } catch (e) { /* 워치가 실패해도 아래 단발 호출로 시도한다 */ }
-        navigator.geolocation.getCurrentPosition(onSample, function(error) { if (!best && watch === null) finish(error); }, { enableHighAccuracy: true, maximumAge: 0, timeout: durationMs });
+        (typeof isNativeApp === "function" && isNativeApp() ? [true] : [true, false]).forEach(function(highAccuracy) {
+            if (settled) return;
+            try {
+                navigator.geolocation.getCurrentPosition(onSample, onError,
+                    { enableHighAccuracy: highAccuracy, maximumAge: 0, timeout: durationMs });
+            } catch (error) { onError(error); }
+        });
     });
 }
 
@@ -4239,7 +4259,7 @@ function focusCurrentLocation() {
         else showLocationToast(earlyUiText("locationUpdated", { accuracy:accuracy }), 2200);
         return true;
     }).catch(function(error) {
-        if (!recordingLocationPermissionBlocked) showLocationToast(earlyUiText("locationFailed"), 4000);
+        if (!recordingLocationPermissionBlocked) showLocationToast(earlyUiText(error && error.code === 1 ? "locationPermissionHelp" : "locationWebHelp"), 8000);
         if (typeof window.onGiloaTutorialLocationError === "function") window.onGiloaTutorialLocationError(error);
         return false;
     }).then(function(result) {
@@ -4800,6 +4820,7 @@ function stopBackgroundTracking() {
         console.warn("Background location stop failed", error);
     });
 }
+var foregroundLocationGeneration = 0;
 function startForegroundTracking() {
     if (!navigator.geolocation) {
         if (recStatusBox) recStatusBox.textContent = "Location unavailable";
@@ -4810,8 +4831,21 @@ function startForegroundTracking() {
         return;
     }
     if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+    var generation = ++foregroundLocationGeneration;
+    // Never reset a successful fix to Waiting when restarting the watch.
+    if (recStatusBox && isRecording && !hasValidCurrentLocation()) recStatusBox.textContent = earlyUiText("locating");
     watchId = navigator.geolocation.watchPosition(handlePosition, handleLocationError, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
-    if (recStatusBox && isRecording) recStatusBox.textContent = "Waiting for location";
+    if (typeof isNativeApp === "function" && isNativeApp()) return;
+    // Desktop browsers may have no GPS provider. Accept a fresh network fix
+    // for the position marker; handlePosition retains all recording filters.
+    try {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            if (generation !== foregroundLocationGeneration || !(trackingRequested || isRecording)) return;
+            handlePosition(position);
+        }, function(error) {
+            if (generation === foregroundLocationGeneration && error && error.code === 1) handleLocationError(error);
+        }, { enableHighAccuracy:false, maximumAge:0, timeout:10000 });
+    } catch (error) { /* The live high-accuracy watch remains active. */ }
 }
 function startTracking() {
     clearTrackingRetryTimer();
@@ -4830,6 +4864,7 @@ function startTracking() {
     startForegroundTracking();
 }
 function stopTracking() {
+    foregroundLocationGeneration++;
     trackingRequested = false;
     if (watchId !== null) {
         navigator.geolocation.clearWatch(watchId);

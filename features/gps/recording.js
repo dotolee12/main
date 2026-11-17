@@ -114,27 +114,45 @@ function acquireBestPosition(options) {
     var target = options.targetAccuracy || RESYNC_TARGET_ACCURACY_M;
     return new Promise(function(resolve, reject) {
         if (!navigator.geolocation) { reject(new Error("Geolocation unavailable")); return; }
-        var best = null, watch = null, timer = null, settled = false;
+        var best = null, watch = null, timer = null, settled = false, lastError = null;
         function accuracyOf(position) { return Number(position && position.coords && position.coords.accuracy) || Infinity; }
         function finish(error) {
             if (settled) return;
             settled = true;
             if (timer) clearTimeout(timer);
             if (watch !== null) { try { navigator.geolocation.clearWatch(watch); } catch (e) {} }
-            if (best) resolve(best); else reject(error || new Error("No position fix"));
+            if (best) resolve(best); else reject(error || lastError || Object.assign(new Error("Location timeout"), {code:3}));
         }
         function onSample(position) {
             if (settled) return;
+            var coords = position && position.coords;
+            if (!coords || !Number.isFinite(coords.latitude) || !Number.isFinite(coords.longitude) ||
+                Math.abs(coords.latitude) > 90 || Math.abs(coords.longitude) > 180 ||
+                !Number.isFinite(coords.accuracy) || coords.accuracy <= 0) return;
             if (accuracyOf(position) >= accuracyOf(best)) return;
             best = position;
             if (typeof options.onImproved === "function") options.onImproved(position);
             if (accuracyOf(position) <= target) finish();
         }
+        function onError(error) {
+            if (settled) return;
+            lastError = error;
+            // A failed GPS source does not mean the concurrent network source
+            // has failed. Only permission denial ends all requests immediately.
+            if (error && error.code === 1) finish(error);
+        }
         timer = setTimeout(function() { finish(); }, durationMs);
         try {
-            watch = navigator.geolocation.watchPosition(onSample, function(error) { if (!best) finish(error); }, { enableHighAccuracy: true, maximumAge: 0, timeout: durationMs });
+            watch = navigator.geolocation.watchPosition(onSample, onError, { enableHighAccuracy: true, maximumAge: 0, timeout: durationMs });
+            if (settled && watch !== null) navigator.geolocation.clearWatch(watch);
         } catch (e) { /* 워치가 실패해도 아래 단발 호출로 시도한다 */ }
-        navigator.geolocation.getCurrentPosition(onSample, function(error) { if (!best && watch === null) finish(error); }, { enableHighAccuracy: true, maximumAge: 0, timeout: durationMs });
+        (typeof isNativeApp === "function" && isNativeApp() ? [true] : [true, false]).forEach(function(highAccuracy) {
+            if (settled) return;
+            try {
+                navigator.geolocation.getCurrentPosition(onSample, onError,
+                    { enableHighAccuracy: highAccuracy, maximumAge: 0, timeout: durationMs });
+            } catch (error) { onError(error); }
+        });
     });
 }
 
@@ -196,7 +214,7 @@ function focusCurrentLocation() {
         else showLocationToast(earlyUiText("locationUpdated", { accuracy:accuracy }), 2200);
         return true;
     }).catch(function(error) {
-        if (!recordingLocationPermissionBlocked) showLocationToast(earlyUiText("locationFailed"), 4000);
+        if (!recordingLocationPermissionBlocked) showLocationToast(earlyUiText(error && error.code === 1 ? "locationPermissionHelp" : "locationWebHelp"), 8000);
         if (typeof window.onGiloaTutorialLocationError === "function") window.onGiloaTutorialLocationError(error);
         return false;
     }).then(function(result) {
@@ -757,6 +775,7 @@ function stopBackgroundTracking() {
         console.warn("Background location stop failed", error);
     });
 }
+var foregroundLocationGeneration = 0;
 function startForegroundTracking() {
     if (!navigator.geolocation) {
         if (recStatusBox) recStatusBox.textContent = "Location unavailable";
@@ -767,8 +786,21 @@ function startForegroundTracking() {
         return;
     }
     if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+    var generation = ++foregroundLocationGeneration;
+    // Never reset a successful fix to Waiting when restarting the watch.
+    if (recStatusBox && isRecording && !hasValidCurrentLocation()) recStatusBox.textContent = earlyUiText("locating");
     watchId = navigator.geolocation.watchPosition(handlePosition, handleLocationError, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
-    if (recStatusBox && isRecording) recStatusBox.textContent = "Waiting for location";
+    if (typeof isNativeApp === "function" && isNativeApp()) return;
+    // Desktop browsers may have no GPS provider. Accept a fresh network fix
+    // for the position marker; handlePosition retains all recording filters.
+    try {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            if (generation !== foregroundLocationGeneration || !(trackingRequested || isRecording)) return;
+            handlePosition(position);
+        }, function(error) {
+            if (generation === foregroundLocationGeneration && error && error.code === 1) handleLocationError(error);
+        }, { enableHighAccuracy:false, maximumAge:0, timeout:10000 });
+    } catch (error) { /* The live high-accuracy watch remains active. */ }
 }
 function startTracking() {
     clearTrackingRetryTimer();
@@ -787,6 +819,7 @@ function startTracking() {
     startForegroundTracking();
 }
 function stopTracking() {
+    foregroundLocationGeneration++;
     trackingRequested = false;
     if (watchId !== null) {
         navigator.geolocation.clearWatch(watchId);
