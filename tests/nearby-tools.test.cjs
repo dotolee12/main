@@ -28,7 +28,7 @@ async function fixture() {
         circleMarker:() => ({addTo(){return this;}, bindTooltip(){return this;}})
     };
     w.Worker = class {
-        constructor() { this.dead = false; workers++; }
+        constructor(url) { assert.equal(url.pathname, "/features/explore/walk-worker.js"); this.dead = false; workers++; }
         terminate() { this.dead = true; terminated++; }
         postMessage(data) {
             setTimeout(() => {
@@ -124,4 +124,30 @@ test("opening tools through menu buttons survives outside-map click handlers", a
         await tick();
         assert.equal(f.w.document.getElementById("nearby-tools").hidden, false);
     } finally {f.dom.window.close();}
+});
+
+test("car QR updates the same item only after explicit save and requires a fresh location", async () => {
+    const f=await fixture();
+    try {
+        f.w.navigator.geolocation={getCurrentPosition:ok=>ok({coords:{latitude:37.5,longitude:127.2,accuracy:12}})};
+        f.w.GiloaNearbyTools.open("items"); await tick();
+        f.node("qrCode").value="https://untrusted.example/";f.node("qrUse").click();await tick();
+        assert(f.node("editor").hidden);
+        f.node("qrCode").value="GILOA:CAR:1:12345678-1234-4234-9234-123456789abc";
+        f.node("qrUse").click();await tick();await tick();
+        assert(f.node("selected").textContent.includes("37.50000"));
+        f.node("note").value="B2 C14";f.node("save").click();await tick();await tick();
+        assert(f.node("list").textContent.includes("B2 C14"));
+        f.w.navigator.geolocation={getCurrentPosition:(ok,fail)=>fail({code:1})};
+        f.node("qrUse").click();await tick();await tick();
+        assert.equal(f.node("selected").textContent, "");
+        f.node("save").click();await tick();
+        assert(f.node("status").textContent.includes("보관 위치"));
+        f.node("pick").click();f.events.click({latlng:{lat:37.6,lng:127.3}});
+        f.node("note").value="B1 A02";f.node("save").click();await tick();await tick();
+        assert(f.node("list").textContent.includes("B1 A02"));
+        assert.equal([...f.node("list").querySelectorAll("h3")].filter(n=>n.textContent==="내 자동차").length,1);
+        f.w.currentLang="es";f.w.document.documentElement.lang="es";await tick();
+        assert.equal(f.node("qrCreate").textContent,"Crear QR del coche");
+    }finally{f.dom.window.close();}
 });

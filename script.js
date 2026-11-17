@@ -14748,6 +14748,61 @@ window.giloaRouteTrackingDiagnostic = function() {
             storage:"No se pudo guardar. Revisa espacio y ajustes.",saved:"Guardado.",required:"Introduce nombre y ubicación.",selected:"Ubicación elegida",image:"Elige JPG, PNG o WebP de menos de 15 MB.",weak:"Precisión de unos {m} m. Revisa interiores y añade una nota.",cancel:"Cancelar",load:"No se pudieron leer los registros. Vuelve a abrir.", more:"Ver más"
         }
     };
+    var qrWords = {
+      ko:["자동차 QR 만들기","자동차 QR 읽기","QR 사진 선택","QR 또는 코드를 확인해 주세요.","내 자동차","카메라를 사용할 수 없어요. QR 사진을 선택해 주세요.","층·기둥번호를 적고 위치를 확인한 뒤 저장하세요.","QR 이미지 저장"],
+      en:["Create car QR","Scan car QR","Choose QR photo","Check the QR or code.","My car","Camera unavailable. Choose a QR photo.","Add floor / pillar and confirm the location before saving.","Save QR image"],
+      ja:["車のQRを作成","車のQRを読む","QR写真を選択","QRまたはコードを確認してください。","自分の車","カメラを使用できません。QR写真を選択してください。","階・柱番号と位置を確認して保存してください。","QR画像を保存"],
+      zh:["创建汽车二维码","扫描汽车二维码","选择二维码照片","请检查二维码或代码。","我的汽车","无法使用相机，请选择二维码照片。","填写楼层和柱号，确认位置后保存。","保存二维码图片"],
+      es:["Crear QR del coche","Escanear QR","Elegir foto QR","Comprueba el QR o código.","Mi coche","Cámara no disponible. Elige una foto QR.","Añade planta y columna, confirma la ubicación y guarda.","Guardar imagen QR"]
+    };
+    function qw(i) { return (qrWords[String(typeof currentLang === "string" ? currentLang : document.documentElement.lang || "ko").slice(0,2)] || qrWords.en)[i]; }
+    var qrSession=0, qrStream=null;
+    function stopQR() { qrSession++; if(qrStream) qrStream.getTracks().forEach(function(t){t.stop();}); qrStream=null; if(panel) node("qrVideo").hidden=true; }
+    var vendorJobs={};
+    function vendor(name, symbol) {
+        if(window[symbol]) return Promise.resolve();
+        if(!vendorJobs[name]) vendorJobs[name]=new Promise(function(resolve,reject){
+            var script=document.createElement("script"); script.src=new URL("vendor/"+name, moduleURL).href;
+            script.onload=function(){window[symbol]?resolve():reject(new Error("vendor"));};
+            script.onerror=function(){delete vendorJobs[name];script.remove();reject(new Error("vendor"));}; document.head.append(script);
+        });
+        return vendorJobs[name];
+    }
+    // In production this source is assembled into root script.js.
+    var scriptURL=document.currentScript && document.currentScript.src;
+    var moduleURL=scriptURL && /\/features\/explore\/nearby-tools\.js(?:\?|$)/.test(scriptURL)
+        ? scriptURL : new URL("features/explore/nearby-tools.js",scriptURL || location.href).href;
+    async function acceptQR(raw) {
+        var match=/^GILOA:CAR:1:([a-f0-9-]{36})$/i.exec(raw.trim());
+        if(!match){node("status").textContent=qw(3);return;}
+        stopQR(); var id=++locatingId;
+        try {
+            var connection=await db();
+            var existing=await new Promise(function(resolve,reject){var tx=connection.transaction("items","readonly"),r=tx.objectStore("items").get("car-"+match[1]);r.onsuccess=function(){resolve(r.result);};r.onerror=function(){reject(r.error);};});
+            if(id!==locatingId)return;
+            edit(existing || {id:"car-"+match[1],name:qw(4),note:"",photo:null});
+            // The last parking place must never become a new scan's location.
+            delete draft.lat;delete draft.lng;node("selected").textContent="";
+            var currentDraft=draft, token=++locatingId;
+            try {var point=await position();if(token!==locatingId||draft!==currentDraft)return;setDraft(point);node("status").textContent=qw(6);}
+            catch(_){if(token===locatingId)status("location");}
+        } catch(_){status("storage");}
+    }
+    async function scanQR() {
+        stopQR(); var session=qrSession;
+        try {
+            await vendor("jsQR.js","jsQR");
+            var stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});
+            if(session!==qrSession){stream.getTracks().forEach(function(t){t.stop();});return;}
+            qrStream=stream;var video=node("qrVideo");video.srcObject=stream;video.hidden=false;await video.play();
+            var canvas=document.createElement("canvas"),ctx=canvas.getContext("2d",{willReadFrequently:true});
+            async function frame(){
+                if(session!==qrSession)return;
+                if(video.readyState>=2){canvas.width=Math.min(video.videoWidth,960);canvas.height=Math.round(video.videoHeight*canvas.width/video.videoWidth);ctx.drawImage(video,0,0,canvas.width,canvas.height);var data=ctx.getImageData(0,0,canvas.width,canvas.height),result=jsQR(data.data,data.width,data.height);if(result){await acceptQR(result.data);if(session!==qrSession)return;}}
+                setTimeout(frame,250);
+            } frame();
+        }catch(_){if(session===qrSession){stopQR();node("status").textContent=qw(5);}}
+    }
     var panel, toolsMap, routeLayer, itemLayer, database, workerJob;
     var listVersion = 0, pageCursor = null, pageLoading = false;
     var minutes = 20, mode = "walk", requestId = 0, controller = null, photoId = 0, locatingId = 0;
@@ -14813,7 +14868,7 @@ window.giloaRouteTrackingDiagnostic = function() {
         });
     }
     function cancelWork() {
-        requestId++; locatingId++; photoId++; listVersion++;
+        stopQR(); requestId++; locatingId++; photoId++; listVersion++;
         pageLoading = false;
         if (workerJob) {
             workerJob.worker.terminate();
@@ -14866,7 +14921,7 @@ window.giloaRouteTrackingDiagnostic = function() {
     }
     function planInWorker(elements, origin, duration, history) {
         return new Promise(function (resolve, reject) {
-            var worker = new Worker(new URL("./features/explore/walk-worker.js?v=nearby-fast-20261116", location.href));
+            var worker = new Worker(new URL("./walk-worker.js?v=qr-walk-20261117", moduleURL));
             var job = {worker:worker, reject:reject};
             workerJob = job;
             function finish(error, route) {
@@ -15070,6 +15125,16 @@ window.giloaRouteTrackingDiagnostic = function() {
             '<p data-nearby="status" role="status" aria-live="polite"></p>';
         document.body.append(panel);
         L.DomEvent.disableClickPropagation(panel);
+        var qrBox=document.createElement("div");
+        qrBox.innerHTML='<button type="button" data-nearby="qrCreate"></button><button type="button" data-nearby="qrScan"></button><label><span data-nearby="qrPhotoLabel"></span><input type="file" accept="image/*" data-nearby="qrPhoto"></label><video data-nearby="qrVideo" playsinline muted hidden style="width:100%"></video><canvas data-nearby="qrCanvas" hidden></canvas><a data-nearby="qrDownload" hidden download="giloa-car-qr.png"></a><label>QR<input data-nearby="qrCode" maxlength="100"></label><button type="button" data-nearby="qrUse">QR ✓</button>';
+        node("items").prepend(qrBox);
+        function qrText(){node("qrCreate").textContent=qw(0);node("qrScan").textContent=qw(1);node("qrPhotoLabel").textContent=qw(2);node("qrDownload").textContent=qw(7);}
+        qrText();new MutationObserver(qrText).observe(document.documentElement,{attributes:true,attributeFilter:["lang"]});
+        node("qrCreate").onclick=async function(){try{await vendor("qrcode.js","qrcode");var raw="GILOA:CAR:1:"+crypto.randomUUID();node("qrCode").value=raw;var canvas=node("qrCanvas");var qr=qrcode(0,"M");qr.addData(raw);qr.make();var count=qr.getModuleCount(),scale=8;canvas.width=canvas.height=(count+8)*scale;var ctx=canvas.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle="#000";for(var y=0;y<count;y++)for(var x=0;x<count;x++)if(qr.isDark(y,x))ctx.fillRect((x+4)*scale,(y+4)*scale,scale,scale);canvas.hidden=false;node("qrDownload").href=canvas.toDataURL("image/png");node("qrDownload").hidden=false;}catch(_){node("status").textContent=qw(3);}};
+        node("qrScan").onclick=scanQR;
+        node("qrUse").onclick=function(){acceptQR(node("qrCode").value);};
+        node("qrPhoto").onchange=async function(){var file=this.files[0];this.value="";if(!file)return;stopQR();var session=qrSession,bitmap;try{if(file.size>15*1024*1024)throw Error();await vendor("jsQR.js","jsQR");bitmap=await createImageBitmap(file);if(session!==qrSession)return;var canvas=document.createElement("canvas"),ratio=Math.min(1,1600/Math.max(bitmap.width,bitmap.height));canvas.width=Math.round(bitmap.width*ratio);canvas.height=Math.round(bitmap.height*ratio);var ctx=canvas.getContext("2d");ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);var data=ctx.getImageData(0,0,canvas.width,canvas.height),result=jsQR(data.data,data.width,data.height);if(!result)throw Error();await acceptQR(result.data);}catch(_){if(session===qrSession)node("status").textContent=qw(3);}finally{if(bitmap)bitmap.close();}};
+        document.addEventListener("visibilitychange",function(){if(document.hidden)stopQR();});window.addEventListener("pagehide",stopQR);
         var host = document.createElement("div"); host.className = "nearby-tools-entry";
         ["walk", "items"].forEach(function (kind) {
             var b = document.createElement("button"); b.type = "button"; b.dataset.nearbyOpen = kind; b.onclick = function (event) { event.preventDefault(); event.stopPropagation(); open(kind); }; host.append(b);

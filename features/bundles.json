@@ -171,7 +171,7 @@
         },
         {
           "path": "features/explore/nearby-tools.js",
-          "role": "탐험 코스·소지품 사진·메모·위치 기기 저장 UI"
+          "role": "탐험 코스·소지품·자동차 QR 생성/스캔·주차 위치 기기 저장 UI"
         }
       ]
     },
@@ -463,6 +463,14 @@
     {
       "path": "features/explore/walk-worker.js",
       "role": "화면과 분리된 산책 코스 계산·취소"
+    },
+    {
+      "path": "features/explore/vendor/qrcode.js",
+      "role": "자동차 QR 이미지 생성 (MIT, 요청 시 로드)"
+    },
+    {
+      "path": "features/explore/vendor/jsQR.js",
+      "role": "자동차 QR 카메라·사진 판독 (MIT, 요청 시 로드)"
     }
   ]
 }

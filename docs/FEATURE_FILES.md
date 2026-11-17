@@ -49,7 +49,7 @@
 | `script.js` | [features/character/dialogue.js](../features/character/dialogue.js) | 길로 대사·페이지 넘김·기존 첫 인사 |
 | `script.js` | [features/map/heading-and-events.js](../features/map/heading-and-events.js) | 방향 부채꼴·지도 이벤트·화면 복귀 연결 |
 | `script.js` | [features/i18n/static-ui.js](../features/i18n/static-ui.js) | 정적 화면 추가 번역·안내 문구 |
-| `script.js` | [features/explore/nearby-tools.js](../features/explore/nearby-tools.js) | 탐험 코스·소지품 사진·메모·위치 기기 저장 UI |
+| `script.js` | [features/explore/nearby-tools.js](../features/explore/nearby-tools.js) | 탐험 코스·소지품·자동차 QR 생성/스캔·주차 위치 기기 저장 UI |
 | `style.css` | [features/common/base.css](../features/common/base.css) | 브랜드 색상·기본 레이아웃·지도 공통 |
 | `style.css` | [features/map/canvas.css](../features/map/canvas.css) | 지도 캔버스·레이어·사진 군집 |
 | `style.css` | [features/tasks/top-bar-and-tasks.css](../features/tasks/top-bar-and-tasks.css) | 상단·음악 버튼·할 일·기록 상태 |
@@ -123,5 +123,7 @@
 | [manifest.json](../manifest.json) | PWA 설치 정보 |
 | [features/explore/walk-core.js](../features/explore/walk-core.js) | 요청 시 Worker에서 읽는 보행로 그래프와 경로 계산 |
 | [features/explore/walk-worker.js](../features/explore/walk-worker.js) | 화면과 분리된 산책 코스 계산·취소 |
+| [features/explore/vendor/qrcode.js](../features/explore/vendor/qrcode.js) | 자동차 QR 이미지 생성 (MIT, 요청 시 로드) |
+| [features/explore/vendor/jsQR.js](../features/explore/vendor/jsQR.js) | 자동차 QR 카메라·사진 판독 (MIT, 요청 시 로드) |
 
 HTML 조각은 완성된 페이지가 아닙니다. 화면 확인은 조립한 프로젝트 루트의 `index.html`을 서버로 열거나 https://giloa.kr/ 에서 하세요.

@@ -45,3 +45,16 @@ test("one-way pedestrian paths remain directional", () => {
     const result = core.plan(graph, {lat:elements[0].lat, lng:elements[0].lon}, 10, []);
     assert.ok(result.coords.length > 24);
 });
+
+test("a single connected road can supply an out-and-back walk", () => {
+    const elements=Array.from({length:11},(_,i)=>({type:"node",id:i,lat:37.5665+i*.0009,lon:126.978}));
+    elements.push({type:"way",id:50,nodes:Array.from({length:11},(_,i)=>i),tags:{highway:"footway"}});
+    const graph=core.graph(elements), route=core.plan(graph,{lat:37.5665,lng:126.978},20,[]);
+    assert.deepEqual(route.coords[0],route.coords.at(-1));
+    assert(route.length>=20*60*1.1*.65 && route.length<=20*60*1.1*1.3);
+    for(let i=1;i<route.coords.length;i++) {
+        const a=[...graph.nodes].find(([,p])=>p===route.coords[i-1])[0];
+        const b=[...graph.nodes].find(([,p])=>p===route.coords[i])[0];
+        assert(graph.links.get(a).some(edge=>edge.id===b));
+    }
+});

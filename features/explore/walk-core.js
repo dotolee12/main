@@ -141,6 +141,19 @@ var GiloaWalkCore = (function () {
                 if (!best || score < best.score) best = {coords:coords, length:length, score:score, approach:closest, stops:[g.nodes.get(a), g.nodes.get(b)]};
             });
         });
+        if (!best) {
+            // A connected road can have only one useful bearing. Allow a real
+            // out-and-back path instead of requiring two different waypoints.
+            for (var candidate of candidates.slice(0,48)) {
+                var home=shortest(g,candidate[0],target*0.7);
+                if(!home.costs.has(start))continue;
+                var length=outward.costs.get(candidate[0])+home.costs.get(start);
+                if(length<target*0.65||length>target*1.3)continue;
+                var ids=path(outward,start,candidate[0]).concat(path(home,candidate[0],start).slice(1));
+                var score=Math.abs(length-target)/target;
+                if(!best||score<best.score)best={coords:ids.map(function(id){return g.nodes.get(id);}),length:length,score:score,approach:closest,stops:[g.nodes.get(candidate[0])]};
+            }
+        }
         if (!best) throw new Error("noRoute");
         return best;
     }
