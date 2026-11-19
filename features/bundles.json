@@ -171,7 +171,7 @@
         },
         {
           "path": "features/explore/nearby-tools.js",
-          "role": "탐험 코스·소지품·자동차 QR 생성/스캔·주차 위치 기기 저장 UI"
+          "role": "탐험 코스·현재 위치 물건 사진/위치 저장·주차/자동차 QR 연결 UI"
         }
       ]
     },
@@ -342,7 +342,7 @@
     },
     {
       "path": "parking.js",
-      "role": "개인 주차 위치·층·구역·파란 위치 점 탭"
+      "role": "현재 위치 물건 저장 진입·기존 주차 위치/층/구역·메모 연결"
     },
     {
       "path": "parking.css",

@@ -112,6 +112,20 @@
             } frame();
         }catch(_){if(session===qrSession){stopQR();node("status").textContent=qw(5);}}
     }
+    var ITEM_UI = {
+        ko:['물건 위치 저장','주차 위치 저장·내 차 찾기','물건 사진으로 저장','물건을 둔 모습 촬영','선택한 위치에 사진과 메모를 함께 저장해요. 자동차도 이곳에서 기록할 수 있어요.','자동차 QR (선택)'],
+        en:['Save item location','Parking / find my car','Save an item with a photo','Photograph where you left it','Save a photo and note at the selected location. You can also record your car here.','Car QR (optional)'],
+        ja:['物の場所を保存','駐車位置を保存・車を探す','写真で物を保存','置いた場所を撮影','選んだ場所に写真とメモを保存します。車もここから記録できます。','車のQR（任意）'],
+        zh:['保存物品位置','保存停车位置・寻找汽车','用照片保存物品','拍摄存放位置','在所选位置保存照片和备注，也可记录汽车。','汽车二维码（可选）'],
+        es:['Guardar ubicación de objetos','Aparcar / encontrar mi coche','Guardar objeto con foto','Fotografiar dónde lo dejaste','Guarda una foto y nota en la ubicación elegida. También puedes registrar tu coche.','QR del coche (opcional)'],
+        fr:['Enregistrer un objet','Stationnement / retrouver ma voiture','Enregistrer avec une photo','Photographier le lieu de dépôt','Enregistrez une photo et une note au lieu choisi. Vous pouvez aussi enregistrer votre voiture.','QR voiture (facultatif)']
+    };
+    function itemText(index) {
+        var lang=String(typeof currentLang === 'string' ? currentLang : document.documentElement.lang || 'ko').slice(0,2);
+        return (ITEM_UI[lang] || ITEM_UI.en)[index];
+    }
+    var itemContext = null, listPhotoUrls = [];
+    function clearListPhotos() { listPhotoUrls.forEach(function(url){URL.revokeObjectURL(url);}); listPhotoUrls=[]; }
     var panel, toolsMap, routeLayer, itemLayer, database, workerJob;
     var listVersion = 0, pageCursor = null, pageLoading = false;
     var minutes = 20, mode = "walk", requestId = 0, controller = null, photoId = 0, locatingId = 0;
@@ -191,6 +205,7 @@
     }
     function close() {
         cancelWork(); picking = false;
+        clearListPhotos();
         panel.hidden = true; panel.classList.remove("is-picking");
         draft = null;
         if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -206,12 +221,18 @@
         });
         document.querySelectorAll("[data-nearby-open]").forEach(function (button) { button.textContent = label(button.dataset.nearbyOpen === "walk" ? "walk" : "items"); });
         node("walk").hidden = mode !== "walk"; node("items").hidden = mode !== "items";
-        node("title").textContent = label(mode === "walk" ? "walk" : "items");
+        node("title").textContent = mode === "walk" ? label("walk") : itemText(0);
+        node("parking").textContent = itemText(1);
+        node("new").textContent = itemText(2);
+        node("takePhoto").textContent = itemText(3);
+        node("itemHelp").textContent = itemText(4);
+        node("qrSummary").textContent = itemText(5);
         node("close").textContent = "×";
         node("close").setAttribute("aria-label", label("close"));
     }
-    function open(modeName) {
+    function open(modeName, context) {
         cancelWork(); mode = modeName; picking = false;
+        itemContext = modeName === "items" && validPosition(context) ? Object.assign({},context) : null;
         returnFocus = document.activeElement;
         panel.hidden = false; panel.classList.remove("is-picking");
         if (typeof toggleSidebar === "function") toggleSidebar(false);
@@ -323,8 +344,9 @@
     function edit(record) {
         locatingId++; photoId++; photoBusy = false; node("save").disabled = false;
         draft = record ? Object.assign({}, record) : {id:crypto.randomUUID(), name:"", note:"", photo:null};
+        if (!record && itemContext) { draft.lat=itemContext.lat; draft.lng=itemContext.lng; draft.note=itemContext.note || ''; }
         node("name").value = draft.name; node("note").value = draft.note;
-        node("photo").value = ""; node("selected").textContent = "";
+        node("photo").value = ""; node("cameraPhoto").value = ""; node("selected").textContent = "";
         node("editor").hidden = false;
         if (validPosition(draft)) setDraft(draft);
         previewPhoto(); status("");
@@ -384,7 +406,7 @@
         try {
             var page = await records("list", append ? pageCursor : null);
             if (version !== listVersion || panel.hidden || mode !== "items") return;
-            if (!append) { node("list").replaceChildren(); itemLayer.clearLayers(); }
+            if (!append) { clearListPhotos(); node("list").replaceChildren(); itemLayer.clearLayers(); }
             if (!append && !page.items.length) node("list").textContent = label("empty");
             pageCursor = page.cursor;
             node("more").hidden = !page.more;
@@ -394,6 +416,11 @@
                 name.textContent = record.name; note.textContent = record.note;
                 date.textContent = new Date(record.savedAt).toLocaleString(document.documentElement.lang || "ko");
                 row.append(name, note, date);
+                if (record.photo instanceof Blob) {
+                    var photo=document.createElement("img"), url=URL.createObjectURL(record.photo);
+                    listPhotoUrls.push(url); photo.src=url; photo.alt=record.name; photo.loading="lazy"; photo.className="stored-item-photo";
+                    row.prepend(photo);
+                }
                 function button(key, action) {
                     var b = document.createElement("button"); b.type = "button"; b.textContent = label(key); b.onclick = action; row.append(b);
                 }
@@ -425,10 +452,10 @@
             '<div data-nearby="walk"><div class="nearby-time">' + [10,20,40].map(function (m) { return '<button type="button" data-minutes="' + m + '"></button>'; }).join("") + '</div>' +
             '<p data-nearby-text="consent"></p><button type="button" data-nearby="make" data-nearby-text="make"></button><button type="button" data-nearby="clear" data-nearby-text="clear"></button>' +
             '<p data-nearby="summary"></p><p data-nearby="approach"></p><ol data-nearby="stops"></ol><p data-nearby-text="notice"></p><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a></div>' +
-            '<div data-nearby="items"><p data-nearby-text="local"></p><button type="button" data-nearby="new" data-nearby-text="newItem"></button><div data-nearby="editor" hidden>' +
+            '<div data-nearby="items"><p data-nearby="itemHelp"></p><button type="button" data-nearby="parking"></button><button type="button" data-nearby="new"></button><p data-nearby-text="local"></p><div data-nearby="editor" hidden>' +
             '<label><span data-nearby-text="name"></span><input data-nearby="name" maxlength="80"></label>' +
             '<label><span data-nearby-text="note"></span><textarea data-nearby="note" maxlength="500" rows="3"></textarea></label>' +
-            '<label><span data-nearby-text="photo"></span><input data-nearby="photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"></label><img data-nearby="preview" alt="" hidden>' +
+            '<button type="button" data-nearby="takePhoto"></button><input data-nearby="cameraPhoto" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" hidden><label><span data-nearby-text="photo"></span><input data-nearby="photo" type="file" accept="image/jpeg,image/png,image/webp"></label><img data-nearby="preview" alt="" hidden>' +
             '<button type="button" data-nearby="current" data-nearby-text="current"></button><button type="button" data-nearby="pick" data-nearby-text="pick"></button><p data-nearby="selected"></p>' +
             '<button type="button" data-nearby="save" data-nearby-text="save"></button><button type="button" data-nearby="cancel" data-nearby-text="cancel"></button></div><div data-nearby="list"></div><button type="button" data-nearby="more" data-nearby-text="more" hidden></button></div>' +
             '<p data-nearby="status" role="status" aria-live="polite"></p>';
@@ -436,7 +463,8 @@
         L.DomEvent.disableClickPropagation(panel);
         var qrBox=document.createElement("div");
         qrBox.innerHTML='<button type="button" data-nearby="qrCreate"></button><button type="button" data-nearby="qrScan"></button><label><span data-nearby="qrPhotoLabel"></span><input type="file" accept="image/*" data-nearby="qrPhoto"></label><video data-nearby="qrVideo" playsinline muted hidden style="width:100%"></video><canvas data-nearby="qrCanvas" hidden></canvas><a data-nearby="qrDownload" hidden download="giloa-car-qr.png"></a><label>QR<input data-nearby="qrCode" maxlength="100"></label><button type="button" data-nearby="qrUse">QR ✓</button>';
-        node("items").prepend(qrBox);
+        var qrDetails=document.createElement("details"), qrSummary=document.createElement("summary");
+        qrSummary.dataset.nearby="qrSummary";qrDetails.append(qrSummary,qrBox);node("items").append(qrDetails);
         function qrText(){node("qrCreate").textContent=qw(0);node("qrScan").textContent=qw(1);node("qrPhotoLabel").textContent=qw(2);node("qrDownload").textContent=qw(7);}
         qrText();new MutationObserver(qrText).observe(document.documentElement,{attributes:true,attributeFilter:["lang"]});
         node("qrCreate").onclick=async function(){try{await vendor("qrcode.js","qrcode");var raw="GILOA:CAR:1:"+crypto.randomUUID();node("qrCode").value=raw;var canvas=node("qrCanvas");var qr=qrcode(0,"M");qr.addData(raw);qr.make();var count=qr.getModuleCount(),scale=8;canvas.width=canvas.height=(count+8)*scale;var ctx=canvas.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle="#000";for(var y=0;y<count;y++)for(var x=0;x<count;x++)if(qr.isDark(y,x))ctx.fillRect((x+4)*scale,(y+4)*scale,scale,scale);canvas.hidden=false;node("qrDownload").href=canvas.toDataURL("image/png");node("qrDownload").hidden=false;}catch(_){node("status").textContent=qw(3);}};
@@ -445,7 +473,7 @@
         node("qrPhoto").onchange=async function(){var file=this.files[0];this.value="";if(!file)return;stopQR();var session=qrSession,bitmap;try{if(file.size>15*1024*1024)throw Error();await vendor("jsQR.js","jsQR");bitmap=await createImageBitmap(file);if(session!==qrSession)return;var canvas=document.createElement("canvas"),ratio=Math.min(1,1600/Math.max(bitmap.width,bitmap.height));canvas.width=Math.round(bitmap.width*ratio);canvas.height=Math.round(bitmap.height*ratio);var ctx=canvas.getContext("2d");ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);var data=ctx.getImageData(0,0,canvas.width,canvas.height),result=jsQR(data.data,data.width,data.height);if(!result)throw Error();await acceptQR(result.data);}catch(_){if(session===qrSession)node("status").textContent=qw(3);}finally{if(bitmap)bitmap.close();}};
         document.addEventListener("visibilitychange",function(){if(document.hidden)stopQR();});window.addEventListener("pagehide",stopQR);
         var host = document.createElement("div"); host.className = "nearby-tools-entry";
-        ["walk", "items"].forEach(function (kind) {
+        ["walk"].forEach(function (kind) {
             var b = document.createElement("button"); b.type = "button"; b.dataset.nearbyOpen = kind; b.onclick = function (event) { event.preventDefault(); event.stopPropagation(); open(kind); }; host.append(b);
         });
         var sidebar = document.querySelector("#sidebar .sidebar-header");
@@ -456,8 +484,15 @@
             button.onclick = function () { cancelWork(); minutes = Number(button.dataset.minutes); refreshText(); status(""); };
         });
         node("new").onclick = function () { edit(null); };
+        node("parking").onclick = function () {
+            if (!window.GiloaParking) return;
+            var context=itemContext;
+            close(); window.GiloaParking.openFromLocation(context);
+        };
         node("more").onclick = function () { refreshItems(true); };
         node("photo").onchange = function () { readPhoto(this.files[0]); };
+        node("takePhoto").onclick = function () { node("cameraPhoto").click(); };
+        node("cameraPhoto").onchange = function () { readPhoto(this.files[0]); };
         node("current").onclick = async function () {
             var id = ++locatingId; status("waiting");
             try { var p = await position(); if (id === locatingId && draft) { status(""); setDraft(p); } }

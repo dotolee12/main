@@ -19,6 +19,7 @@
         fr:{memo:'Note',parking:'Parking',camera:'Photographier le numéro',shoot:'Capturer et lire',gallery:'Lire une photo existante',cameraError:'Caméra indisponible. Choisissez une photo ou saisissez les informations.',reading:'Lecture de l’étage et de la zone… Le premier scan télécharge les outils.',review:'Vérifiez et corrigez les numéros avant d’enregistrer.',ocrError:'Aucun numéro reconnu. Réessayez ou saisissez les informations.',local:'La photo est traitée sur cet appareil et n’est pas enregistrée. Seuls les textes vérifiés et la position sont conservés dans ce navigateur.'}
     };
     Object.keys(TEXT).forEach(function (lang) { Object.assign(TEXT[lang], EXTRA[lang]); });
+    var STORAGE_TAB = {ko:'물건 위치 저장',en:'Save item location',ja:'物の場所を保存',zh:'保存物品位置',es:'Guardar ubicación de objetos',fr:'Enregistrer un objet'};
     var parkingMap, marker, draftMarker, record = null, draft = null, panel;
     var stream = null, cameraRequest = 0, ocrTask = null, memoContext = null;
     var editing = false, picking = false, photoLoading = false, request = 0, photoRequest = 0;
@@ -82,7 +83,10 @@
     }
     function refresh() {
         var w = words();
-        document.querySelectorAll('[data-location-tab]').forEach(function (el) { el.textContent = w[el.dataset.locationTab]; });
+        document.querySelectorAll('[data-location-tab]').forEach(function (el) {
+            var lang = String(typeof currentLang === 'string' ? currentLang : document.documentElement.lang || 'ko').slice(0,2);
+            el.textContent = el.dataset.locationTab === 'parking' ? (STORAGE_TAB[lang] || STORAGE_TAB.en) : w[el.dataset.locationTab];
+        });
         panel.querySelectorAll('[data-parking-text]').forEach(function (el) { el.textContent = w[el.dataset.parkingText]; });
         node('close').setAttribute('aria-label', w.close);
         node('preview').alt = w.photo;
@@ -226,12 +230,21 @@
             if (typeof specialPlaceEditorCoords === 'undefined' || !specialPlaceEditorCoords) return;
             var coords = specialPlaceEditorCoords;
             var context = {lat:coords.latitude, lng:coords.longitude, note:document.getElementById('special-place-note').value};
+            if (!window.GiloaNearbyTools) return;
             window.closeSpecialPlaceEditor();
-            open(true, true); memoContext = context;
-            chooseLocation(context.lat, context.lng, null);
-            camera();
+            window.GiloaNearbyTools.open('items', context);
         };
     }
+    window.GiloaParking = {
+        openFromLocation:function (context) {
+            if (!panel) return false;
+            // Existing parking remains separate; never replace the saved record
+            // merely by entering the shared item-location menu.
+            open(!record, true); memoContext = valid(context) ? context : null;
+            if (editing && valid(context)) chooseLocation(context.lat, context.lng, null);
+            return true;
+        }
+    };
     function setup() {
         if (panel) return;
         parkingMap = window.giloaMapBootstrap || (typeof map !== 'undefined' && typeof map.createPane === 'function' ? map : null);
@@ -250,7 +263,11 @@
         L.DomEvent.disableClickPropagation(panel); L.DomEvent.disableScrollPropagation(panel);
         addMemoTabs();
         node('camera').onclick = camera; node('shoot').onclick = shoot; node('cancelCamera').onclick = stopCamera;
-        node('memo').onclick = memo; node('parkingTab').onclick = function () { if (editing) camera(); };
+        node('memo').onclick = memo; node('parkingTab').onclick = function () {
+            if (!window.GiloaNearbyTools) return;
+            var context=memoContext || (valid(draft) ? {lat:draft.lat,lng:draft.lng,note:''} : null);
+            close(); window.GiloaNearbyTools.open('items',context);
+        };
         node('close').onclick = close; node('gps').onclick = locate; node('pick').onclick = pick;
         node('save').onclick = save; node('clear').onclick = clear;
         node('edit').onclick = function () { open(true); };

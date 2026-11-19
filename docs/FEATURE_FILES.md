@@ -49,7 +49,7 @@
 | `script.js` | [features/character/dialogue.js](../features/character/dialogue.js) | 길로 대사·페이지 넘김·기존 첫 인사 |
 | `script.js` | [features/map/heading-and-events.js](../features/map/heading-and-events.js) | 방향 부채꼴·지도 이벤트·화면 복귀 연결 |
 | `script.js` | [features/i18n/static-ui.js](../features/i18n/static-ui.js) | 정적 화면 추가 번역·안내 문구 |
-| `script.js` | [features/explore/nearby-tools.js](../features/explore/nearby-tools.js) | 탐험 코스·소지품·자동차 QR 생성/스캔·주차 위치 기기 저장 UI |
+| `script.js` | [features/explore/nearby-tools.js](../features/explore/nearby-tools.js) | 탐험 코스·현재 위치 물건 사진/위치 저장·주차/자동차 QR 연결 UI |
 | `style.css` | [features/common/base.css](../features/common/base.css) | 브랜드 색상·기본 레이아웃·지도 공통 |
 | `style.css` | [features/map/canvas.css](../features/map/canvas.css) | 지도 캔버스·레이어·사진 군집 |
 | `style.css` | [features/tasks/top-bar-and-tasks.css](../features/tasks/top-bar-and-tasks.css) | 상단·음악 버튼·할 일·기록 상태 |
@@ -92,7 +92,7 @@
 | [item-recognition.js](../item-recognition.js) | 사진 물건 자동 판별·확신도 및 애매한 결과 처리·분석 취소 |
 | [item-recognition-worker.js](../item-recognition-worker.js) | 기기 내 COCO-SSD CPU 추론·사진 외부 전송 없음·요청 시 모델 다운로드 |
 | [item-icons.js](../item-icons.js) | 기본 그림 아이콘·이름 기반 종류 제안 — 사진 자동 인식 아님 |
-| [parking.js](../parking.js) | 개인 주차 위치·층·구역·파란 위치 점 탭 |
+| [parking.js](../parking.js) | 현재 위치 물건 저장 진입·기존 주차 위치/층/구역·메모 연결 |
 | [parking.css](../parking.css) | 개인 주차 화면 디자인 |
 | [parking-ocr.js](../parking-ocr.js) | 주차 기둥 번호 문자 인식 |
 | [photo-items.js](../photo-items.js) | 사진 자르기·아이콘 아이템 저장·삭제 |

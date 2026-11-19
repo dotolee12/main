@@ -26,7 +26,7 @@ function start(saved) {
         const savedMarker=markers.findLast(marker=>!marker.removed && marker.options.icon);
         if (savedMarker) { savedMarker.click(); return; }
         w.openSpecialPlaceEditor(37.52,127.2);
-        w.document.querySelector('#location-memo-tabs [data-location-tab=parking]').click();
+        w.GiloaParking.openFromLocation({lat:37.52,lng:127.2,note:''});
     };
     const clickMap = ()=>handlers.click({latlng:{lat:37.51,lng:127.1}});
     return {w,dom,map,el,open,clickMap,markers};
@@ -122,12 +122,15 @@ test('existing legacy parking photograph survives editing without new image pers
     a.open();assert.equal(a.el('preview').hidden,false);a.el('edit').click();a.el('floor').value='B2';a.el('save').click();
     assert.equal(JSON.parse(a.w.localStorage.getItem(key)).photo,photo);a.w.close();
 });
-test('memo parking tab retains memo draft, starts camera without audio and stops tracks on return', async () => {
-    const a=start();let stopped=0,options;
+test('item-location tab passes memo draft to the shared menu; explicit parking camera still stops on return', async () => {
+    const a=start();let stopped=0,options,context;
+    a.w.GiloaNearbyTools={open:(mode,value)=>{assert.equal(mode,'items');context=value;}};
     a.w.HTMLMediaElement.prototype.play=()=>Promise.resolve();
     a.w.navigator.mediaDevices={getUserMedia:value=>{options=value;return Promise.resolve({getTracks:()=>[{stop:()=>stopped++}]});}};
     a.w.document.getElementById('special-place-note').value='original unsaved memo';
     a.w.document.querySelector('#location-memo-tabs [data-location-tab=parking]').click();await tick();
+    assert.equal(context.note,'original unsaved memo');assert.equal(options,undefined);
+    a.w.GiloaParking.openFromLocation(context);a.el('camera').click();await tick();
     assert.equal(options.audio,false);assert.equal(a.el('cameraView').hidden,false);
     assert.match(a.el('location').textContent,/37.52000/);a.el('memo').click();
     assert.equal(stopped,1);assert.equal(a.el('video').srcObject,null);

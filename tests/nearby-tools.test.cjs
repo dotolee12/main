@@ -120,7 +120,7 @@ test("opening tools through menu buttons survives outside-map click handlers", a
         f.node("clear").click();
         assert.equal(f.w.document.getElementById("nearby-tools").hidden, false);
         f.node("close").click();
-        f.w.document.querySelector('[data-nearby-open="items"]').click();
+        f.w.GiloaNearbyTools.open("items");
         await tick();
         assert.equal(f.w.document.getElementById("nearby-tools").hidden, false);
     } finally {f.dom.window.close();}
