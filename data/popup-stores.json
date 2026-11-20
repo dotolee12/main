@@ -1,0 +1,45 @@
+{
+  "checkedAt": "2026-11-20",
+  "events": [
+    {
+      "id": "mama-2026-seongsu",
+      "names": {
+        "ko": "2026 MAMA AWARDS 팝업 · 성수",
+        "en": "2026 MAMA AWARDS · Seongsu"
+      },
+      "address": "서울 성동구 연무장7길 13",
+      "floor": "2F · 올리브영 N성수",
+      "start": "2026-11-14",
+      "end": "2026-11-23",
+      "source": "https://cjnews.cj.net/?p=82684",
+      "publisher": "CJ NEWSROOM"
+    },
+    {
+      "id": "mama-2026-jamsil",
+      "names": {
+        "ko": "2026 MAMA AWARDS 팝업 · 잠실",
+        "en": "2026 MAMA AWARDS · Jamsil"
+      },
+      "address": "서울 송파구 올림픽로 300",
+      "floor": "B1F · 롯데백화점 에비뉴엘 월드타워점",
+      "start": "2026-11-14",
+      "end": "2026-11-22",
+      "source": "https://cjnews.cj.net/?p=82684",
+      "publisher": "CJ NEWSROOM"
+    },
+    {
+      "id": "2an-mauve-2026",
+      "names": {
+        "ko": "투에이엔 모브 크러쉬 팝업",
+        "en": "2aN Mauve Crush pop-up"
+      },
+      "address": "서울 성동구 연무장길 87",
+      "floor": "1F · 무신사 뷰티 성수",
+      "start": "2026-11-11",
+      "end": "2026-12-07",
+      "hours": "10:00–17:00",
+      "source": "https://www.musinsa.com/content/1559102517848898888",
+      "publisher": "MUSINSA"
+    }
+  ]
+}

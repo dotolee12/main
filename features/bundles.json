@@ -471,6 +471,18 @@
     {
       "path": "features/explore/vendor/jsQR.js",
       "role": "자동차 QR 카메라·사진 판독 (MIT, 요청 시 로드)"
+    },
+    {
+      "path": "popup-stores.js",
+      "role": "공식 공지 기반 팝업스토어·빨간 POP 지도 표시·한국 날짜 종료 제외"
+    },
+    {
+      "path": "popup-stores.css",
+      "role": "빨간 팝업스토어 아이콘·목록"
+    },
+    {
+      "path": "data/popup-stores.json",
+      "role": "공식 출처·확인일·기간·주소를 가진 수동 검증 팝업 목록"
     }
   ]
 }

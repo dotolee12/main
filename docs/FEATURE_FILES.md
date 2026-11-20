@@ -125,5 +125,8 @@
 | [features/explore/walk-worker.js](../features/explore/walk-worker.js) | 화면과 분리된 산책 코스 계산·취소 |
 | [features/explore/vendor/qrcode.js](../features/explore/vendor/qrcode.js) | 자동차 QR 이미지 생성 (MIT, 요청 시 로드) |
 | [features/explore/vendor/jsQR.js](../features/explore/vendor/jsQR.js) | 자동차 QR 카메라·사진 판독 (MIT, 요청 시 로드) |
+| [popup-stores.js](../popup-stores.js) | 공식 공지 기반 팝업스토어·빨간 POP 지도 표시·한국 날짜 종료 제외 |
+| [popup-stores.css](../popup-stores.css) | 빨간 팝업스토어 아이콘·목록 |
+| [data/popup-stores.json](../data/popup-stores.json) | 공식 출처·확인일·기간·주소를 가진 수동 검증 팝업 목록 |
 
 HTML 조각은 완성된 페이지가 아닙니다. 화면 확인은 조립한 프로젝트 루트의 `index.html`을 서버로 열거나 https://giloa.kr/ 에서 하세요.

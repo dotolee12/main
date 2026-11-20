@@ -55,6 +55,7 @@
 | 시간의 흔적·재촬영·과거 사진 비교 | `time-trace.js`, `time-trace.css` | `features/photos/panels.html` |
 | 10·20·40분 탐험·산책 왕복·물건 위치 저장·소지품 사진·자동차 QR·주차 위치 | `features/explore/nearby-tools.js`, `features/explore/walk-core.js` | `features/explore/nearby-tools.css`。`features/explore/walk-worker.js`에서 요청 시 코스 계산, 별도 DB `giloa-belongings-v1`의 메뉴별 30개 조회. 현재 위치의 `물건 위치 저장` 탭에서 주차와 소지품 사진을 함께 찾음 (`parking.js` 연결). 자동차 전용 QR 생성/스캔은 `features/explore/vendor/`를 요청 시 로드 |
 | 개인 주차·층·구역·차를 세운 위치 | `parking.js`, `parking.css` | `parking-ocr.js`는 촬영한 기둥 번호 인식. 공공 주차장 조회와 다름 |
+| 팝업스토어·빨간 POP·한시 행사 | `popup-stores.js`, `popup-stores.css`, `data/popup-stores.json` | 공식 공지 확인 후 목록 갱신. 한국 날짜로 종료 제외. 주소는 카카오 주소 검색으로 확인해 지도 표시. 자동 인터넷 수집 아님 |
 | 관광지·음식점·쇼핑·숙박·축제·좋아요 | `features/places/tourism.js` | `features/places/tourism.css`, `features/map/map-and-controls.html`, 번역·지도 표시 설정 |
 | 음식점 누락 보완·굵은 가게 이름 | `features/places/restaurant-coverage.js` | 음식점 스위치가 켜졌을 때 한국관광공사 식당과 중복되지 않는 주변 OpenStreetMap 음식점 표시. `features/places/tourism.js`, `features/places/tourism.css` |
 | 검색·동네가게·편의점·카페·커피 브랜드 글자 표시·마트·다이소·올리브영 | `local-shops.js`, `local-shops.css` | 통합 쇼핑 스위치는 `features/map/layer-controls.js` |
