@@ -474,7 +474,7 @@
     },
     {
       "path": "popup-stores.js",
-      "role": "공식 공지 기반 팝업스토어·빨간 POP 지도 표시·한국 날짜 종료 제외"
+      "role": "공식 팝업·서울광장 행사·빨간 POP/EVENT·예정 구분·한국 날짜 종료 제외"
     },
     {
       "path": "popup-stores.css",

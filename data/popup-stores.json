@@ -40,6 +40,25 @@
       "hours": "10:00–17:00",
       "source": "https://www.musinsa.com/content/1559102517848898888",
       "publisher": "MUSINSA"
+    },
+    {
+      "id": "seoul-plaza-ice-2026-2027",
+      "kind": "plaza-event",
+      "names": {
+        "ko": "서울광장 스케이트장",
+        "en": "Seoul Plaza Ice Skating Rink",
+        "ja": "ソウル広場スケート場",
+        "zh": "首尔广场溜冰场",
+        "es": "Pista de patinaje de Seoul Plaza"
+      },
+      "address": "서울 중구 세종대로 110",
+      "floor": "서울광장 · 시청역 5번 출구 앞",
+      "start": "2026-12-18",
+      "end": "2027-02-09",
+      "hours": "Sun–Thu 10:00–21:30 / Fri–Sat 10:00–00:30",
+      "source": "https://plaza.seoul.go.kr/archives/18954",
+      "publisher": "서울특별시 서울광장",
+      "checkedAt": "2026-11-20"
     }
   ]
 }

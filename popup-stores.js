@@ -10,33 +10,48 @@
         es:['Tiendas temporales','Información oficial ↗','Ver en el mapa','Fechas','Verificado','Consulta horarios, reservas y acceso en la web oficial.','No hay eventos vigentes en esta lista.','Ubicación no disponible. Buscar dirección ↗','Cerrar','Dentro del período · confirma el horario','No se pudo cargar. Reintenta','Reintentar','Datos revisados en línea; no es una lista completa ni en tiempo real.','Mostrar/ocultar marcadores'],
         fr:['Boutiques éphémères','Informations officielles ↗','Voir sur la carte','Dates','Vérifié','Consultez horaires, réservations et accès sur le site officiel.','Aucun événement actuel dans cette liste.','Position indisponible. Chercher l’adresse ↗','Fermer','Période en cours · vérifiez les horaires','Chargement impossible. Réessayez','Réessayer','Informations vérifiées, ni exhaustives ni en temps réel.','Afficher/masquer les repères']
     };
+    var extra = {
+        ko:['팝업·서울광장 행사','서울광장 행사','예정 · 시작일과 운영시간을 확인해 주세요.'],
+        en:['Pop-ups & Seoul Plaza events','Seoul Plaza event','Upcoming · check the start date and hours.'],
+        ja:['ポップアップ・ソウル広場イベント','ソウル広場イベント','開催予定・開始日と営業時間をご確認ください。'],
+        zh:['快闪店·首尔广场活动','首尔广场活动','即将开始・请确认开始日期和时间。'],
+        es:['Tiendas temporales y eventos de Seoul Plaza','Evento en Seoul Plaza','Próximamente · confirma la fecha y el horario.'],
+        fr:['Boutiques et événements de Seoul Plaza','Événement de Seoul Plaza','À venir · vérifiez la date et les horaires.']
+    };
+    Object.keys(extra).forEach(function(key){copy[key][0]=extra[key][0];copy[key][14]=extra[key][1];copy[key][15]=extra[key][2];});
     var m, group, panel, controlButton, data = {events:[]}, points = {}, enabled = true, loading = false, failed = false;
     function lang() { return String(typeof currentLang === 'string' ? currentLang : document.documentElement.lang || 'ko').slice(0,2); }
     function w() { return copy[lang()] || copy.en; }
     function day(now) { return new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(now || new Date()); }
     function active(e, today) { return !!e && /^\d{4}-\d{2}-\d{2}$/.test(e.start) && /^\d{4}-\d{2}-\d{2}$/.test(e.end) && e.start <= today && today <= e.end; }
+    function listed(e, today) {
+        if(!e || !/^\d{4}-\d{2}-\d{2}$/.test(e.start) || !/^\d{4}-\d{2}-\d{2}$/.test(e.end) || e.start > e.end) return false;
+        var horizon = new Date(today+'T00:00:00+09:00');horizon.setUTCDate(horizon.getUTCDate()+30);
+        return e.end >= today && e.start <= day(horizon);
+    }
+    function markerLabel(e) { return e.kind === 'plaza-event' ? 'EVENT' : 'POP'; }
     function title(e) { return e.names[lang()] || e.names.en || e.names.ko; }
     function node(tag,value,parent) { var n = document.createElement(tag); n.textContent = value || ''; if(parent) parent.appendChild(n); return n; }
     function link(parent,label,url) { try { var u = new URL(url); if(u.protocol !== 'https:') return; var a=node('a',label,parent); a.href=u.href;a.target='_blank';a.rel='noopener noreferrer'; } catch (_) {} }
     function close() { panel.hidden=true; controlButton.setAttribute('aria-expanded','false'); }
     function details(e) {
         var box=node('div');box.className='giloa-popup-card';
-        node('small',w()[0]+' · POP',box);node('h3',title(e),box);
+        node('small',(e.kind === 'plaza-event' ? w()[14] : 'POP')+' · '+markerLabel(e),box);node('h3',title(e),box);
         node('p',w()[3]+': '+e.start+' — '+e.end,box);node('p',e.address+' · '+e.floor,box);
         if(e.hours) node('p',e.hours+' (KST)',box);
-        node('p',w()[9],box);node('small',w()[4]+': '+data.checkedAt+' · '+e.publisher,box);
+        node('p',active(e,day()) ? w()[9] : w()[15],box);node('small',w()[4]+': '+(e.checkedAt || data.checkedAt)+' · '+e.publisher,box);
         link(box,w()[1],e.source);node('p',w()[5],box);
         link(box,w()[7],'https://map.kakao.com/link/search/'+encodeURIComponent(e.address));
         return box;
     }
     function render() {
         if(!m) return;
-        var events=data.events.filter(function(e){return active(e,day());});
-        controlButton.textContent='POP · '+events.length;controlButton.title=w()[0];controlButton.setAttribute('aria-label',w()[0]);
+        var events=data.events.filter(function(e){return listed(e,day());});
+        controlButton.textContent='POP / EVENT · '+events.length;controlButton.title=w()[0];controlButton.setAttribute('aria-label',w()[0]);
         group.clearLayers();
         events.forEach(function(e) {
-            if(!enabled || !points[e.id]) return;
-            L.marker(points[e.id],{pane:'giloaPopupPane',title:title(e),bubblingMouseEvents:false,icon:L.divIcon({className:'giloa-popup-marker',html:'<span>POP</span>',iconSize:[34,28],iconAnchor:[17,28]})}).addTo(group).bindPopup(details(e),{className:'giloa-popup-detail',maxWidth:300});
+            if(!enabled || !points[e.id] || !active(e,day())) return;
+            L.marker(points[e.id],{pane:'giloaPopupPane',title:title(e),bubblingMouseEvents:false,icon:L.divIcon({className:'giloa-popup-marker',html:'<span>'+markerLabel(e)+'</span>',iconSize:[34,28],iconAnchor:[17,28]})}).addTo(group).bindPopup(details(e),{className:'giloa-popup-detail',maxWidth:300});
         });
         panel.replaceChildren();var header=node('header','',panel);node('h2',w()[0],header);var x=node('button','×',header);x.type='button';x.setAttribute('aria-label',w()[8]);x.onclick=close;
         node('p',w()[12],panel);node('small',w()[4]+': '+(data.checkedAt || '—'),panel);
@@ -67,7 +82,7 @@
             render();
             // Reuse the existing SDK loader; never invent coordinates when address lookup fails.
             if(typeof loadKakaoTrafficSdk === 'function') await loadKakaoTrafficSdk();
-            await Promise.all(data.events.filter(function(e){return active(e,day());}).map(geocode));
+            await Promise.all(data.events.filter(function(e){return listed(e,day());}).map(geocode));
         } catch(_){failed=true;} finally {loading=false;render();}
     }
     function setup() {
@@ -81,6 +96,6 @@
         m.on('click',close);new MutationObserver(function(){panel.setAttribute('aria-label',w()[0]);render();}).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
         document.addEventListener('visibilitychange',function(){if(!document.hidden)render();});window.addEventListener('online',load);setInterval(render,60000);load();
     }
-    window.GiloaPopupStores={day:day,active:active,refresh:load};
+    window.GiloaPopupStores={day:day,active:active,listed:listed,refresh:load};
     window.addEventListener('giloa:ready',setup);document.addEventListener('DOMContentLoaded',setup);setup();
 }());
