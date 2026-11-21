@@ -172,6 +172,10 @@
         {
           "path": "features/explore/nearby-tools.js",
           "role": "탐험 코스·현재 위치 물건 사진/위치 저장·주차/자동차 QR 연결 UI"
+        },
+        {
+          "path": "features/explore/bike-parking.js",
+          "role": "자전거 탑승 후 도보 전환 주차 후보 자동 기억·기기 내 저장·확인"
         }
       ]
     },

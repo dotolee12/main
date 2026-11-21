@@ -607,6 +607,7 @@ function stopNativeRouteTracking() {
 }
 function mergeNativeRouteTrackingPoints(list) {
     if (!Array.isArray(list) || !list.length) return 0;
+    if (window.GiloaBikeParking) list.slice().sort(function(a,b) { return Number(a.time)-Number(b.time); }).forEach(function(p) { window.GiloaBikeParking.feed(p); });
     var imported = list.map(function(point) {
         var lat = Number(point && point.lat);
         var lng = Number(point && point.lng);
@@ -855,6 +856,7 @@ function handlePosition(position, options) {
         if (recStatusBox && isRecording) recStatusBox.textContent = getStatusText("gps_weak", Math.round(accuracy));
         return;
     }
+    if (isRecording && window.GiloaBikeParking) window.GiloaBikeParking.feed({lat:position.coords.latitude, lng:position.coords.longitude, accuracy:accuracy, time:timestamp, speed:position.coords.speed});
     currentAccuracy = accuracy;
     currentPositionTimestamp = timestamp;
     var latlng = L.latLng(position.coords.latitude, position.coords.longitude);

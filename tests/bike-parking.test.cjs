@@ -1,0 +1,9 @@
+const {test}=require('node:test');const assert=require('node:assert/strict');
+const {detector}=require('../features/explore/bike-parking.js');
+function point(t,speed,lat=37){return {lat,lng:127,accuracy:8,time:1000000+t*1000,speed};}
+function ride(d){for(let t=0;t<=80;t+=10)d.feed(point(t,4,37+t/20000));}
+test('cycling then stationary then walking saves transition, not end of walk',()=>{const d=detector();ride(d);d.feed(point(90,0,37.004));let c;for(let t=100;t<=170;t+=10)c=d.feed(point(t,1.2,37.004+(t-100)/90000))||c;assert.ok(c);assert.equal(c.time,1090000);assert.equal(c.lat,37.004);assert.equal(c.confirmed,false);});
+test('traffic light stop and cycling again do not create a candidate',()=>{const d=detector();ride(d);for(let t=90;t<180;t+=10)assert.equal(d.feed(point(t,0,37.004)),null);assert.equal(d.feed(point(180,4)),null);});
+test('walking alone, poor accuracy, missing speed, duplicates and gaps do not infer parking',()=>{const d=detector();for(let t=0;t<150;t+=10)assert.equal(d.feed(point(t,1.1,37+t/90000)),null);ride(d);assert.equal(d.feed({...point(200,1),accuracy:90}),null);const e=detector();ride(e);e.feed(point(90,null));for(let t=100;t<200;t+=10)assert.equal(e.feed(point(t,1,37+t/90000)),null);const f=detector();ride(f);for(let t=300;t<400;t+=10)assert.equal(f.feed(point(t,1,37+t/90000)),null);});
+test('native replay produces same result after persisted detector restoration',()=>{const a=detector();ride(a);a.feed(point(90,0,37.004));const b=detector(JSON.parse(JSON.stringify(a.state)));let c;for(let t=100;t<=170;t+=10)c=b.feed(point(t,1.1,37.004+(t-100)/90000))||c;assert.ok(c);assert.equal(b.feed(point(160,1)),null);});
+test('driving above threshold disarms bicycle inference',()=>{const d=detector();ride(d);d.feed(point(90,18));for(let t=100;t<200;t+=10)assert.equal(d.feed(point(t,1,37+t/90000)),null);});

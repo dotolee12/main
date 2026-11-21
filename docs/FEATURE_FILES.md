@@ -50,6 +50,7 @@
 | `script.js` | [features/map/heading-and-events.js](../features/map/heading-and-events.js) | 방향 부채꼴·지도 이벤트·화면 복귀 연결 |
 | `script.js` | [features/i18n/static-ui.js](../features/i18n/static-ui.js) | 정적 화면 추가 번역·안내 문구 |
 | `script.js` | [features/explore/nearby-tools.js](../features/explore/nearby-tools.js) | 탐험 코스·현재 위치 물건 사진/위치 저장·주차/자동차 QR 연결 UI |
+| `script.js` | [features/explore/bike-parking.js](../features/explore/bike-parking.js) | 자전거 탑승 후 도보 전환 주차 후보 자동 기억·기기 내 저장·확인 |
 | `style.css` | [features/common/base.css](../features/common/base.css) | 브랜드 색상·기본 레이아웃·지도 공통 |
 | `style.css` | [features/map/canvas.css](../features/map/canvas.css) | 지도 캔버스·레이어·사진 군집 |
 | `style.css` | [features/tasks/top-bar-and-tasks.css](../features/tasks/top-bar-and-tasks.css) | 상단·음악 버튼·할 일·기록 상태 |
