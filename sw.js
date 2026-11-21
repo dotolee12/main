@@ -1,4 +1,4 @@
-var APP_CACHE = "giloa-app-shell-v309";
+var APP_CACHE = "giloa-app-shell-v310";
 var RUNTIME_CACHE = "giloa-runtime-v77";
 var TILE_CACHE = "giloa-map-tiles-v6";
 var TILE_CACHE_MAX = 300;
@@ -104,6 +104,11 @@ self.addEventListener("install", function(event) {
 });
 
 self.addEventListener("activate", function(event) {
+  event.waitUntil(caches.open(RUNTIME_CACHE).then(function(cache) {
+    return cache.keys().then(function(keys) {
+      return Promise.all(keys.filter(function(key) { return new URL(key.url).pathname === new URL("./data/popup-stores.json", self.location).pathname; }).map(function(key) { return cache.delete(key); }));
+    });
+  }));
   // 선택 이미지와 대용량 데이터는 아래 fetch 핸들러가 실제 요청 시 캐시한다.
   // 활성화에는 네트워크 다운로드를 포함하지 않는다.
   event.waitUntil(caches.keys().then(function(keys) {

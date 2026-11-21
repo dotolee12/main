@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-11-20",
+  "checkedAt": "2026-11-22",
   "events": [
     {
       "id": "mama-2026-seongsu",
@@ -59,6 +59,21 @@
       "source": "https://plaza.seoul.go.kr/archives/18954",
       "publisher": "서울특별시 서울광장",
       "checkedAt": "2026-11-20"
+    },
+    {
+      "id": "snow-with-miniteen-2026-seongsu",
+      "names": {
+        "ko": "SNOW with MINITEEN 세븐틴 공식 캐릭터 팝업",
+        "en": "SNOW with MINITEEN SEVENTEEN Official Character POP-UP"
+      },
+      "address": "서울특별시 성동구 연무장7길 16",
+      "floor": "1층 · 스퀘어포탈",
+      "start": "2026-11-20",
+      "end": "2026-11-30",
+      "hours": "11:00–21:00",
+      "source": "https://weverse.io/seventeen/notice/40906",
+      "publisher": "HYBE · SEVENTEEN Weverse",
+      "checkedAt": "2026-11-22"
     }
   ]
 }
