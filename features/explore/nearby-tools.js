@@ -4,7 +4,7 @@
     var WORDS = {
         ko: {
             walk:"지금 탐험", items:"여기에 두었어요", close:"닫기", minutes:"분", make:"현재 위치로 코스 찾기",
-            consent:"코스를 찾으면 현재 위치 주변의 보행로를 OpenStreetMap 보행로 제공 서버에 요청합니다.",
+            consent:"저장된 지역 보행로를 우선 사용해요. 자료가 없는 지역은 현재 위치 주변의 보행로를 OpenStreetMap 서버에 요청합니다.",
             notice:"보행로 데이터 기반 예상 코스예요. 계단·현장 통행 여부를 확인해 주세요. 화면 잠금 중 웹 기록은 중단될 수 있어요.",
             waiting:"위치와 보행로 확인 중…", error:"코스를 불러오지 못했어요. 연결을 확인하고 다시 시도해 주세요.",
             noRoad:"80m 안에서 연결된 보행로를 찾지 못했어요. 길 위에서 다시 시도해 주세요.",
@@ -21,7 +21,7 @@
         },
         en: {
             walk:"Explore now",items:"I left it here",close:"Close",minutes:"min",make:"Find a walk from here",
-            consent:"Finding a route sends your surrounding location to an OpenStreetMap walking-data provider.",
+            consent:"Saved regional paths are used first. Elsewhere, finding a route requests surrounding paths from an OpenStreetMap provider.",
             notice:"Estimated route from walking-map data. Check steps and local access. Web recording may stop when your screen locks.",
             waiting:"Finding location and paths…",error:"Could not load a route. Check your connection and retry.",noRoad:"No connected walking path within 80 m. Try again on a path.",noRoute:"No return route fits this duration. Try another duration.",
             location:"Location unavailable. Check location permission.",clear:"Clear route",start:"Start / finish",estimate:"About {min} min · {km} km",approach:"About {m} m to the starting path. This approach is excluded.",
@@ -30,7 +30,7 @@
             storage:"Could not save. Check storage space and browser settings.",saved:"Saved.",required:"Enter a name and location.",selected:"Selected location",image:"Choose a JPG, PNG or WebP under 15 MB.",weak:"Location accuracy about {m} m. Check indoor locations and add a note.",cancel:"Cancel",load:"Could not read records. Reopen to retry.", more:"Show more"
         },
         ja: {
-            walk:"今すぐ探索",items:"ここに置いた",close:"閉じる",minutes:"分",make:"現在地からコース検索",consent:"検索時に現在地周辺の歩道データをOpenStreetMapのサーバーに問い合わせます。",
+            walk:"今すぐ探索",items:"ここに置いた",close:"閉じる",minutes:"分",make:"現在地からコース検索",consent:"保存済みの地域歩道を優先します。対象外の地域では現在地周辺の歩道をOpenStreetMapサーバーに問い合わせます。",
             notice:"歩道データによる推定コースです。階段や現地の通行状況を確認してください。画面ロック中はWeb記録が止まる場合があります。",
             waiting:"位置と歩道を確認中…",error:"コースを取得できません。接続を確認してください。",noRoad:"80m以内に歩道がありません。道の上で再試行してください。",noRoute:"指定時間の周回コースがありません。別の時間を選んでください。",
             location:"位置を取得できません。権限を確認してください。",clear:"コース消去",start:"出発・到着",estimate:"約{min}分・{km}km",approach:"出発点まで約{m}m。この区間は含みません。",
@@ -39,7 +39,7 @@
             storage:"保存できません。空き容量と設定を確認してください。",saved:"保存しました。",required:"名前と場所を入力してください。",selected:"選択位置",image:"15MB以下のJPG・PNG・WebPを選択してください。",weak:"位置誤差約{m}m。屋内は地図とメモで補ってください。",cancel:"取消",load:"記録を読めません。再度開いてください。", more:"もっと見る"
         },
         zh: {
-            walk:"现在探索",items:"我放在这里",close:"关闭",minutes:"分钟",make:"从当前位置寻找路线",consent:"搜索会向OpenStreetMap服务器请求当前位置周边的步行道路数据。",
+            walk:"现在探索",items:"我放在这里",close:"关闭",minutes:"分钟",make:"从当前位置寻找路线",consent:"优先使用已保存的当地步道。其他地区会向OpenStreetMap服务器请求当前位置周边的步道。",
             notice:"根据步行地图估算路线，请核对台阶及实际通行情况。锁屏可能中断网页记录。",
             waiting:"正在查询位置和步道…",error:"无法获取路线，请检查网络后重试。",noRoad:"80米内没有连通步道，请到道路上重试。",noRoute:"找不到符合时长的返回路线，请选择其他时长。",
             location:"无法定位，请检查权限。",clear:"清除路线",start:"出发・返回",estimate:"约{min}分钟・{km}公里",approach:"距起点约{m}米，此段不计入路线。",
@@ -48,7 +48,7 @@
             storage:"无法保存，请检查空间和浏览器设置。",saved:"已保存。",required:"请输入名称并选择位置。",selected:"所选位置",image:"请选择15MB以下的JPG、PNG或WebP。",weak:"定位误差约{m}米，请在地图上核对室内位置并添加备注。",cancel:"取消",load:"无法读取记录，请重新打开。", more:"显示更多"
         },
         es: {
-            walk:"Explorar ahora",items:"Lo dejé aquí",close:"Cerrar",minutes:"min",make:"Buscar paseo desde aquí",consent:"La búsqueda solicita a OpenStreetMap las vías peatonales alrededor de tu ubicación.",
+            walk:"Explorar ahora",items:"Lo dejé aquí",close:"Cerrar",minutes:"min",make:"Buscar paseo desde aquí",consent:"Primero se usan caminos locales guardados. En otras zonas se solicitan a OpenStreetMap las vías alrededor de tu ubicación.",
             notice:"Ruta estimada. Comprueba escaleras y accesos. El registro web puede detenerse al bloquear la pantalla.",
             waiting:"Buscando ubicación y caminos…",error:"No se pudo cargar la ruta. Revisa la conexión.",noRoad:"No hay camino conectado a menos de 80 m. Reintenta desde un camino.",noRoute:"No hay recorrido de vuelta para esa duración. Elige otra.",
             location:"Ubicación no disponible. Revisa los permisos.",clear:"Borrar ruta",start:"Salida / regreso",estimate:"Unos {min} min · {km} km",approach:"Unos {m} m hasta el inicio, no incluidos.",
@@ -304,6 +304,25 @@
             return {lat:c.latitude, lng:c.longitude, accuracy:c.accuracy};
         }, function () { throw new Error("location"); });
     }
+    var bundledWalkingData = null;
+    async function loadBundledWalkingData(origin) {
+        // Public OSM snapshot. It contains roads only, never player GPS/history.
+        if (origin.lng < 127.100 || origin.lng > 127.116 || origin.lat < 37.492 || origin.lat > 37.505) return null;
+        if (bundledWalkingData) return bundledWalkingData;
+        controller = new AbortController();
+        var bundleController = controller;
+        var timer = setTimeout(function() { bundleController.abort(); }, 4000);
+        try {
+            var url = new URL("../../data/walking/garak-seokchon-v1.json", moduleURL);
+            var response = await fetch(url.href, {signal:bundleController.signal, credentials:"omit", referrerPolicy:"no-referrer"});
+            if (!response.ok) return null;
+            var body = await response.json();
+            if (!Array.isArray(body.elements) || !body.elements.length || body.elements.length > 60000 || body.remark) return null;
+            bundledWalkingData = body;
+            return body;
+        } catch (_) { return null; }
+        finally { clearTimeout(timer); }
+    }
     function planInWorker(elements, origin, duration, history) {
         return new Promise(function (resolve, reject) {
             var worker = new Worker(new URL("./walk-worker.js?v=walk-fix-20261123", moduleURL));
@@ -335,9 +354,10 @@
             if (id !== requestId) return;
             walkStatus(1);
             var query = "[out:json][timeout:10];way(around:" + Math.ceil(minutes * 60 * 1.1 * 0.65 + 150) + "," + origin.lat.toFixed(5) + "," + origin.lng.toFixed(5) + ')[highway~"^(footway|path|pedestrian|living_street|residential|service|steps|unclassified|tertiary|tertiary_link|secondary|secondary_link|primary|primary_link|cycleway|track)$"];(._;>;);out body;';
-            var data = null;
+            var data = await loadBundledWalkingData(origin);
+            if (id !== requestId) return;
             var endpoints = ["https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter", "https://overpass.kumi.systems/api/interpreter"];
-            for (var endpoint of endpoints) {
+            for (var endpoint of (data ? [] : endpoints)) {
                 if (id !== requestId) return;
                 controller = new AbortController();
                 var currentController = controller;

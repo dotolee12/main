@@ -196,9 +196,9 @@ test("walk reuses only a recent accurate map fix", async () => {
         f.w.navigator.geolocation={getCurrentPosition(ok,fail){requested++;fail({code:2});}};
         f.w.fetch=async()=>{fetched++;return {ok:true,json:async()=>({elements:[]})};};
         f.w.GiloaNearbyTools.open('walk');f.node('make').click();await tick();await tick();
-        assert.equal(requested,0);assert.equal(fetched,1);
+        assert.equal(requested,0);assert.equal(fetched,2);
         f.w.currentPositionTimestamp=Date.now()-60000;f.node('make').click();await tick();
-        assert.equal(requested,1);assert.equal(fetched,1);
+        assert.equal(requested,1);assert.equal(fetched,2);
     } finally {f.dom.window.close();}
 });
 test('an imprecise location can be used only after confirming the displayed start', async()=>{
@@ -209,7 +209,7 @@ test('an imprecise location can be used only after confirming the displayed star
   f.w.GiloaNearbyTools.open('walk');f.node('make').click();await tick();
   assert.equal(requests,0);assert.match(f.node('status').textContent,/150m/);
   assert.equal(f.node('walkSelectedMake').hidden,false);assert.match(f.node('walkSelected').textContent,/37\.50000/);
-  f.node('walkSelectedMake').click();await tick();await tick();assert.equal(requests,1);
+  f.node('walkSelectedMake').click();await tick();await tick();assert.equal(requests,2);
  }finally{f.dom.window.close();}
 });
 test('a failed walking provider falls back to another provider and draws a real route',async()=>{
@@ -224,5 +224,21 @@ test('a failed walking provider falls back to another provider and draws a real 
   };
   f.w.GiloaNearbyTools.open('walk');f.w.document.querySelector('[data-minutes="10"]').click();f.node('make').click();
   await tick();await tick();assert.equal(calls,2);assert.equal(f.routes.length,1);assert.equal(f.node('status').textContent,'');
+ }finally{f.dom.window.close();}
+});
+test('saved public walking paths produce a route even when all external providers are unavailable',async()=>{
+ const f=await fixture();try{
+  const data=JSON.parse(read('data/walking/garak-seokchon-v1.json'));
+  f.w.currentPos={lat:(data.bounds[1]+data.bounds[3])/2,lng:(data.bounds[0]+data.bounds[2])/2};
+  f.w.currentAccuracy=10;f.w.currentPositionTimestamp=Date.now();
+  let external=0,local=0;
+  f.w.fetch=async(url)=>{
+   if(new URL(url).pathname==='/data/walking/garak-seokchon-v1.json'){local++;return {ok:true,json:async()=>data};}
+   external++;throw Error('provider unavailable');
+  };
+  f.w.GiloaNearbyTools.open('walk');f.node('make').click();await tick();await tick();await tick();
+  assert.equal(local,1);assert.equal(external,0);assert.equal(f.routes.length,1);
+  assert.match(f.node('summary').textContent,/km/);assert.equal(f.node('status').textContent,'');
+  f.node('make').click();await tick();await tick();assert.equal(local,1);assert.equal(external,0);assert.equal(f.routes.length,2);
  }finally{f.dom.window.close();}
 });

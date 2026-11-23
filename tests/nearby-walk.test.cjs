@@ -72,3 +72,14 @@ test('sidewalk-tagged streets and pedestrian bollards stay connected; private ga
  assert(core.graph(elements).links.has(3));
  elements[2].tags={barrier:'gate',access:'private'};assert.equal(core.graph(elements).links.has(3),false);
 });
+test('bundled OSM roads support 10, 20 and 40 minute closed walks from the public coverage center',()=>{
+ const data=JSON.parse(fs.readFileSync('data/walking/garak-seokchon-v1.json','utf8'));
+ const origin={lat:(data.bounds[1]+data.bounds[3])/2,lng:(data.bounds[0]+data.bounds[2])/2};
+ for(const minutes of [10,20,40]){
+  const graph=core.graph(data.elements),route=core.plan(graph,origin,minutes,[]),target=minutes*60*1.1;
+  assert(route.length>=target*.65 && route.length<=target*1.3);assert(route.approach<=80);
+  assert.deepEqual(route.coords[0],route.coords.at(-1));
+  const ids=new Map([...graph.nodes].map(([id,p])=>[p,id]));
+  for(let i=1;i<route.coords.length;i++)assert(graph.links.get(ids.get(route.coords[i-1])).some(e=>e.id===ids.get(route.coords[i])));
+ }
+});

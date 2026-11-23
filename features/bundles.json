@@ -171,7 +171,7 @@
         },
         {
           "path": "features/explore/nearby-tools.js",
-          "role": "탐험 코스·현재 위치 물건 사진/위치 저장·주차/자동차 QR 연결 UI"
+          "role": "탐험 코스·현재 위치 물건 사진/위치 저장·주차/자동차 QR 연결 UI · 저장된 지역 보행로 우선 조회"
         },
         {
           "path": "features/explore/bike-parking.js",

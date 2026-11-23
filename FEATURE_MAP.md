@@ -53,7 +53,7 @@
 | 사진 인식·티처블 머신·인식 뱃지 | `features/photos/image-processing.js` | `features/common/settings.js`의 인식 기준, `tm-my-image-model/` |
 | 사진 마커·미리보기·복구·사진 삭제 | `features/photos/markers-and-recovery.js` | `storage/indexeddb.js`, `photos/image-processing.js`, 사진 목록은 `memories/memories-and-lists.js` |
 | 시간의 흔적·재촬영·과거 사진 비교 | `time-trace.js`, `time-trace.css` | `features/photos/panels.html` |
-| 10·20·40분 탐험·산책 왕복·물건 위치 저장·소지품 사진·자동차 QR·주차 위치 | `features/explore/nearby-tools.js`, `features/explore/walk-core.js` | `features/explore/nearby-tools.css`。`features/explore/walk-worker.js`에서 요청 시 코스 계산, 별도 DB `giloa-belongings-v1`의 메뉴별 30개 조회. 현재 위치의 `물건 위치 저장` 탭에서 주차와 소지품 사진을 함께 찾음 (`parking.js` 연결). 자동차 전용 QR 생성/스캔은 `features/explore/vendor/`를 요청 시 로드 |
+| 10·20·40분 탐험·산책 왕복·물건 위치 저장·소지품 사진·자동차 QR·주차 위치 | `features/explore/nearby-tools.js`, `features/explore/walk-core.js` | `features/explore/nearby-tools.css`。가락·석촌 보행로는 `data/walking/garak-seokchon-v1.json`의 공개 OSM 스냅샷을 먼저 사용하며, 범위 밖이나 자료 로드 실패 시 외부 서버 조회. `features/explore/walk-worker.js`에서 요청 시 코스 계산, 별도 DB `giloa-belongings-v1`의 메뉴별 30개 조회. 현재 위치의 `물건 위치 저장` 탭에서 주차와 소지품 사진을 함께 찾음 (`parking.js` 연결). 자동차 전용 QR 생성/스캔은 `features/explore/vendor/`를 요청 시 로드 |
 | 개인 주차·층·구역·차를 세운 위치 | `parking.js`, `parking.css` | `parking-ocr.js`는 촬영한 기둥 번호 인식. 공공 주차장 조회와 다름 |
 | 팝업스토어·서울광장 행사·빨간 POP/EVENT | `popup-stores.js`, `popup-stores.css`, `data/popup-stores.json` | 공식 공지 확인 후 목록 갱신. 한국 날짜로 종료 제외. 30일 내 예정 행사는 목록에만, 진행 기간에는 지도에 POP/EVENT 구분 표시. 주소는 카카오 주소 검색으로 확인해 지도 표시. 자동 인터넷 수집 아님 |
 | 관광지·음식점·쇼핑·숙박·축제·좋아요 | `features/places/tourism.js` | `features/places/tourism.css`, `features/map/map-and-controls.html`, 번역·지도 표시 설정 |
