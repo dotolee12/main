@@ -68,6 +68,17 @@
         var lang = String(typeof currentLang === "string" ? currentLang : document.documentElement.lang || "ko").slice(0,2);
         return (WALK_LOCATION_UI[lang] || WALK_LOCATION_UI.en)[index];
     }
+    var WALK_STATUS_UI = {
+        ko:["현재 위치 확인 중…", "주변 보행로를 불러오는 중…", "걸을 수 있는 왕복 코스를 계산 중…", "보행로 서버가 응답하지 않아요. 잠시 후 다시 시도해 주세요.", "위치 오차가 약 {m}m예요. 지도에 표시된 위치가 맞으면 아래 출발점 버튼으로 코스를 찾거나, 지도에서 출발점을 다시 선택해 주세요."],
+        en:["Finding your location…", "Loading nearby walking paths…", "Calculating a return walk…", "Walking-data servers did not respond. Please retry shortly.", "Location accuracy is about {m} m. Check the displayed location, then use the selected-start button or choose another start on the map."],
+        ja:["現在地を確認中…", "周辺の歩道を取得中…", "往復コースを計算中…", "歩道サーバーから応答がありません。しばらくして再試行してください。", "位置誤差は約{m}mです。地図上の位置を確認して出発点ボタンを押すか、地図で出発点を選び直してください。"],
+        zh:["正在定位…", "正在加载附近步道…", "正在计算往返路线…", "步道服务器未响应，请稍后重试。", "定位误差约{m}米。请确认地图显示位置，再点击所选起点按钮，或在地图上重新选择起点。"],
+        es:["Buscando tu ubicación…", "Cargando caminos cercanos…", "Calculando un recorrido de vuelta…", "Los servidores de caminos no respondieron. Reintenta en unos momentos.", "La precisión es de unos {m} m. Confirma la ubicación y usa el botón de inicio elegido, o selecciona otro inicio en el mapa."]
+    };
+    function walkStatus(index, accuracy) {
+        var lang = String(typeof currentLang === "string" ? currentLang : document.documentElement.lang || "ko").slice(0,2);
+        node("status").textContent = (WALK_STATUS_UI[lang] || WALK_STATUS_UI.en)[index].replace("{m}", Math.round(accuracy || 0));
+    }
     var walkOrigin = null;
     function refreshWalkOrigin() {
         node("walkPick").textContent = walkLocationText(0);
@@ -285,13 +296,17 @@
                 !Number.isFinite(c.accuracy) || c.accuracy <= 0) {
                 throw new Error("location");
             }
-            if (c.accuracy > 80) throw new Error("imprecise");
+            if (c.accuracy > 80) {
+                var error = new Error("imprecise");
+                error.position = {lat:c.latitude, lng:c.longitude, accuracy:c.accuracy};
+                throw error;
+            }
             return {lat:c.latitude, lng:c.longitude, accuracy:c.accuracy};
         }, function () { throw new Error("location"); });
     }
     function planInWorker(elements, origin, duration, history) {
         return new Promise(function (resolve, reject) {
-            var worker = new Worker(new URL("./walk-worker.js?v=qr-walk-20261117", moduleURL));
+            var worker = new Worker(new URL("./walk-worker.js?v=walk-fix-20261123", moduleURL));
             var job = {worker:worker, reject:reject};
             workerJob = job;
             function finish(error, route) {
@@ -314,18 +329,19 @@
     async function makeWalk(originOverride) {
         cancelWork();
         var id = requestId;
-        node("make").disabled = true; status("waiting");
+        node("make").disabled = true; walkStatus(0);
         try {
             var origin = validPosition(originOverride) ? originOverride : await position();
             if (id !== requestId) return;
-            var query = "[out:json][timeout:18];way(around:" + Math.ceil(minutes * 60 * 1.1 * 0.65 + 150) + "," + origin.lat.toFixed(5) + "," + origin.lng.toFixed(5) + ')[highway];(._;>;);out body;';
+            walkStatus(1);
+            var query = "[out:json][timeout:10];way(around:" + Math.ceil(minutes * 60 * 1.1 * 0.65 + 150) + "," + origin.lat.toFixed(5) + "," + origin.lng.toFixed(5) + ')[highway~"^(footway|path|pedestrian|living_street|residential|service|steps|unclassified|tertiary|tertiary_link|secondary|secondary_link|primary|primary_link|cycleway|track)$"];(._;>;);out body;';
             var data = null;
-            var endpoints = ["https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter"];
+            var endpoints = ["https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter", "https://overpass.kumi.systems/api/interpreter"];
             for (var endpoint of endpoints) {
                 if (id !== requestId) return;
                 controller = new AbortController();
                 var currentController = controller;
-                var timer = setTimeout(function () { currentController.abort(); }, 25000);
+                var timer = setTimeout(function () { currentController.abort(); }, 12000);
                 try {
                     var response = await fetch(endpoint, {
                         method:"POST", body:new URLSearchParams({data:query}), signal:controller.signal,
@@ -340,7 +356,7 @@
                     if (id !== requestId) return;
                 } finally { clearTimeout(timer); }
             }
-            if (!data) throw new Error("error");
+            if (!data) throw new Error("network");
             if (id !== requestId) return;
             if (!Array.isArray(data.elements) || data.remark || data.elements.length > 60000) throw new Error("error");
             var points = typeof pathCoordinates !== "undefined" ? pathCoordinates : [];
@@ -348,6 +364,7 @@
             for (var i = 0; i < points.length; i += stride) {
                 history.push({lat:points[i].lat, lng:points[i].lng});
             }
+            walkStatus(2);
             var route = await planInWorker(data.elements, origin, minutes, history);
             if (id !== requestId) return;
             routeLayer.clearLayers();
@@ -372,7 +389,11 @@
             status("");
         } catch (error) {
             if (id === requestId) {
-                if (error.message === "location" || error.message === "imprecise") node("status").textContent = walkLocationText(error.message === "imprecise" ? 4 : 5);
+                if (error.message === "imprecise" && validPosition(error.position)) {
+                    walkOrigin = {lat:error.position.lat, lng:error.position.lng};
+                    refreshWalkOrigin(); walkStatus(4, error.position.accuracy);
+                } else if (error.message === "location") node("status").textContent = walkLocationText(5);
+                else if (error.message === "network") walkStatus(3);
                 else status(["noRoad","noRoute"].includes(error.message) ? error.message : "error");
             }
         } finally {

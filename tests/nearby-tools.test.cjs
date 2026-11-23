@@ -104,7 +104,7 @@ test("route requests use a disposable worker and closing cancels stale results",
         f.w.GiloaNearbyTools.open("walk");
         f.w.fetch = async () => { throw new Error("network"); };
         f.node("make").click(); await tick();
-        assert(f.node("status").textContent.includes("불러오지"));
+        assert(f.node("status").textContent.includes("서버가 응답하지"));
         assert.equal(f.node("make").disabled, false);
     } finally {f.dom.window.close();}
 });
@@ -200,4 +200,29 @@ test("walk reuses only a recent accurate map fix", async () => {
         f.w.currentPositionTimestamp=Date.now()-60000;f.node('make').click();await tick();
         assert.equal(requested,1);assert.equal(fetched,1);
     } finally {f.dom.window.close();}
+});
+test('an imprecise location can be used only after confirming the displayed start', async()=>{
+ const f=await fixture();try{
+  let requests=0;
+  f.w.requestSharedPosition=async()=>({coords:{latitude:37.5,longitude:127.1,accuracy:150}});
+  f.w.fetch=async()=>{requests++;return {ok:true,json:async()=>({elements:[]})};};
+  f.w.GiloaNearbyTools.open('walk');f.node('make').click();await tick();
+  assert.equal(requests,0);assert.match(f.node('status').textContent,/150m/);
+  assert.equal(f.node('walkSelectedMake').hidden,false);assert.match(f.node('walkSelected').textContent,/37\.50000/);
+  f.node('walkSelectedMake').click();await tick();await tick();assert.equal(requests,1);
+ }finally{f.dom.window.close();}
+});
+test('a failed walking provider falls back to another provider and draws a real route',async()=>{
+ const f=await fixture();try{
+  const elements=Array.from({length:24},(_,i)=>({type:'node',id:i+1,lat:37+Math.sin(i*Math.PI/12)*.0009,lon:127+Math.cos(i*Math.PI/12)*.00113}));
+  elements.push({type:'way',id:100,tags:{highway:'footway'},nodes:[...Array.from({length:24},(_,i)=>i+1),1]});
+  f.w.currentPos={lat:elements[0].lat,lng:elements[0].lon};f.w.currentAccuracy=10;f.w.currentPositionTimestamp=Date.now();
+  let calls=0;f.w.fetch=async(url,options)=>{
+   calls++;assert.match(options.body.get('data'),/highway~/);
+   if(calls===1)throw Error('502');
+   return {ok:true,json:async()=>({elements})};
+  };
+  f.w.GiloaNearbyTools.open('walk');f.w.document.querySelector('[data-minutes="10"]').click();f.node('make').click();
+  await tick();await tick();assert.equal(calls,2);assert.equal(f.routes.length,1);assert.equal(f.node('status').textContent,'');
+ }finally{f.dom.window.close();}
 });

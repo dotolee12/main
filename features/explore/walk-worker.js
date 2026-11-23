@@ -1,5 +1,5 @@
 /* Loaded only after the user requests a walking route. */
-importScripts("./walk-core.js?v=car-qr-walk-20261117");
+importScripts("./walk-core.js?v=walk-fix-20261123");
 self.onmessage = function (event) {
     try {
         var input = event.data;

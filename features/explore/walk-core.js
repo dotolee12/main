@@ -13,8 +13,9 @@ var GiloaWalkCore = (function () {
         if (!permitted && /^(no|private|customers|destination)$/.test(tags.access || "")) return false;
         if (tags["access:conditional"] || tags["foot:conditional"] || tags.indoor === "yes" || tags.area === "yes") return false;
         if (/^(construction|proposed|motorway|motorway_link|trunk|trunk_link)$/.test(tags.highway || "")) return false;
+        var sidewalk = [tags.sidewalk, tags["sidewalk:both"], tags["sidewalk:left"], tags["sidewalk:right"]].some(function(value) { return /^(yes|both|left|right)$/.test(value || ""); });
         return /^(footway|path|pedestrian|living_street|residential|service|steps|unclassified)$/.test(tags.highway || "") ||
-            permitted && /^(cycleway|tertiary|secondary|primary|track)$/.test(tags.highway || "");
+            (permitted || sidewalk) && /^(cycleway|tertiary|tertiary_link|secondary|secondary_link|primary|primary_link|track)$/.test(tags.highway || "");
     }
     function graph(elements) {
         var nodes = new Map(), links = new Map();
@@ -22,7 +23,7 @@ var GiloaWalkCore = (function () {
         elements.forEach(function (item) {
             if (item.type !== "node") return;
             if (item.tags && (/^(no|private)$/.test(item.tags.foot || item.tags.access || "") ||
-                    item.tags.barrier && !/^(yes|designated|permissive)$/.test(item.tags.foot || ""))) barriers.add(item.id);
+                    item.tags.barrier && !/^(bollard|block)$/.test(item.tags.barrier) && !/^(yes|designated|permissive)$/.test(item.tags.foot || ""))) barriers.add(item.id);
             if (Number.isFinite(item.lat) && Number.isFinite(item.lon)) nodes.set(item.id, {lat:item.lat, lng:item.lon});
         });
         function edge(from, to, length) {
@@ -36,8 +37,19 @@ var GiloaWalkCore = (function () {
                 if (!nodes.has(a) || !nodes.has(b) || barriers.has(a) || barriers.has(b)) continue;
                 var length = distance(nodes.get(a), nodes.get(b));
                 if (length <= 0) continue;
-                if (item.tags["oneway:foot"] !== "-1") edge(a, b, length);
-                if (item.tags["oneway:foot"] !== "yes") edge(b, a, length);
+                // OSM may draw a straight street with distant endpoints. Add
+                // samples ON that same edge, never straight connectors to it.
+                var parts = Math.ceil(length / 35), previous = a;
+                for (var step = 1; step <= parts; step++) {
+                    var next = step === parts ? b : "walk:" + item.id + ":" + i + ":" + step;
+                    if (next !== b) {
+                        var from = nodes.get(a), to = nodes.get(b), fraction = step / parts;
+                        nodes.set(next, {lat:from.lat + (to.lat-from.lat)*fraction, lng:from.lng + (to.lng-from.lng)*fraction});
+                    }
+                    if (item.tags["oneway:foot"] !== "-1") edge(previous, next, length / parts);
+                    if (item.tags["oneway:foot"] !== "yes") edge(next, previous, length / parts);
+                    previous = next;
+                }
             }
         });
         return {nodes:nodes, links:links};

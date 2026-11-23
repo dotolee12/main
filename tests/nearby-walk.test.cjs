@@ -58,3 +58,17 @@ test("a single connected road can supply an out-and-back walk", () => {
         assert(graph.links.get(a).some(edge=>edge.id===b));
     }
 });
+test('a long road is usable from its middle even when its original endpoints are far away',()=>{
+ const elements=[{type:'node',id:1,lat:37,lon:127},{type:'node',id:2,lat:37.018,lon:127},{type:'way',id:10,nodes:[1,2],tags:{highway:'footway'}}];
+ const route=core.plan(core.graph(elements),{lat:37.009,lng:127},10,[]);
+ assert(route.approach<=25);assert(route.length>=429 && route.length<=858);
+ assert.deepEqual(route.coords[0],route.coords.at(-1));
+ for(const p of route.coords)assert.equal(p.lng,127);
+});
+test('sidewalk-tagged streets and pedestrian bollards stay connected; private gates do not',()=>{
+ assert.equal(core.walkable({highway:'tertiary',sidewalk:'both'}),true);
+ assert.equal(core.walkable({highway:'tertiary',sidewalk:'both',foot:'no'}),false);
+ const elements=ring();elements[2].tags={barrier:'bollard'};
+ assert(core.graph(elements).links.has(3));
+ elements[2].tags={barrier:'gate',access:'private'};assert.equal(core.graph(elements).links.has(3),false);
+});
