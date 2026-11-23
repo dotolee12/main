@@ -4464,11 +4464,15 @@ async function startRecordingAfterDisclosure() {
             showLocationToast(earlyUiText("locating"));
             // The site's consent and the browser's location permission are separate.
             // Request an actual fix so browsers without the Permissions API work too.
-            await new Promise(function(resolve, reject) {
-                navigator.geolocation.getCurrentPosition(resolve, reject, {
-                    enableHighAccuracy: true, maximumAge: 0, timeout: 20000
-                });
-            });
+            var firstPosition = await requestSharedPosition({onImproved:function(position) {
+                handlePosition(position);
+                if (currentPos) map.setView(currentPos, Math.max(map.getZoom(), 16));
+            }});
+            // Keep the successful permission fix: the next watch callback may
+            // arrive late or never arrive on a stationary device.
+            handlePosition(firstPosition);
+            if (currentPos) map.setView(currentPos, Math.max(map.getZoom(), 16));
+            showLocationToast(earlyUiText("locationUpdated", {accuracy:Math.round(firstPosition.coords.accuracy)}), 2200);
         }
         if (!isRecording) toggleRecording();
     } catch (error) {
@@ -4876,7 +4880,21 @@ function startForegroundTracking() {
         }, { enableHighAccuracy:false, maximumAge:0, timeout:10000 });
     } catch (error) { /* The live high-accuracy watch remains active. */ }
 }
+var recordingMapFocusPending = false;
+var recordingMapFocusDeadline = 0;
+function focusRecordingMapOnPosition(position, accuracy, timestamp) {
+    if (!recordingMapFocusPending || !position) return;
+    // Never center on replayed background history or a restored old journey.
+    var age = Date.now() - timestamp;
+    if (!Number.isFinite(age) || age < -5000 || age > 30000) return;
+    map.setView(position, Math.max(map.getZoom(), 16));
+    // Follow startup improvements only, leaving normal map browsing free.
+    if (accuracy <= 50 || Date.now() >= recordingMapFocusDeadline) recordingMapFocusPending = false;
+}
 function startTracking() {
+    recordingMapFocusPending = true;
+    recordingMapFocusDeadline = Date.now() + 20000;
+    if (currentPos) focusRecordingMapOnPosition(currentPos, currentAccuracy, currentPositionTimestamp);
     clearTrackingRetryTimer();
     trackingRequested = true;
     if (isNativeRouteTrackingAvailable()) {
@@ -4893,6 +4911,7 @@ function startTracking() {
     startForegroundTracking();
 }
 function stopTracking() {
+    recordingMapFocusPending = false;
     foregroundLocationGeneration++;
     trackingRequested = false;
     if (watchId !== null) {
@@ -4956,6 +4975,7 @@ function handlePosition(position, options) {
     // the map. This keeps the blue dot, map centering and fog opening identical.
     currentPos = playerMarker.getLatLng();
     latlng = currentPos;
+    focusRecordingMapOnPosition(latlng, accuracy, timestamp);
     if (!playerAccuracyCircle) {
         playerAccuracyCircle = L.circle(latlng, { pane: "playerPane", radius: Math.max(accuracy, 3), interactive: false, color: "#4db8ff", weight: 1, opacity: 0.55, fillColor: "#4db8ff", fillOpacity: 0.09 }).addTo(map);
     } else {

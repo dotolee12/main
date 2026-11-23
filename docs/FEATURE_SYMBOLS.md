@@ -272,6 +272,7 @@
 | `startBackgroundTracking` | [features/gps/recording.js](../features/gps/recording.js) |
 | `stopBackgroundTracking` | [features/gps/recording.js](../features/gps/recording.js) |
 | `startForegroundTracking` | [features/gps/recording.js](../features/gps/recording.js) |
+| `focusRecordingMapOnPosition` | [features/gps/recording.js](../features/gps/recording.js) |
 | `startTracking` | [features/gps/recording.js](../features/gps/recording.js) |
 | `stopTracking` | [features/gps/recording.js](../features/gps/recording.js) |
 | `handlePosition` | [features/gps/recording.js](../features/gps/recording.js) |

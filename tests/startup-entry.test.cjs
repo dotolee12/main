@@ -19,8 +19,12 @@ function fixture(options={}){
  Object.defineProperty(w.navigator,'geolocation',{value:{getCurrentPosition(ok,fail){
   events.push('browser-location');
   if(options.deferBrowserLocation){w.finishBrowserLocation=ok;return;}
-  if(options.webPermission==='denied')fail({code:1});else ok({});
+  if(options.webPermission==='denied')fail({code:1});else ok({coords:{latitude:37.5,longitude:127.1,accuracy:10}});
  }}});
+ w.currentPos=null;
+ w.handlePosition=p=>{w.currentPos={lat:p.coords.latitude,lng:p.coords.longitude};events.push('map-position');};
+ w.map={getZoom:()=>15,setView:p=>{events.push('map-center');w.lastMapCenter=p;}};
+ w.requestSharedPosition=opts=>new Promise((resolve,reject)=>w.navigator.geolocation.getCurrentPosition(p=>{if(opts.onImproved)opts.onImproved(p);resolve(p);},reject));
  w.requestLocationPermission=()=>options.permissionDenied?Promise.reject(new Error('denied')):Promise.resolve();
  w.focusCurrentLocation=()=>{events.push('location');return Promise.resolve(true);};
  w.ensureRecordingSession=()=>events.push('session');w.startAutoRecordingTimer=()=>events.push('eight-hour-timer');w.startTracking=()=>events.push('tracking');
@@ -110,6 +114,14 @@ test('consent requests browser permission and the dot stays idle until a GPS fix
  const a=fixture({deferBrowserLocation:true});
  const ready=a.w.beginGiloaStartupEntry();a.button(true).click();await ready;
  assert(a.events.includes('browser-location'));assert.equal(a.w.recBtn.getAttribute('aria-pressed'),'false');
- a.w.finishBrowserLocation({});await new Promise(r=>setImmediate(r));
+ a.w.finishBrowserLocation({coords:{latitude:37.5,longitude:127.1,accuracy:10}});await new Promise(r=>setImmediate(r));
  assert.equal(a.w.recBtn.getAttribute('aria-pressed'),'true');assert(a.events.includes('tracking'));a.dom.window.close();
+});
+
+test('startup uses the permission fix to center the map before live tracking begins',async()=>{
+ const a=fixture();const ready=a.w.beginGiloaStartupEntry();a.button(true).click();await ready;await new Promise(r=>setImmediate(r));
+ assert.deepEqual({...a.w.lastMapCenter},{lat:37.5,lng:127.1});
+ assert(a.events.indexOf('map-position')<a.events.indexOf('tracking'));
+ assert(a.events.indexOf('map-center')<a.events.indexOf('tracking'));
+ assert.equal(a.w.localStorage.getItem('journeys'),'existing GPS/photos/EXIF');a.dom.window.close();
 });

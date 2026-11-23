@@ -64,3 +64,19 @@ test('display errors do not prevent shared acquisition from settling',async()=>{
     const result=f.context.requestSharedPosition({onImproved(){throw Error('optional UI failed');}});
     await Promise.resolve();f.calls[0].ok(point(10));assert.equal((await result).coords.accuracy,10);
 });
+test('recording start centers a fresh fix, refines it once, and leaves later map browsing alone',()=>{
+    const centers=[];
+    const c={Date,Number,map:{getZoom:()=>15,setView:p=>centers.push(p)},recordingMapFocusPending:true,recordingMapFocusDeadline:Date.now()+20000};
+    vm.createContext(c);vm.runInContext(source.slice(source.indexOf('function focusRecordingMapOnPosition('),source.indexOf('function startTracking(')),c);
+    c.focusRecordingMapOnPosition({lat:37,lng:127},300,Date.now());
+    c.focusRecordingMapOnPosition({lat:37.5,lng:127.1},12,Date.now());
+    c.focusRecordingMapOnPosition({lat:37.6,lng:127.2},10,Date.now());
+    assert.equal(centers.length,2);assert.equal(centers.at(-1).lat,37.5);assert.equal(c.recordingMapFocusPending,false);
+});
+test('recording map focus ignores restored old positions and accepts the first delayed live fix',()=>{
+    let centers=0;
+    const c={Date,Number,map:{getZoom:()=>16,setView:()=>centers++},recordingMapFocusPending:true,recordingMapFocusDeadline:Date.now()-1};
+    vm.createContext(c);vm.runInContext(source.slice(source.indexOf('function focusRecordingMapOnPosition('),source.indexOf('function startTracking(')),c);
+    c.focusRecordingMapOnPosition({lat:37,lng:127},10,Date.now()-60000);assert.equal(centers,0);
+    c.focusRecordingMapOnPosition({lat:37.5,lng:127.1},100,Date.now());assert.equal(centers,1);assert.equal(c.recordingMapFocusPending,false);
+});
