@@ -151,3 +151,53 @@ test("car QR updates the same item only after explicit save and requires a fresh
         assert.equal(f.node("qrCreate").textContent,"Crear QR del coche");
     }finally{f.dom.window.close();}
 });
+test("current item location waits for the shared improved fix and updates the map", async () => {
+    const f = await fixture();
+    try {
+        let requests = 0, updates = 0, complete;
+        f.w.requestSharedPosition = options => {
+            requests++;
+            options.onImproved({coords:{latitude:37.5,longitude:127.1,accuracy:600}});
+            return new Promise(resolve => {complete = resolve;});
+        };
+        f.w.handlePosition = () => updates++;
+        f.w.navigator.geolocation = {getCurrentPosition(){throw Error('duplicate location request');}};
+        f.w.GiloaNearbyTools.open('items');f.node('new').click();f.node('current').click();
+        assert.equal(requests,1);assert.equal(updates,1);
+        complete({coords:{latitude:37.5,longitude:127.1,accuracy:12}});await tick();
+        assert.match(f.node('selected').textContent,/37\.5/);
+        assert.match(f.node('status').textContent,/12m/);
+    } finally {f.dom.window.close();}
+});
+test("walk can use an explicitly selected start when location permission is unavailable", async () => {
+    const f = await fixture();
+    try {
+        let queried = false;
+        f.w.navigator.geolocation = {getCurrentPosition(ok,fail){fail({code:1});}};
+        f.w.fetch = async () => {queried = true; return {ok:true,json:async()=>({elements:[]})};};
+        f.w.GiloaNearbyTools.open('walk');f.node('make').click();await tick();
+        assert.match(f.node('status').textContent,/지도에서 출발점/);
+        assert.equal(queried,false);
+        f.node('walkPick').click();f.events.click({latlng:{lat:37.5,lng:127.1}});
+        assert.equal(f.node('walkSelectedMake').hidden,false);
+        assert.match(f.node('walkSelected').textContent,/37\.50000/);
+        f.node('walkSelectedMake').click();await tick();await tick();
+        assert.equal(queried,true);
+        assert.equal(f.node('make').disabled,false);
+        f.w.currentLang='es';f.w.document.documentElement.lang='es';await tick();
+        assert.match(f.node('walkPick').textContent,/Elegir/);
+    } finally {f.dom.window.close();}
+});
+test("walk reuses only a recent accurate map fix", async () => {
+    const f = await fixture();
+    try {
+        let requested=0, fetched=0;
+        f.w.currentPos={lat:37.5,lng:127.1};f.w.currentAccuracy=12;f.w.currentPositionTimestamp=Date.now();
+        f.w.navigator.geolocation={getCurrentPosition(ok,fail){requested++;fail({code:2});}};
+        f.w.fetch=async()=>{fetched++;return {ok:true,json:async()=>({elements:[]})};};
+        f.w.GiloaNearbyTools.open('walk');f.node('make').click();await tick();await tick();
+        assert.equal(requested,0);assert.equal(fetched,1);
+        f.w.currentPositionTimestamp=Date.now()-60000;f.node('make').click();await tick();
+        assert.equal(requested,1);assert.equal(fetched,1);
+    } finally {f.dom.window.close();}
+});

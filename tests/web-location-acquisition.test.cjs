@@ -47,3 +47,20 @@ test('foreground watch restart preserves a valid status and ignores a late netwo
     c.startForegroundTracking();assert.equal(c.recStatusBox.textContent,'recording');
     c.foregroundLocationGeneration++;c.isRecording=false;c.trackingRequested=false;callback(point(10));assert.equal(handled,0);
 });
+test('map and nearby tools share acquisition, improvements, and cleanup',async()=>{
+    const f=fixture(), seenA=[],seenB=[];
+    const a=f.context.requestSharedPosition({onImproved:p=>seenA.push(p.coords.accuracy)});
+    const b=f.context.requestSharedPosition({onImproved:p=>seenB.push(p.coords.accuracy)});
+    assert.equal(a,b);await Promise.resolve();
+    assert.equal(f.calls.length,3);
+    f.calls[0].ok(point(600));f.calls[0].ok(point(12));
+    assert.equal((await a).coords.accuracy,12);assert.equal((await b).coords.accuracy,12);
+    assert.deepEqual(seenA,[600,12]);assert.deepEqual(seenB,[600,12]);
+    const retry=f.context.requestSharedPosition();await Promise.resolve();
+    assert.equal(f.calls.length,6);f.calls[3].ok(point(10));await retry;
+});
+test('display errors do not prevent shared acquisition from settling',async()=>{
+    const f=fixture();f.context.console={warn(){}};
+    const result=f.context.requestSharedPosition({onImproved(){throw Error('optional UI failed');}});
+    await Promise.resolve();f.calls[0].ok(point(10));assert.equal((await result).coords.accuracy,10);
+});

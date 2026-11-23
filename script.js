@@ -4201,6 +4201,34 @@ function acquireBestPosition(options) {
     });
 }
 
+// Map focus and nearby tools share one bounded acquisition session.
+var sharedLocationRequest = null;
+function requestSharedPosition(options) {
+    options = options || {};
+    if (!sharedLocationRequest) {
+        var session = { listeners: [], best: null, promise: null };
+        sharedLocationRequest = session;
+        session.promise = Promise.resolve().then(function() {
+            return acquireBestPosition({ durationMs: 15000, onImproved: function(position) {
+                session.best = position;
+                session.listeners.forEach(function(listener) {
+                    try { listener(position); } catch (error) { console.warn("Location display update failed", error); }
+                });
+            } });
+        }).finally(function() {
+            if (sharedLocationRequest === session) sharedLocationRequest = null;
+        });
+    }
+    var active = sharedLocationRequest;
+    if (typeof options.onImproved === "function") {
+        active.listeners.push(options.onImproved);
+        if (active.best) {
+            try { options.onImproved(active.best); } catch (error) { console.warn("Location display update failed", error); }
+        }
+    }
+    return active.promise;
+}
+
 var locationResyncPending = false;
 var locationResyncPromise = null;
 var startupLocationRequested = false;
@@ -4244,7 +4272,7 @@ function focusCurrentLocation() {
     if (locationResyncPending) return locationResyncPromise;
     locationResyncPending = true;
     showLocationToast(earlyUiText("locating"));
-    locationResyncPromise = acquireBestPosition({
+    locationResyncPromise = requestSharedPosition({
         onImproved: function(position) {
             handlePosition(position, { force: true });   // 더 정확한 값이 올 때마다 마커를 옮긴다
             var improvedPosition = getDisplayedCurrentPosition();
@@ -14785,6 +14813,24 @@ window.giloaRouteTrackingDiagnostic = function() {
             storage:"No se pudo guardar. Revisa espacio y ajustes.",saved:"Guardado.",required:"Introduce nombre y ubicación.",selected:"Ubicación elegida",image:"Elige JPG, PNG o WebP de menos de 15 MB.",weak:"Precisión de unos {m} m. Revisa interiores y añade una nota.",cancel:"Cancelar",load:"No se pudieron leer los registros. Vuelve a abrir.", more:"Ver más"
         }
     };
+    var WALK_LOCATION_UI = {
+        ko:["지도에서 출발점 선택", "지도에서 출발할 보행로를 누르세요.", "선택한 출발점으로 코스 찾기", "출발점", "위치 오차가 커서 출발점을 확인할 수 없어요. 지도에서 출발점을 선택하거나 야외에서 다시 시도해 주세요.", "위치를 받지 못했어요. 위치 권한을 확인하거나 지도에서 출발점을 선택해 주세요."],
+        en:["Choose start on map", "Tap your starting path on the map.", "Find route from selected start", "Start", "Location is too imprecise. Choose a start on the map or retry outdoors.", "Location unavailable. Check permission or choose a start on the map."],
+        ja:["地図で出発点を選択", "地図上の出発する歩道をタップしてください。", "選択した出発点から検索", "出発点", "位置の誤差が大きいため、地図で出発点を選ぶか屋外で再試行してください。", "位置を取得できません。権限を確認するか地図で出発点を選んでください。"],
+        zh:["在地图上选择起点", "点击地图上的出发步道。", "从所选起点搜索路线", "起点", "定位误差过大。请在地图上选择起点或到室外重试。", "无法获取位置。请检查权限或在地图上选择起点。"],
+        es:["Elegir inicio en el mapa", "Toca el camino de salida en el mapa.", "Buscar desde el inicio elegido", "Inicio", "La ubicación es imprecisa. Elige el inicio en el mapa o reintenta al aire libre.", "Ubicación no disponible. Revisa los permisos o elige el inicio en el mapa."]
+    };
+    function walkLocationText(index) {
+        var lang = String(typeof currentLang === "string" ? currentLang : document.documentElement.lang || "ko").slice(0,2);
+        return (WALK_LOCATION_UI[lang] || WALK_LOCATION_UI.en)[index];
+    }
+    var walkOrigin = null;
+    function refreshWalkOrigin() {
+        node("walkPick").textContent = walkLocationText(0);
+        node("walkSelected").textContent = walkOrigin ? walkLocationText(3) + " · " + walkOrigin.lat.toFixed(5) + ", " + walkOrigin.lng.toFixed(5) : "";
+        node("walkSelectedMake").hidden = !walkOrigin;
+        node("walkSelectedMake").textContent = walkLocationText(2);
+    }
     var qrWords = {
       ko:["자동차 QR 만들기","자동차 QR 읽기","QR 사진 선택","QR 또는 코드를 확인해 주세요.","내 자동차","카메라를 사용할 수 없어요. QR 사진을 선택해 주세요.","층·기둥번호를 적고 위치를 확인한 뒤 저장하세요.","QR 이미지 저장"],
       en:["Create car QR","Scan car QR","Choose QR photo","Check the QR or code.","My car","Camera unavailable. Choose a QR photo.","Add floor / pillar and confirm the location before saving.","Save QR image"],
@@ -14955,6 +15001,7 @@ window.giloaRouteTrackingDiagnostic = function() {
         node("takePhoto").textContent = itemText(3);
         node("itemHelp").textContent = itemText(4);
         node("qrSummary").textContent = itemText(5);
+        refreshWalkOrigin();
         node("close").textContent = "×";
         node("close").setAttribute("aria-label", label("close"));
     }
@@ -14969,13 +15016,34 @@ window.giloaRouteTrackingDiagnostic = function() {
         if (mode === "items") { node("editor").hidden = true; refreshItems(); }
     }
     function position() {
-        return new Promise(function (resolve, reject) {
-            if (!navigator.geolocation) { reject(new Error("location")); return; }
-            navigator.geolocation.getCurrentPosition(function (result) {
-                if (result.coords.accuracy > 80) { reject(new Error("location")); return; }
-                resolve({lat:result.coords.latitude, lng:result.coords.longitude, accuracy:result.coords.accuracy});
-            }, function () { reject(new Error("location")); }, {enableHighAccuracy:true, timeout:15000, maximumAge:5000});
-        });
+        // A recent GPS fix is already validated by the shared map tracker.
+        if (typeof currentPos !== "undefined" && validPosition(currentPos) &&
+            typeof currentAccuracy === "number" && currentAccuracy > 0 && currentAccuracy <= 80 &&
+            typeof currentPositionTimestamp === "number" && Date.now() - currentPositionTimestamp >= 0 &&
+            Date.now() - currentPositionTimestamp <= 30000) {
+            return Promise.resolve({lat:currentPos.lat, lng:currentPos.lng, accuracy:currentAccuracy});
+        }
+        // Use the same improving fix as the location button, rather than reject
+        // the first coarse GPS sample while a better sample is still arriving.
+        var request = typeof requestSharedPosition === "function"
+            ? requestSharedPosition({onImproved:function (result) {
+                if (typeof handlePosition === "function") handlePosition(result, {force:true});
+            }})
+            : new Promise(function (resolve, reject) {
+                if (!navigator.geolocation) { reject(new Error("location")); return; }
+                navigator.geolocation.getCurrentPosition(resolve, reject,
+                    {enableHighAccuracy:true, timeout:15000, maximumAge:0});
+            });
+        return request.then(function (result) {
+            var c = result && result.coords;
+            if (!c || !Number.isFinite(c.latitude) || Math.abs(c.latitude) > 90 ||
+                !Number.isFinite(c.longitude) || Math.abs(c.longitude) > 180 ||
+                !Number.isFinite(c.accuracy) || c.accuracy <= 0) {
+                throw new Error("location");
+            }
+            if (c.accuracy > 80) throw new Error("imprecise");
+            return {lat:c.latitude, lng:c.longitude, accuracy:c.accuracy};
+        }, function () { throw new Error("location"); });
     }
     function planInWorker(elements, origin, duration, history) {
         return new Promise(function (resolve, reject) {
@@ -14999,12 +15067,12 @@ window.giloaRouteTrackingDiagnostic = function() {
             } catch (error) { finish(error); }
         });
     }
-    async function makeWalk() {
+    async function makeWalk(originOverride) {
         cancelWork();
         var id = requestId;
         node("make").disabled = true; status("waiting");
         try {
-            var origin = await position();
+            var origin = validPosition(originOverride) ? originOverride : await position();
             if (id !== requestId) return;
             var query = "[out:json][timeout:18];way(around:" + Math.ceil(minutes * 60 * 1.1 * 0.65 + 150) + "," + origin.lat.toFixed(5) + "," + origin.lng.toFixed(5) + ')[highway];(._;>;);out body;';
             var data = null;
@@ -15059,7 +15127,10 @@ window.giloaRouteTrackingDiagnostic = function() {
             toolsMap.fitBounds(route.coords.map(function (p) { return [p.lat, p.lng]; }), {padding:[35, 35]});
             status("");
         } catch (error) {
-            if (id === requestId) status(["location","noRoad","noRoute"].includes(error.message) ? error.message : "error");
+            if (id === requestId) {
+                if (error.message === "location" || error.message === "imprecise") node("status").textContent = walkLocationText(error.message === "imprecise" ? 4 : 5);
+                else status(["noRoad","noRoute"].includes(error.message) ? error.message : "error");
+            }
         } finally {
             if (id === requestId) { controller = null; node("make").disabled = false; }
         }
@@ -15179,7 +15250,7 @@ window.giloaRouteTrackingDiagnostic = function() {
         panel.innerHTML = '<header><h2 id="nearby-tools-title" data-nearby="title"></h2><button type="button" data-nearby="close" data-nearby-text="close"></button></header>' +
             '<div data-nearby="walk"><div class="nearby-time">' + [10,20,40].map(function (m) { return '<button type="button" data-minutes="' + m + '"></button>'; }).join("") + '</div>' +
             '<p data-nearby-text="consent"></p><button type="button" data-nearby="make" data-nearby-text="make"></button><button type="button" data-nearby="clear" data-nearby-text="clear"></button>' +
-            '<p data-nearby="summary"></p><p data-nearby="approach"></p><ol data-nearby="stops"></ol><p data-nearby-text="notice"></p><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a></div>' +
+            '<button type="button" data-nearby="walkPick"></button><p data-nearby="walkSelected"></p><button type="button" data-nearby="walkSelectedMake" hidden></button><p data-nearby="summary"></p><p data-nearby="approach"></p><ol data-nearby="stops"></ol><p data-nearby-text="notice"></p><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a></div>' +
             '<div data-nearby="items"><p data-nearby="itemHelp"></p><button type="button" data-nearby="parking"></button><button type="button" data-nearby="new"></button><p data-nearby-text="local"></p><div data-nearby="editor" hidden>' +
             '<label><span data-nearby-text="name"></span><input data-nearby="name" maxlength="80"></label>' +
             '<label><span data-nearby-text="note"></span><textarea data-nearby="note" maxlength="500" rows="3"></textarea></label>' +
@@ -15206,7 +15277,12 @@ window.giloaRouteTrackingDiagnostic = function() {
         });
         var sidebar = document.querySelector("#sidebar .sidebar-header");
         if (sidebar) sidebar.after(host);
-        node("close").onclick = close; node("make").onclick = makeWalk;
+        node("close").onclick = close; node("make").onclick = function () { makeWalk(); };
+        node("walkPick").onclick = function () {
+            cancelWork(); picking = true; panel.classList.add("is-picking");
+            node("status").textContent = walkLocationText(1);
+        };
+        node("walkSelectedMake").onclick = function () { if (walkOrigin) makeWalk(walkOrigin); };
         node("clear").onclick = function () { cancelWork(); routeLayer.clearLayers(); node("summary").textContent = node("approach").textContent = ""; node("stops").replaceChildren(); status(""); };
         panel.querySelectorAll("[data-minutes]").forEach(function (button) {
             button.onclick = function () { cancelWork(); minutes = Number(button.dataset.minutes); refreshText(); status(""); };
@@ -15238,7 +15314,10 @@ window.giloaRouteTrackingDiagnostic = function() {
                 close(); return;
             }
             picking = false; panel.classList.remove("is-picking");
-            if (draft) { setDraft(toolsMap.wrapLatLng(event.latlng)); status(""); }
+            if (mode === "walk") {
+                var point = toolsMap.wrapLatLng(event.latlng);
+                if (validPosition(point)) { walkOrigin = {lat:point.lat, lng:point.lng}; refreshWalkOrigin(); status(""); }
+            } else if (draft) { setDraft(toolsMap.wrapLatLng(event.latlng)); status(""); }
         });
         document.addEventListener("keydown", function (event) { if (event.key === "Escape" && !panel.hidden) close(); });
         new MutationObserver(function () { refreshText(); if (mode === "items" && !panel.hidden) refreshItems(); }).observe(document.documentElement, {attributes:true, attributeFilter:["lang"]});

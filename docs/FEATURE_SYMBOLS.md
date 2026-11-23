@@ -239,6 +239,7 @@
 | `shouldIgnorePositionSample` | [features/gps/recording.js](../features/gps/recording.js) |
 | `showLocationToast` | [features/gps/recording.js](../features/gps/recording.js) |
 | `acquireBestPosition` | [features/gps/recording.js](../features/gps/recording.js) |
+| `requestSharedPosition` | [features/gps/recording.js](../features/gps/recording.js) |
 | `focusStartupLocation` | [features/gps/recording.js](../features/gps/recording.js) |
 | `getDisplayedCurrentPosition` | [features/gps/recording.js](../features/gps/recording.js) |
 | `hasValidCurrentLocation` | [features/gps/recording.js](../features/gps/recording.js) |

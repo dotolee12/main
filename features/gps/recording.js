@@ -156,6 +156,34 @@ function acquireBestPosition(options) {
     });
 }
 
+// Map focus and nearby tools share one bounded acquisition session.
+var sharedLocationRequest = null;
+function requestSharedPosition(options) {
+    options = options || {};
+    if (!sharedLocationRequest) {
+        var session = { listeners: [], best: null, promise: null };
+        sharedLocationRequest = session;
+        session.promise = Promise.resolve().then(function() {
+            return acquireBestPosition({ durationMs: 15000, onImproved: function(position) {
+                session.best = position;
+                session.listeners.forEach(function(listener) {
+                    try { listener(position); } catch (error) { console.warn("Location display update failed", error); }
+                });
+            } });
+        }).finally(function() {
+            if (sharedLocationRequest === session) sharedLocationRequest = null;
+        });
+    }
+    var active = sharedLocationRequest;
+    if (typeof options.onImproved === "function") {
+        active.listeners.push(options.onImproved);
+        if (active.best) {
+            try { options.onImproved(active.best); } catch (error) { console.warn("Location display update failed", error); }
+        }
+    }
+    return active.promise;
+}
+
 var locationResyncPending = false;
 var locationResyncPromise = null;
 var startupLocationRequested = false;
@@ -199,7 +227,7 @@ function focusCurrentLocation() {
     if (locationResyncPending) return locationResyncPromise;
     locationResyncPending = true;
     showLocationToast(earlyUiText("locating"));
-    locationResyncPromise = acquireBestPosition({
+    locationResyncPromise = requestSharedPosition({
         onImproved: function(position) {
             handlePosition(position, { force: true });   // 더 정확한 값이 올 때마다 마커를 옮긴다
             var improvedPosition = getDisplayedCurrentPosition();
