@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-11-22",
+  "checkedAt": "2026-11-24",
   "events": [
     {
       "id": "mama-2026-seongsu",
@@ -74,6 +74,21 @@
       "source": "https://weverse.io/seventeen/notice/40906",
       "publisher": "HYBE · SEVENTEEN Weverse",
       "checkedAt": "2026-11-22"
+    },
+    {
+      "id": "enhypen-the-sin-parallel-world-2026-yongsan",
+      "names": {
+        "ko": "ENHYPEN THE SIN : PARALLEL WORLD 팝업스토어",
+        "en": "ENHYPEN THE SIN : PARALLEL WORLD POP-UP STORE"
+      },
+      "address": "서울 용산구 한강대로 42",
+      "floor": "1F · HYBE YONGSAN",
+      "start": "2026-11-24",
+      "end": "2026-11-29",
+      "hours": "11:00–20:00",
+      "source": "https://weverse.io/enhypen/notice/40901",
+      "publisher": "ENHYPEN Weverse · HYBE",
+      "checkedAt": "2026-11-24"
     }
   ]
 }
