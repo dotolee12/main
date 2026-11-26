@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-11-24",
+  "checkedAt": "2026-11-27",
   "events": [
     {
       "id": "mama-2026-seongsu",
@@ -89,6 +89,21 @@
       "source": "https://weverse.io/enhypen/notice/40901",
       "publisher": "ENHYPEN Weverse · HYBE",
       "checkedAt": "2026-11-24"
+    },
+    {
+      "id": "coer-first-anniversary-2026-yongsan",
+      "names": {
+        "ko": "COER 1주년 팝업",
+        "en": "COER 1st Anniversary POP-UP"
+      },
+      "address": "서울 용산구 한강대로 42",
+      "floor": "1F · HYBE YONGSAN",
+      "start": "2026-12-01",
+      "end": "2026-12-06",
+      "hours": "11:00–20:00",
+      "source": "https://weverse.io/cortis/notice/41135?hl=ko",
+      "publisher": "HYBE · CORTIS Weverse",
+      "checkedAt": "2026-11-27"
     }
   ]
 }
